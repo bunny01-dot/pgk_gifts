@@ -1,4 +1,3 @@
-
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Camera, Gift, Sparkles, CheckCircle } from "lucide-react";
@@ -8,13 +7,14 @@ import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 export default function Home() {
   const heroImg = PlaceHolderImages.find(img => img.id === 'hero-bg');
+  const heroSrc = heroImg?.imageUrl || "https://picsum.photos/seed/pgk-hero/1920/1080";
   
   return (
     <div className="flex flex-col gap-0">
       {/* Hero Section */}
       <section className="relative h-[90vh] flex items-center overflow-hidden">
         <Image
-          src={heroImg?.imageUrl || ""}
+          src={heroSrc}
           alt="Hero background"
           fill
           className="object-cover brightness-50"

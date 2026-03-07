@@ -1,4 +1,3 @@
-
 import Image from "next/image";
 import Link from "next/link";
 import { Camera, Calendar, ArrowRight } from "lucide-react";
@@ -57,11 +56,13 @@ export default function PhotographyPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             {CATEGORIES.map((cat) => {
               const img = PlaceHolderImages.find(i => i.id === cat.id);
+              const categorySrc = img?.imageUrl || `https://picsum.photos/seed/${cat.id}/800/1000`;
+              
               return (
                 <div key={cat.id} className="flex flex-col gap-6 group">
                   <div className="relative aspect-[3/4] rounded-2xl overflow-hidden shadow-xl">
                     <Image
-                      src={img?.imageUrl || ""}
+                      src={categorySrc}
                       alt={cat.title}
                       fill
                       className="object-cover transition-transform duration-700 group-hover:scale-105"
