@@ -32,7 +32,7 @@ export default function AdminPage() {
               <LayoutDashboard />
             </div>
             <h1 className="text-2xl font-headline font-bold">Admin Portal</h1>
-            <p className="text-muted-foreground">Enter your credentials to manage PGK Legacy content</p>
+            <p className="text-muted-foreground">Enter your credentials to manage PGK Gifts content</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">

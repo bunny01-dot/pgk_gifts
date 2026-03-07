@@ -1,7 +1,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Sparkles, Gift, ShoppingCart } from "lucide-react";
+import { Gift, ShoppingCart, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -67,7 +67,7 @@ export default function GiftsPage() {
           <h1 className="text-5xl font-headline font-bold mb-6">Personalized Gifts</h1>
           <p className="text-xl text-muted-foreground">
             Transform your cherished photos into unique, one-of-a-kind treasures. 
-            Choose a product and use our AI tool to see how it looks.
+            Choose from our premium catalog and let us help you create the perfect memory.
           </p>
         </header>
 
@@ -104,8 +104,8 @@ export default function GiftsPage() {
                 </CardContent>
                 <CardFooter className="flex gap-3">
                   <Button asChild className="flex-1 rounded-full">
-                    <Link href={`/visualize?product=${product.id}`}>
-                      Personalize <Sparkles className="ml-2 w-4 h-4" />
+                    <Link href="/contact">
+                      Inquire Now <MessageSquare className="ml-2 w-4 h-4" />
                     </Link>
                   </Button>
                   <Button variant="outline" className="rounded-full px-6">

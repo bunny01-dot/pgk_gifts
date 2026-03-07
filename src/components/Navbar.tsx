@@ -3,15 +3,13 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Menu, X, Camera, Gift, Sparkles, PhoneCall } from "lucide-react";
+import { Menu, X, Camera, Gift, PhoneCall } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
   { name: "Home", href: "/" },
   { name: "Personalized Gifts", href: "/gifts", icon: Gift },
   { name: "Photography", href: "/photography", icon: Camera },
-  { name: "AI Visualizer", href: "/visualize", icon: Sparkles },
   { name: "Contact", href: "/contact", icon: PhoneCall },
 ];
 
@@ -25,7 +23,7 @@ export function Navbar() {
           <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-primary-foreground transition-transform group-hover:scale-110">
             <span className="font-headline font-bold text-xl">P</span>
           </div>
-          <span className="font-headline font-bold text-2xl tracking-tight">PGK Legacy</span>
+          <span className="font-headline font-bold text-2xl tracking-tight">PGK Gifts</span>
         </Link>
 
         {/* Desktop Navigation */}

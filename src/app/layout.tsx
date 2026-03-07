@@ -7,7 +7,7 @@ import { FloatingWhatsApp } from '@/components/FloatingWhatsApp';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'PGK Legacy | Personalized Gifts & Photography',
+  title: 'PGK Gifts | Personalized Gifts & Photography',
   description: 'Preserving your legacy through artistic photography and unique personalized gifts.',
 };
 

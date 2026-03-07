@@ -7,7 +7,7 @@ export function Footer() {
     <footer className="bg-primary text-primary-foreground pt-16 pb-8">
       <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-12">
         <div className="space-y-4">
-          <h3 className="font-headline text-2xl font-bold">PGK Legacy</h3>
+          <h3 className="font-headline text-2xl font-bold">PGK Gifts</h3>
           <p className="text-primary-foreground/80 text-sm leading-relaxed">
             Preserving life's most precious moments through expert photography and bespoke personalized gifts that last a lifetime.
           </p>
@@ -23,7 +23,6 @@ export function Footer() {
           <ul className="space-y-3 text-sm">
             <li><Link href="/gifts" className="hover:underline">Personalized Gifts</Link></li>
             <li><Link href="/photography" className="hover:underline">Photography Services</Link></li>
-            <li><Link href="/visualize" className="hover:underline">AI Visualization Tool</Link></li>
             <li><Link href="/contact" className="hover:underline">Contact & Booking</Link></li>
           </ul>
         </div>
@@ -48,7 +47,7 @@ export function Footer() {
             </li>
             <li className="flex items-center gap-3">
               <Mail className="w-4 h-4" />
-              <span>hello@pgklegacy.com</span>
+              <span>hello@pgkgifts.com</span>
             </li>
             <li className="flex items-center gap-3">
               <MapPin className="w-4 h-4" />
@@ -58,7 +57,7 @@ export function Footer() {
         </div>
       </div>
       <div className="container mx-auto px-4 mt-16 pt-8 border-t border-primary-foreground/20 text-center text-sm text-primary-foreground/60">
-        <p>&copy; {new Date().getFullYear()} PGK Legacy. All rights reserved. Designed for excellence.</p>
+        <p>&copy; {new Date().getFullYear()} PGK Gifts. All rights reserved. Designed for excellence.</p>
       </div>
     </footer>
   );

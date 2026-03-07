@@ -1,6 +1,7 @@
+
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Camera, Gift, Sparkles, CheckCircle } from "lucide-react";
+import { ArrowRight, Camera, Gift, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
@@ -32,7 +33,8 @@ export default function Home() {
             <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-8 text-lg transition-all hover:scale-105">
               <Link href="/gifts">Explore Gifts <Gift className="ml-2 w-5 h-5" /></Link>
             </Button>
-            <Button asChild variant="outline" size="lg" className="bg-white/10 backdrop-blur-md text-white border-white/20 hover:bg-white/20 rounded-full px-8 text-lg transition-all hover:scale-105">
+            {/* Custom styled glass button to ensure text remains white on hover */}
+            <Button asChild size="lg" className="bg-white/10 backdrop-blur-md text-white border border-white/20 hover:bg-white/30 hover:text-white rounded-full px-8 text-lg transition-all hover:scale-105 shadow-none">
               <Link href="/photography">Book Photography <Camera className="ml-2 w-5 h-5" /></Link>
             </Button>
           </div>
@@ -48,7 +50,7 @@ export default function Home() {
             <p className="text-muted-foreground font-body">From the camera lens to the customized product, we ensure every detail of your memory is handled with artistic precision.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             <Card className="hover:shadow-xl transition-all duration-300 group border-none bg-accent/30">
               <CardContent className="p-8 text-center">
                 <div className="w-16 h-16 bg-primary text-primary-foreground rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
@@ -74,19 +76,6 @@ export default function Home() {
                 </Link>
               </CardContent>
             </Card>
-
-            <Card className="hover:shadow-xl transition-all duration-300 group border-none bg-accent/30">
-              <CardContent className="p-8 text-center">
-                <div className="w-16 h-16 bg-primary text-primary-foreground rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-                  <Sparkles className="w-8 h-8" />
-                </div>
-                <h3 className="text-2xl font-headline font-bold mb-3">AI Visualizer</h3>
-                <p className="text-muted-foreground mb-6">Use our cutting-edge AI tool to see your photos on our products before you make a purchase.</p>
-                <Link href="/visualize" className="text-primary font-bold inline-flex items-center hover:gap-2 transition-all">
-                  Try Visualizer <ArrowRight className="ml-1 w-4 h-4" />
-                </Link>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </section>
@@ -104,15 +93,15 @@ export default function Home() {
             />
           </div>
           <div className="space-y-8">
-            <h2 className="text-4xl md:text-5xl font-headline font-bold">Why Choose PGK Legacy?</h2>
+            <h2 className="text-4xl md:text-5xl font-headline font-bold">Why Choose PGK Gifts?</h2>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              Founded by John Solomon, PGK Legacy is built on the philosophy that every moment tells a story. We don't just take photos; we capture emotions. We don't just sell products; we create heirlooms.
+              Founded by John Solomon, PGK Gifts is built on the philosophy that every moment tells a story. We don't just take photos; we capture emotions. We don't just sell products; we create heirlooms.
             </p>
             <ul className="space-y-4">
               {[
                 "Award-winning professional photographers",
                 "Eco-friendly, durable gift printing materials",
-                "Cutting-edge AI preview technology",
+                "High-quality craftmanship for every product",
                 "Personalized attention for every client"
               ].map((item, i) => (
                 <li key={i} className="flex items-center gap-3">
