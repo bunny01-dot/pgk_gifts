@@ -29,10 +29,10 @@ export default function Home() {
             Professional photography services and high-quality personalized gifts designed to capture and immortalize your favorite moments.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 animate-in fade-in slide-in-from-bottom-12 duration-700 delay-400">
-            <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-8 text-lg">
+            <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-8 text-lg transition-all hover:scale-105">
               <Link href="/gifts">Explore Gifts <Gift className="ml-2 w-5 h-5" /></Link>
             </Button>
-            <Button asChild variant="outline" size="lg" className="bg-white/10 backdrop-blur-md text-white border-white/20 hover:bg-white/20 rounded-full px-8 text-lg">
+            <Button asChild variant="outline" size="lg" className="bg-white/10 backdrop-blur-md text-white border-white/20 hover:bg-white/20 rounded-full px-8 text-lg transition-all hover:scale-105">
               <Link href="/photography">Book Photography <Camera className="ml-2 w-5 h-5" /></Link>
             </Button>
           </div>
