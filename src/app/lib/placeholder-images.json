@@ -1,0 +1,47 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "hero-bg",
+      "description": "Elegant photography background",
+      "imageUrl": "https://picsum.photos/seed/pgk-hero/1920/1080",
+      "imageHint": "photography camera"
+    },
+    {
+      "id": "gift-mug",
+      "description": "Personalized Ceramic Mug",
+      "imageUrl": "https://picsum.photos/seed/pgk-mug/600/600",
+      "imageHint": "ceramic mug"
+    },
+    {
+      "id": "gift-tshirt",
+      "description": "Custom Printed T-Shirt",
+      "imageUrl": "https://picsum.photos/seed/pgk-tshirt/600/600",
+      "imageHint": "white tshirt"
+    },
+    {
+      "id": "gift-canvas",
+      "description": "Premium Canvas Print",
+      "imageUrl": "https://picsum.photos/seed/pgk-canvas/600/800",
+      "imageHint": "canvas frame"
+    },
+    {
+      "id": "portfolio-wedding",
+      "description": "Wedding Photography",
+      "imageUrl": "https://picsum.photos/seed/pgk-wedding/800/1000",
+      "imageHint": "wedding couple"
+    },
+    {
+      "id": "portfolio-portrait",
+      "description": "Professional Portraits",
+      "imageUrl": "https://picsum.photos/seed/pgk-portrait/800/1000",
+      "imageHint": "portrait person"
+    },
+    {
+      "id": "portfolio-event",
+      "description": "Event Photography",
+      "imageUrl": "https://picsum.photos/seed/pgk-event/800/1000",
+      "imageHint": "concert event"
+    }
+  ]
+}
