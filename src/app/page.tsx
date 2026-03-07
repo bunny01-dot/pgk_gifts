@@ -33,8 +33,7 @@ export default function Home() {
             <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-8 text-lg transition-all hover:scale-105">
               <Link href="/gifts">Explore Gifts <Gift className="ml-2 w-5 h-5" /></Link>
             </Button>
-            {/* Custom styled glass button to ensure text remains white on hover */}
-            <Button asChild size="lg" className="bg-white/10 backdrop-blur-md text-white border border-white/20 hover:bg-white/30 hover:text-white rounded-full px-8 text-lg transition-all hover:scale-105 shadow-none">
+            <Button asChild size="lg" className="bg-white/10 backdrop-blur-md !text-white border border-white/20 hover:bg-white/30 hover:!text-white rounded-full px-8 text-lg transition-all hover:scale-105 shadow-none">
               <Link href="/photography">Book Photography <Camera className="ml-2 w-5 h-5" /></Link>
             </Button>
           </div>

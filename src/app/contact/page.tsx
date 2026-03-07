@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Mail, Phone, MapPin, Instagram, MessageCircle, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,7 +56,7 @@ export default function ContactPage() {
                     <div className="bg-white/10 p-3 rounded-full"><Mail className="w-6 h-6" /></div>
                     <div>
                       <p className="font-bold">Email</p>
-                      <p className="opacity-80">hello@pgklegacy.com</p>
+                      <p className="opacity-80">hello@pgkgifts.com</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
@@ -114,8 +115,7 @@ export default function ContactPage() {
 
         {/* Map Placeholder */}
         <div className="w-full h-[500px] rounded-[2rem] overflow-hidden shadow-2xl relative grayscale hover:grayscale-0 transition-all duration-700">
-           {/* In a real app, use @vis.gl/react-google-maps here */}
-           <div className="absolute inset-0 bg-accent/20 flex items-center justify-center">
+           <div className="absolute inset-0 bg-accent/20 flex items-center justify-center z-10">
              <div className="text-center space-y-4">
                <MapPin className="w-12 h-12 text-primary mx-auto animate-bounce" />
                <p className="text-xl font-headline font-bold">Find Us in the Art District</p>
