@@ -1,10 +1,10 @@
-
 "use client";
 
 import Link from "next/link";
 import { useState } from "react";
 import { Menu, X, Camera, Gift, PhoneCall } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const NAV_LINKS = [
   { name: "Home", href: "/" },
@@ -27,7 +27,7 @@ export function Navbar() {
         </Link>
 
         {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center gap-8">
+        <div className="hidden md:flex items-center gap-6">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.name}
@@ -37,19 +37,25 @@ export function Navbar() {
               {link.name}
             </Link>
           ))}
-          <Button asChild variant="default" size="sm">
-            <Link href="/contact">Book Now</Link>
-          </Button>
+          <div className="flex items-center gap-2 ml-2">
+            <ThemeToggle />
+            <Button asChild variant="default" size="sm">
+              <Link href="/contact">Book Now</Link>
+            </Button>
+          </div>
         </div>
 
         {/* Mobile Toggle */}
-        <button
-          className="md:hidden p-2 text-foreground"
-          onClick={() => setIsOpen(!isOpen)}
-          aria-label="Toggle menu"
-        >
-          {isOpen ? <X /> : <Menu />}
-        </button>
+        <div className="flex items-center gap-2 md:hidden">
+          <ThemeToggle />
+          <button
+            className="p-2 text-foreground"
+            onClick={() => setIsOpen(!isOpen)}
+            aria-label="Toggle menu"
+          >
+            {isOpen ? <X /> : <Menu />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Navigation */}
