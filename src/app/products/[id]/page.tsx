@@ -11,6 +11,7 @@ import { PRODUCTS } from '@/lib/data';
 import { useCart } from '@/context/CartContext';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { ToastAction } from '@/components/ui/toast';
 
 export default function ProductDetailPage() {
   const { id } = useParams();
@@ -40,11 +41,20 @@ export default function ProductDetailPage() {
       image: product.image,
       quantity,
     });
-    toast({
-      title: "Added to Cart",
-      description: `${product.name} has been added to your shopping bag.`,
-    });
-    if (redirect) router.push('/cart');
+    
+    if (redirect) {
+      router.push('/cart');
+    } else {
+      toast({
+        title: "Added to Cart",
+        description: `${product.name} has been added to your shopping bag.`,
+        action: (
+          <ToastAction altText="Go to cart" onClick={() => router.push('/cart')}>
+            View Cart
+          </ToastAction>
+        ),
+      });
+    }
   };
 
   return (

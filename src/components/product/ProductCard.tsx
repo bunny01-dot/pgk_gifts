@@ -3,6 +3,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ShoppingCart, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
@@ -10,6 +11,7 @@ import { Product } from '@/lib/data';
 import { motion } from 'framer-motion';
 import { useCart } from '@/context/CartContext';
 import { useToast } from '@/hooks/use-toast';
+import { ToastAction } from '@/components/ui/toast';
 
 interface ProductCardProps {
   product: Product;
@@ -18,6 +20,7 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart();
   const { toast } = useToast();
+  const router = useRouter();
 
   const handleAddToCart = () => {
     addToCart({
@@ -30,6 +33,11 @@ export function ProductCard({ product }: ProductCardProps) {
     toast({
       title: "Added to Cart",
       description: `${product.name} has been added to your shopping bag.`,
+      action: (
+        <ToastAction altText="Go to cart" onClick={() => router.push('/cart')}>
+          View Cart
+        </ToastAction>
+      ),
     });
   };
 
