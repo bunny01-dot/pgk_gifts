@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -38,7 +37,7 @@
     --secondary: 302 30% 20%;
     --secondary-foreground: 195 20% 98%;
     --muted: 302 20% 25%;
-    --muted-foreground: 302 10% 70%;
+    --muted-foreground: 195 20% 70%;
     --accent: 302 30% 25%;
     --accent-foreground: 195 20% 98%;
     --destructive: 0 62.8% 30.6%;
@@ -67,4 +66,14 @@
 
 .shadow-soft {
   box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-primary/20 rounded-full;
 }

@@ -3,11 +3,12 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { ArrowRight, ShoppingBag, Package, Star, Heart, CheckCircle2, Camera, Gift, Users, Zap, Sparkles } from 'lucide-react';
+import { ArrowRight, ShoppingBag, Heart, CheckCircle2, Zap, Sparkles, MapPin, Phone, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CONTACT_INFO, PRODUCTS } from '@/lib/data';
 import { ProductCard } from '@/components/product/ProductCard';
 import { PaymentSection } from '@/components/layout/PaymentSection';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function Home() {
   const featuredProducts = PRODUCTS.filter(p => p.featured);
@@ -51,7 +52,7 @@ export default function Home() {
               <Button asChild size="lg" className="rounded-full px-10 text-lg h-16 shadow-2xl shadow-primary/20">
                 <Link href="/shop">Shop Collection <ShoppingBag className="ml-2 w-5 h-5" /></Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="rounded-full px-10 text-lg h-16 border-2 bg-background/50 backdrop-blur-sm hover:bg-primary hover:text-white hover:border-primary transition-all">
+              <Button asChild variant="outline" size="lg" className="rounded-full px-10 text-lg h-16 border-2 bg-background/50 backdrop-blur-sm hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all">
                 <Link href="/gallery" className="flex items-center">
                   <span>Browse Categories</span>
                   <ArrowRight className="ml-2 w-5 h-5" />
@@ -150,6 +151,56 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Map & Find Us Section */}
+      <section className="py-32 bg-background overflow-hidden">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+            <div className="space-y-8">
+              <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-accent text-primary text-xs font-bold uppercase tracking-widest">
+                <MapPin className="w-4 h-4" /> Visit Our Studio
+              </div>
+              <h2 className="text-5xl md:text-6xl font-headline font-bold leading-tight">Find Us in Tamil Nadu</h2>
+              <p className="text-xl text-muted-foreground leading-relaxed max-w-lg">
+                Experience our craft in person. Visit our Kallal studio to see our latest customized gifts and discuss your unique projects.
+              </p>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 pt-4">
+                <div className="space-y-2">
+                  <p className="text-xs font-bold uppercase tracking-widest text-primary">Studio Address</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    PGK Studio, Indira Nagar Church Road,<br />
+                    Blessing Complex, Kallal – 630305
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs font-bold uppercase tracking-widest text-primary">Contact Info</p>
+                  <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+                    <span className="flex items-center gap-2"><Phone className="w-3 h-3" /> {CONTACT_INFO.phone}</span>
+                    <span className="flex items-center gap-2"><MessageSquare className="w-3 h-3" /> Chat on WhatsApp</span>
+                  </div>
+                </div>
+              </div>
+
+              <Button asChild size="lg" className="rounded-full px-10 h-16 text-lg font-bold shadow-xl">
+                <a href={CONTACT_INFO.googleMap} target="_blank" rel="noopener noreferrer">Open Directions</a>
+              </Button>
+            </div>
+
+            <Card className="rounded-[3rem] overflow-hidden border-none shadow-2xl h-[500px] relative">
+              <iframe 
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15712.3023963483!2d78.7061763!3d9.8856143!2m3!1f0!2f0!3f0!3m2!1i1024!2i1026!3m4!1s0x3b0067645601972f%3A0xc6e467d302a24683!2zUEdLIFNUVURJTw!5e0!3m2!1sen!2sin!4v1709400000000!5m2!1sen!2sin" 
+                width="100%" 
+                height="100%" 
+                style={{ border: 0 }} 
+                allowFullScreen 
+                loading="lazy" 
+                className="dark:opacity-80 transition-opacity"
+              ></iframe>
+            </Card>
+          </div>
+        </div>
+      </section>
+
       {/* Trust Section */}
       <section className="py-24 bg-primary text-primary-foreground">
         <div className="container mx-auto px-4">
@@ -157,11 +208,11 @@ export default function Home() {
             {[
               { icon: Zap, title: "Fast Shipping", desc: "Express delivery nationwide" },
               { icon: CheckCircle2, title: "Premium Quality", desc: "Hand-crafted excellence" },
-              { icon: Users, title: "Personal Care", desc: "Dedicated support team" },
-              { icon: Gift, title: "Beautiful Packaging", desc: "Ready for gifting" }
+              { icon: Heart, title: "Personal Care", desc: "Dedicated support team" },
+              { icon: ShoppingBag, title: "Beautiful Packaging", desc: "Ready for gifting" }
             ].map((item, i) => (
               <div key={i} className="flex flex-col items-center text-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center">
+                <div className="w-16 h-16 rounded-full bg-primary-foreground/10 flex items-center justify-center">
                   <item.icon className="w-8 h-8" />
                 </div>
                 <h3 className="text-xl font-headline font-bold">{item.title}</h3>
