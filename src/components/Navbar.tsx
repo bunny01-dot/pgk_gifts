@@ -25,13 +25,14 @@ export function Navbar() {
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll(); // Check initial scroll
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   return (
     <nav className={`fixed top-0 z-50 w-full transition-all duration-300 ${scrolled ? 'bg-background/80 backdrop-blur-lg border-b py-2' : 'bg-transparent py-4'}`}>
-      <div className="container mx-auto px-4 h-24 flex items-center justify-between">
+      <div className="container mx-auto px-4 h-32 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-4 group">
           <div className="relative w-32 h-32 transition-transform group-hover:rotate-6">
             <Image
@@ -99,7 +100,7 @@ export function Navbar() {
 
       {/* Mobile Navigation */}
       {isOpen && (
-        <div className="md:hidden fixed inset-0 top-24 bg-background z-40 p-6 flex flex-col gap-6 animate-in slide-in-from-right duration-300">
+        <div className="md:hidden fixed inset-0 top-32 bg-background z-40 p-6 flex flex-col gap-6 animate-in slide-in-from-right duration-300">
           <div className="flex flex-col gap-2">
             {NAV_LINKS.map((link) => (
               <Link
