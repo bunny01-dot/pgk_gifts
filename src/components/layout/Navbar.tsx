@@ -55,7 +55,7 @@ export function Navbar() {
   return (
     <nav className={`fixed top-0 z-50 w-full transition-all duration-500 ${scrolled ? 'bg-background/80 backdrop-blur-xl border-b py-2 shadow-soft' : 'bg-transparent py-6'}`}>
       <div className="container mx-auto px-4 h-24 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-5 group">
+        <Link href="/" className="flex items-center gap-5 group shrink-0">
           <div className="relative w-24 h-24 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6">
             <Image
               src={CONTACT_INFO.headerLogo}
@@ -74,14 +74,14 @@ export function Navbar() {
           </div>
         </Link>
 
-        {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center gap-10">
-          <div className="flex items-center gap-8">
+        {/* Desktop Navigation - Shifted to the right with larger text */}
+        <div className="hidden md:flex items-center gap-12 ml-auto">
+          <div className="flex items-center gap-10">
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.name}
                 href={link.href}
-                className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground hover:text-primary transition-all relative group/link"
+                className="text-sm font-bold uppercase tracking-wider text-muted-foreground hover:text-primary transition-all relative group/link"
               >
                 {link.name}
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover/link:w-full" />
@@ -89,11 +89,11 @@ export function Navbar() {
             ))}
           </div>
           
-          <div className="h-8 w-[1px] bg-muted mx-4" />
+          <div className="h-8 w-[1px] bg-muted mx-2" />
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-6">
             <Link href="/cart" className="relative group p-3 rounded-full hover:bg-accent transition-colors">
-              <ShoppingBag className="w-6 h-6 text-foreground group-hover:text-primary transition-colors" />
+              <ShoppingBag className="w-7 h-7 text-foreground group-hover:text-primary transition-colors" />
               <AnimatePresence>
                 {itemCount > 0 && (
                   <motion.div
@@ -101,7 +101,7 @@ export function Navbar() {
                     animate={{ scale: 1 }}
                     exit={{ scale: 0 }}
                   >
-                    <Badge className="absolute top-1 right-1 h-6 w-6 flex items-center justify-center p-0 text-[10px] bg-primary text-primary-foreground border-2 border-background shadow-lg">
+                    <Badge className="absolute -top-1 -right-1 h-6 w-6 flex items-center justify-center p-0 text-xs bg-primary text-primary-foreground border-2 border-background shadow-lg font-bold">
                       {itemCount}
                     </Badge>
                   </motion.div>
@@ -155,9 +155,9 @@ export function Navbar() {
         {/* Mobile Toggle */}
         <div className="flex items-center gap-2 md:hidden">
           <Link href="/cart" className="relative p-3 rounded-full hover:bg-accent">
-            <ShoppingBag className="w-6 h-6 text-foreground" />
+            <ShoppingBag className="w-7 h-7 text-foreground" />
             {itemCount > 0 && (
-              <Badge className="absolute top-1 right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px] bg-primary text-primary-foreground border-2 border-background">
+              <Badge className="absolute -top-1 -right-1 h-6 w-6 flex items-center justify-center p-0 text-xs bg-primary text-primary-foreground border-2 border-background font-bold shadow-lg">
                 {itemCount}
               </Badge>
             )}
@@ -169,7 +169,7 @@ export function Navbar() {
             onClick={() => setIsOpen(!isOpen)}
             className="rounded-full h-12 w-12"
           >
-            {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            {isOpen ? <X className="w-7 h-7" /> : <Menu className="w-7 h-7" />}
           </Button>
         </div>
       </div>

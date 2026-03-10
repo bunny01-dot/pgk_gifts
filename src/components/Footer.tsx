@@ -32,8 +32,8 @@ export function Footer() {
                 />
               </div>
               <div className="space-y-4">
-                <h3 className="font-headline text-4xl font-bold tracking-tighter">PGK GIFTS</h3>
-                <p className="text-primary-foreground/60 text-lg leading-relaxed max-w-xs italic font-medium">
+                <h3 className="font-headline text-5xl font-bold tracking-tighter">PGK GIFTS</h3>
+                <p className="text-primary-foreground/60 text-xl leading-relaxed max-w-xs italic font-medium">
                   "{CONTACT_INFO.tagline}"
                 </p>
               </div>
@@ -44,15 +44,15 @@ export function Footer() {
                 { icon: Youtube, href: CONTACT_INFO.youtube },
                 { icon: MessageCircle, href: CONTACT_INFO.whatsapp }
               ].map((social, i) => (
-                <a key={i} href={social.href} target="_blank" rel="noopener noreferrer" className="w-14 h-14 rounded-2xl bg-primary-foreground/5 flex items-center justify-center hover:bg-primary-foreground hover:text-primary transition-all duration-500 group">
-                  <social.icon className="w-6 h-6 transition-transform group-hover:scale-110" />
+                <a key={i} href={social.href} target="_blank" rel="noopener noreferrer" className="w-16 h-16 rounded-2xl bg-primary-foreground/5 flex items-center justify-center hover:bg-primary-foreground hover:text-primary transition-all duration-500 group">
+                  <social.icon className="w-7 h-7 transition-transform group-hover:scale-110" />
                 </a>
               ))}
             </div>
           </div>
 
           <div className="space-y-10">
-            <h4 className="font-bold uppercase tracking-[0.3em] text-[10px] text-primary-foreground/40">Navigation</h4>
+            <h4 className="font-bold uppercase tracking-[0.3em] text-xs text-primary-foreground/40">Navigation</h4>
             <ul className="space-y-6">
               {[
                 { name: 'Home', href: '/' },
@@ -62,8 +62,8 @@ export function Footer() {
                 { name: 'Contact Us', href: '/contact' }
               ].map((link) => (
                 <li key={link.name}>
-                  <Link href={link.href} className="text-xl font-headline font-medium hover:text-primary-foreground/60 transition-all flex items-center justify-between group">
-                    {link.name} <ArrowUpRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <Link href={link.href} className="text-2xl font-headline font-medium hover:text-primary-foreground/60 transition-all flex items-center justify-between group">
+                    {link.name} <ArrowUpRight className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </Link>
                 </li>
               ))}
@@ -71,36 +71,36 @@ export function Footer() {
           </div>
 
           <div className="space-y-10">
-            <h4 className="font-bold uppercase tracking-[0.3em] text-[10px] text-primary-foreground/40">Our World</h4>
-            <ul className="space-y-6 text-xl font-headline font-medium text-primary-foreground/60">
-              <li className="hover:text-primary-foreground transition-colors cursor-default flex items-center gap-3"><Sparkles className="w-4 h-4 opacity-30" /> LED Light Lamps</li>
-              <li className="hover:text-primary-foreground transition-colors cursor-default flex items-center gap-3"><Sparkles className="w-4 h-4 opacity-30" /> Personalized Mugs</li>
-              <li className="hover:text-primary-foreground transition-colors cursor-default flex items-center gap-3"><Sparkles className="w-4 h-4 opacity-30" /> Cute Plush Toys</li>
-              <li className="hover:text-primary-foreground transition-colors cursor-default flex items-center gap-3"><Sparkles className="w-4 h-4 opacity-30" /> Bespoke Frames</li>
-              <li className="hover:text-primary-foreground transition-colors cursor-default flex items-center gap-3"><Sparkles className="w-4 h-4 opacity-30" /> Studio Services</li>
+            <h4 className="font-bold uppercase tracking-[0.3em] text-xs text-primary-foreground/40">Our World</h4>
+            <ul className="space-y-6 text-2xl font-headline font-medium text-primary-foreground/60">
+              <li className="hover:text-primary-foreground transition-colors cursor-default flex items-center gap-3"><Sparkles className="w-5 h-5 opacity-30" /> LED Light Lamps</li>
+              <li className="hover:text-primary-foreground transition-colors cursor-default flex items-center gap-3"><Sparkles className="w-5 h-5 opacity-30" /> Personalized Mugs</li>
+              <li className="hover:text-primary-foreground transition-colors cursor-default flex items-center gap-3"><Sparkles className="w-5 h-5 opacity-30" /> Cute Plush Toys</li>
+              <li className="hover:text-primary-foreground transition-colors cursor-default flex items-center gap-3"><Sparkles className="w-5 h-5 opacity-30" /> Bespoke Frames</li>
+              <li className="hover:text-primary-foreground transition-colors cursor-default flex items-center gap-3"><Sparkles className="w-5 h-5 opacity-30" /> Studio Services</li>
             </ul>
           </div>
 
           <div className="space-y-10">
-            <h4 className="font-bold uppercase tracking-[0.3em] text-[10px] text-primary-foreground/40">Find Us</h4>
+            <h4 className="font-bold uppercase tracking-[0.3em] text-xs text-primary-foreground/40">Find Us</h4>
             <div className="space-y-8">
               <div className="group">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-primary-foreground/30 mb-2">Main Office</p>
-                <p className="text-lg leading-relaxed text-primary-foreground/80 group-hover:text-primary-foreground transition-colors">{CONTACT_INFO.address}</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-primary-foreground/30 mb-2">Main Office</p>
+                <p className="text-xl leading-relaxed text-primary-foreground/80 group-hover:text-primary-foreground transition-colors">{CONTACT_INFO.address}</p>
               </div>
               <div className="group">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-primary-foreground/30 mb-2">Connect Directly</p>
-                <p className="text-2xl font-headline font-bold text-primary-foreground mb-1">{CONTACT_INFO.phone}</p>
-                <p className="text-sm text-primary-foreground/40">{CONTACT_INFO.email}</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-primary-foreground/30 mb-2">Connect Directly</p>
+                <p className="text-3xl font-headline font-bold text-primary-foreground mb-1">{CONTACT_INFO.phone}</p>
+                <p className="text-base text-primary-foreground/40">{CONTACT_INFO.email}</p>
               </div>
-              <Button asChild variant="outline" className="rounded-full border-primary-foreground/20 hover:bg-primary-foreground hover:text-primary font-bold">
+              <Button asChild variant="outline" size="lg" className="rounded-full border-primary-foreground/20 hover:bg-primary-foreground hover:text-primary font-bold px-10 h-14">
                 <a href={CONTACT_INFO.googleMap} target="_blank" rel="noopener noreferrer">Get Directions</a>
               </Button>
             </div>
           </div>
         </div>
 
-        <div className="pt-16 border-t border-primary-foreground/5 flex flex-col md:flex-row justify-between items-center gap-8 text-[10px] font-bold tracking-[0.3em] uppercase text-primary-foreground/30">
+        <div className="pt-16 border-t border-primary-foreground/5 flex flex-col md:flex-row justify-between items-center gap-8 text-xs font-bold tracking-[0.3em] uppercase text-primary-foreground/30">
           <p className="flex items-center gap-2">&copy; {currentYear} PGK GIFTS & STUDIO <span className="w-1 h-1 bg-primary-foreground/20 rounded-full" /> All Rights Reserved.</p>
           <div className="flex gap-10">
             <Link href="#" className="hover:text-primary-foreground transition-colors">Privacy</Link>
