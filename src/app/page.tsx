@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -45,8 +44,8 @@ export default function Home() {
               </Button>
               <Button asChild variant="outline" size="lg" className="rounded-full px-10 text-lg h-16 border-2 bg-background/50 backdrop-blur-sm hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all group/photo">
                 <Link href="/photography" className="flex items-center">
-                  <span className="group-hover/photo:text-white transition-colors">Book Photography</span>
-                  <Camera className="ml-2 w-5 h-5 group-hover/photo:text-white transition-colors" />
+                  <span className="transition-colors">Book Photography</span>
+                  <Camera className="ml-2 w-5 h-5 transition-colors" />
                 </Link>
               </Button>
             </div>
