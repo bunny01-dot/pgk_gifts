@@ -13,7 +13,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-20">
           <div className="space-y-6">
             <Link href="/" className="flex flex-col gap-6 group">
-              <div className="relative w-40 h-40 brightness-0 invert transition-transform group-hover:scale-110">
+              <div className="relative w-48 h-48 brightness-0 invert transition-transform group-hover:scale-110">
                 <Image
                   src={CONTACT_INFO.footerLogo}
                   alt="PGK GIFTS Logo"
@@ -43,7 +43,7 @@ export function Footer() {
             <h4 className="font-headline text-xl mb-8 uppercase tracking-[0.2em] font-bold text-white/50">Quick Links</h4>
             <ul className="space-y-4 text-lg">
               <li><Link href="/" className="hover:translate-x-2 transition-transform inline-block">Home</Link></li>
-              <li><Link href="/products" className="hover:translate-x-2 transition-transform inline-block">Our Products</Link></li>
+              <li><Link href="/shop" className="hover:translate-x-2 transition-transform inline-block">Shop</Link></li>
               <li><Link href="/gallery" className="hover:translate-x-2 transition-transform inline-block">Photo Gallery</Link></li>
               <li><Link href="/contact" className="hover:translate-x-2 transition-transform inline-block">Contact Us</Link></li>
             </ul>

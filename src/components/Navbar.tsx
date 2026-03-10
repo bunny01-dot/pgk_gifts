@@ -31,18 +31,19 @@ export function Navbar() {
 
   return (
     <nav className={`fixed top-0 z-50 w-full transition-all duration-300 ${scrolled ? 'bg-background/80 backdrop-blur-lg border-b py-2' : 'bg-transparent py-4'}`}>
-      <div className="container mx-auto px-4 h-20 flex items-center justify-between">
+      <div className="container mx-auto px-4 h-24 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-4 group">
-          <div className="relative w-16 h-16 transition-transform group-hover:rotate-6">
+          <div className="relative w-24 h-24 transition-transform group-hover:rotate-6">
             <Image
               src={CONTACT_INFO.headerLogo}
               alt="PGK GIFTS Logo"
               fill
               className="object-contain"
+              priority
             />
           </div>
           <div className="flex flex-col">
-            <span className="font-headline font-bold text-xl leading-none tracking-tighter">PGK GIFTS</span>
+            <span className="font-headline font-bold text-2xl leading-none tracking-tighter">PGK GIFTS</span>
             <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-muted-foreground">Personalized Art</span>
           </div>
         </Link>
