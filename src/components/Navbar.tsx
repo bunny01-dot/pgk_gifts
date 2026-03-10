@@ -33,7 +33,7 @@ export function Navbar() {
     <nav className={`fixed top-0 z-50 w-full transition-all duration-300 ${scrolled ? 'bg-background/80 backdrop-blur-lg border-b py-2' : 'bg-transparent py-4'}`}>
       <div className="container mx-auto px-4 h-24 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-4 group">
-          <div className="relative w-24 h-24 transition-transform group-hover:rotate-6">
+          <div className="relative w-32 h-32 transition-transform group-hover:rotate-6">
             <Image
               src={CONTACT_INFO.headerLogo}
               alt="PGK GIFTS Logo"

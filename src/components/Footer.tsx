@@ -13,7 +13,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-20">
           <div className="space-y-6">
             <Link href="/" className="flex flex-col gap-6 group">
-              <div className="relative w-48 h-48 brightness-0 invert transition-transform group-hover:scale-110">
+              <div className="relative w-64 h-64 brightness-0 invert transition-transform group-hover:scale-110">
                 <Image
                   src={CONTACT_INFO.footerLogo}
                   alt="PGK GIFTS Logo"
