@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -74,14 +75,13 @@ export function Navbar() {
           </div>
         </Link>
 
-        {/* Desktop Navigation - Shifted to the right with larger text */}
         <div className="hidden md:flex items-center gap-12 ml-auto">
           <div className="flex items-center gap-10">
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.name}
                 href={link.href}
-                className="text-sm font-bold uppercase tracking-wider text-muted-foreground hover:text-primary transition-all relative group/link"
+                className="text-lg font-bold uppercase tracking-wider text-muted-foreground hover:text-primary transition-all relative group/link"
               >
                 {link.name}
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover/link:w-full" />
@@ -93,7 +93,7 @@ export function Navbar() {
 
           <div className="flex items-center gap-6">
             <Link href="/cart" className="relative group p-3 rounded-full hover:bg-accent transition-colors">
-              <ShoppingBag className="w-7 h-7 text-foreground group-hover:text-primary transition-colors" />
+              <ShoppingBag className="w-8 h-8 text-foreground group-hover:text-primary transition-colors" />
               <AnimatePresence>
                 {itemCount > 0 && (
                   <motion.div
@@ -146,16 +146,15 @@ export function Navbar() {
               </DropdownMenu>
             ) : (
               <Button asChild variant="outline" size="icon" className="rounded-full h-12 w-12 border-2 hover:bg-primary hover:text-primary-foreground transition-all">
-                <Link href="/login"><User className="w-5 h-5" /></Link>
+                <Link href="/login"><User className="w-6 h-6" /></Link>
               </Button>
             )}
           </div>
         </div>
 
-        {/* Mobile Toggle */}
         <div className="flex items-center gap-2 md:hidden">
           <Link href="/cart" className="relative p-3 rounded-full hover:bg-accent">
-            <ShoppingBag className="w-7 h-7 text-foreground" />
+            <ShoppingBag className="w-8 h-8 text-foreground" />
             {itemCount > 0 && (
               <Badge className="absolute -top-1 -right-1 h-6 w-6 flex items-center justify-center p-0 text-xs bg-primary text-primary-foreground border-2 border-background font-bold shadow-lg">
                 {itemCount}
@@ -169,12 +168,11 @@ export function Navbar() {
             onClick={() => setIsOpen(!isOpen)}
             className="rounded-full h-12 w-12"
           >
-            {isOpen ? <X className="w-7 h-7" /> : <Menu className="w-7 h-7" />}
+            {isOpen ? <X className="w-8 h-8" /> : <Menu className="w-8 h-8" />}
           </Button>
         </div>
       </div>
 
-      {/* Mobile Navigation */}
       <AnimatePresence>
         {isOpen && (
           <motion.div 

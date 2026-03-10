@@ -13,7 +13,6 @@ export const CONTACT_INFO = {
   youtube: "https://youtube.com/@pgk_frames_kallal",
   googleMap: "https://maps.app.goo.gl/8gF9FSyhokzJeakW6",
   upiId: "kalab320-2@okhdfcbank",
-  // Swapped and unified to use ONLY the circle logo everywhere
   headerLogo: "https://i.postimg.cc/FzMVV8SY/logo-1.png",
   footerLogo: "https://i.postimg.cc/FzMVV8SY/logo-1.png",
   qrCode: "https://i.postimg.cc/L5YVf2n0/Google-Pay-QR.png"
@@ -32,7 +31,6 @@ export interface Product {
 }
 
 export const PRODUCTS: Product[] = [
-  // Light Lamps
   {
     id: "panda-lamp-1",
     name: "Panda Light Lamp",
@@ -115,8 +113,6 @@ export const PRODUCTS: Product[] = [
     category: "Light Lamps",
     description: "Glow in 7 different magical colours with our unicorn lamp."
   },
-
-  // Cute Toys
   {
     id: "breathing-teddy",
     name: "Breathing Teddy",
@@ -151,8 +147,6 @@ export const PRODUCTS: Product[] = [
     description: "Perfect car accessory. This rabbit wobbles as you drive.",
     featured: true
   },
-
-  // Customized Gifts
   {
     id: "custom-mug",
     name: "Custom Mug Print",
