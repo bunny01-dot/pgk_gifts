@@ -34,7 +34,7 @@ export default function Home() {
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/5 text-primary text-xs font-bold uppercase tracking-widest border border-primary/10">
               <Star className="w-4 h-4 fill-primary" /> Premium Gift Collection 2024
             </div>
-            <h1 className="text-6xl md:text-8xl font-headline font-bold leading-[1.1] tracking-tight">
+            <h1 className="text-6xl md:text-8xl font-headline font-bold leading-[1.1] tracking-tight text-foreground">
               Crafting <span className="text-primary italic">Memories</span> into Art.
             </h1>
             <p className="text-xl text-muted-foreground max-w-lg leading-relaxed font-medium">
@@ -44,7 +44,7 @@ export default function Home() {
               <Button asChild size="lg" className="rounded-full px-10 text-lg h-16 shadow-2xl">
                 <Link href="/shop">Shop Collection <ShoppingBag className="ml-2 w-5 h-5" /></Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="rounded-full px-10 text-lg h-16 border-2 bg-background/50 backdrop-blur-sm hover:bg-primary hover:text-white hover:border-primary transition-all">
+              <Button asChild variant="outline" size="lg" className="rounded-full px-10 text-lg h-16 border-2 bg-background/50 backdrop-blur-sm hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all">
                 <Link href="/photography" className="flex items-center">Book Photography <Camera className="ml-2 w-5 h-5" /></Link>
               </Button>
             </div>
