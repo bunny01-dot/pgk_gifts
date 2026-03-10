@@ -1,151 +1,127 @@
 
-import Link from "next/link";
-import Image from "next/image";
-import { ArrowRight, Camera, Gift, CheckCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
+'use client';
+
+import Link from 'next/link';
+import Image from 'next/image';
+import { motion } from 'framer-motion';
+import { ArrowRight, MessageSquare, Package, Star } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { CONTACT_INFO, PRODUCTS } from '@/lib/data';
+import { ProductCard } from '@/components/product/ProductCard';
+import { PaymentSection } from '@/components/layout/PaymentSection';
 
 export default function Home() {
-  const heroImg = PlaceHolderImages.find(img => img.id === 'hero-bg');
-  const heroSrc = heroImg?.imageUrl || "https://picsum.photos/seed/pgk-hero/1920/1080";
-  
+  const featuredProducts = PRODUCTS.filter(p => p.featured);
+
   return (
-    <div className="flex flex-col gap-0">
+    <div className="flex flex-col gap-0 overflow-x-hidden">
       {/* Hero Section */}
-      <section className="relative h-[90vh] flex items-center overflow-hidden">
-        <Image
-          src={heroSrc}
-          alt="Hero background"
-          fill
-          className="object-cover brightness-50"
-          priority
-          data-ai-hint="photography camera"
-        />
-        <div className="container mx-auto px-4 relative z-10 text-white max-w-4xl">
-          <h1 className="text-5xl md:text-7xl font-bold font-headline mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            Preserving Your Legacy Through Art
-          </h1>
-          <p className="text-xl md:text-2xl mb-8 text-gray-100/90 leading-relaxed font-body max-w-2xl animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
-            Professional photography services and high-quality personalized gifts designed to capture and immortalize your favorite moments.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 animate-in fade-in slide-in-from-bottom-12 duration-700 delay-400">
-            <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-8 text-lg transition-all hover:scale-105">
-              <Link href="/gifts">Explore Gifts <Gift className="ml-2 w-5 h-5" /></Link>
-            </Button>
-            <Button asChild size="lg" className="bg-white/10 backdrop-blur-md !text-white border border-white/20 hover:bg-white/30 hover:!text-white rounded-full px-8 text-lg transition-all hover:scale-105 shadow-none">
-              <Link href="/photography">Book Photography <Camera className="ml-2 w-5 h-5" /></Link>
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Services Overview */}
-      <section className="py-24 bg-background">
-        <div className="container mx-auto px-4">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="text-4xl font-headline font-bold mb-4">What We Offer</h2>
-            <div className="h-1 w-20 bg-primary mx-auto mb-6"></div>
-            <p className="text-muted-foreground font-body">From the camera lens to the customized product, we ensure every detail of your memory is handled with artistic precision.</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            <Card className="hover:shadow-xl transition-all duration-300 group border-none bg-accent/30">
-              <CardContent className="p-8 text-center">
-                <div className="w-16 h-16 bg-primary text-primary-foreground rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-                  <Camera className="w-8 h-8" />
-                </div>
-                <h3 className="text-2xl font-headline font-bold mb-3">Photography</h3>
-                <p className="text-muted-foreground mb-6">Professional sessions for weddings, portraits, and special events using state-of-the-art equipment.</p>
-                <Link href="/photography" className="text-primary font-bold inline-flex items-center hover:gap-2 transition-all">
-                  See Portfolio <ArrowRight className="ml-1 w-4 h-4" />
-                </Link>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-xl transition-all duration-300 group border-none bg-accent/30">
-              <CardContent className="p-8 text-center">
-                <div className="w-16 h-16 bg-primary text-primary-foreground rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-                  <Gift className="w-8 h-8" />
-                </div>
-                <h3 className="text-2xl font-headline font-bold mb-3">Personalized Gifts</h3>
-                <p className="text-muted-foreground mb-6">High-quality custom mugs, shirts, and frames. Perfect for birthdays, anniversaries, or corporate gifts.</p>
-                <Link href="/gifts" className="text-primary font-bold inline-flex items-center hover:gap-2 transition-all">
-                  Shop Products <ArrowRight className="ml-1 w-4 h-4" />
-                </Link>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* About Section */}
-      <section className="py-24 bg-accent/20">
-        <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
-          <div className="relative aspect-square md:aspect-auto md:h-[600px] rounded-3xl overflow-hidden shadow-2xl">
-            <Image
-              src="https://picsum.photos/seed/pgk-studio/800/1000"
-              alt="Studio session"
-              fill
-              className="object-cover"
-              data-ai-hint="photography studio"
-            />
-          </div>
-          <div className="space-y-8">
-            <h2 className="text-4xl md:text-5xl font-headline font-bold">Why Choose PGK Gifts?</h2>
-            <p className="text-lg text-muted-foreground leading-relaxed">
-              Founded by John Solomon, PGK Gifts is built on the philosophy that every moment tells a story. We don't just take photos; we capture emotions. We don't just sell products; we create heirlooms.
-            </p>
-            <ul className="space-y-4">
-              {[
-                "Award-winning professional photographers",
-                "Eco-friendly, durable gift printing materials",
-                "High-quality craftmanship for every product",
-                "Personalized attention for every client"
-              ].map((item, i) => (
-                <li key={i} className="flex items-center gap-3">
-                  <CheckCircle className="text-primary w-6 h-6 flex-shrink-0" />
-                  <span className="text-lg font-medium">{item}</span>
-                </li>
-              ))}
-            </ul>
-            <Button asChild size="lg" className="rounded-full">
-              <Link href="/contact">Get in Touch</Link>
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Gallery Snippet */}
-      <section className="py-24 bg-background">
-        <div className="container mx-auto px-4">
-          <div className="flex justify-between items-end mb-12">
-            <div>
-              <h2 className="text-3xl font-headline font-bold mb-2">Featured Work</h2>
-              <p className="text-muted-foreground">A glimpse into our recent photography projects</p>
+      <section className="relative min-h-[90vh] flex items-center pt-20">
+        <div className="container mx-auto px-4 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <motion.div
+            initial={{ opacity: 0, x: -50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8 }}
+            className="space-y-8 z-10"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent text-primary text-sm font-bold uppercase tracking-wider">
+              <Star className="w-4 h-4 fill-current" /> Premium Gifts & Studio
             </div>
-            <Link href="/photography" className="text-primary font-bold flex items-center gap-1">
-              View All <ArrowRight className="w-4 h-4" />
-            </Link>
+            <h1 className="text-6xl md:text-8xl font-headline font-bold leading-tight">
+              {CONTACT_INFO.tagline}
+            </h1>
+            <p className="text-xl text-muted-foreground max-w-lg leading-relaxed">
+              From adorable lamps to custom frames, we turn your cherished memories into physical treasures. High quality, personalized just for you.
+            </p>
+            <div className="flex flex-wrap gap-4">
+              <Button asChild size="lg" className="rounded-full px-8 text-lg h-14">
+                <Link href="/products">View Products <Package className="ml-2 w-5 h-5" /></Link>
+              </Button>
+              <Button asChild variant="outline" size="lg" className="rounded-full px-8 text-lg h-14 border-2">
+                <a href={CONTACT_INFO.whatsapp} target="_blank" rel="noopener noreferrer">
+                  Order on WhatsApp <MessageSquare className="ml-2 w-5 h-5" />
+                </a>
+              </Button>
+            </div>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1 }}
+            className="relative h-[500px] lg:h-[700px]"
+          >
+            <div className="absolute inset-0 bg-accent/20 rounded-full blur-[100px] -z-10" />
+            <Image
+              src="https://i.postimg.cc/kG6y8qBj/500-rs-6-colour-lights-panda-light-lamp.png"
+              alt="Hero Product"
+              fill
+              className="object-contain drop-shadow-2xl animate-bounce-slow"
+              priority
+            />
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Featured Products */}
+      <section className="py-24 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
+            <div className="space-y-4">
+              <h2 className="text-4xl md:text-5xl font-headline font-bold tracking-tight">Featured Collections</h2>
+              <p className="text-muted-foreground text-lg max-w-xl">
+                Explore our handpicked selection of the most loved personalized gifts and light lamps.
+              </p>
+            </div>
+            <Button asChild variant="ghost" className="text-lg font-bold group">
+              <Link href="/products">
+                See All Products <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-2 transition-transform" />
+              </Link>
+            </Button>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="group relative aspect-[3/4] overflow-hidden rounded-xl shadow-lg cursor-pointer">
-                <Image
-                  src={`https://picsum.photos/seed/featured-${i}/600/800`}
-                  alt="Gallery image"
-                  fill
-                  className="object-cover transition-transform duration-500 group-hover:scale-110"
-                  data-ai-hint="wedding portrait"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
-                  <span className="text-white font-headline text-lg font-semibold">Special Project {i}</span>
-                </div>
-              </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {featuredProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
             ))}
           </div>
         </div>
       </section>
+
+      {/* Categories Fast Links */}
+      <section className="py-20 bg-accent/10">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              { name: "Light Lamps", href: "/products/light-lamps", icon: "✨" },
+              { name: "Cute Toys", href: "/products/cute-toys", icon: "🧸" },
+              { name: "Customized Gifts", href: "/products/customized-gifts", icon: "🎁" }
+            ].map((cat) => (
+              <Link key={cat.name} href={cat.href} className="group">
+                <Card className="p-8 text-center bg-background border-none shadow-soft hover:shadow-xl transition-all duration-300 rounded-[2rem]">
+                  <div className="text-6xl mb-6 group-hover:scale-125 transition-transform duration-500">{cat.icon}</div>
+                  <h3 className="text-2xl font-headline font-bold mb-2">{cat.name}</h3>
+                  <p className="text-muted-foreground">Browse the full collection</p>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Payment Section */}
+      <div className="container mx-auto px-4 py-12">
+        <PaymentSection />
+      </div>
+
+      <style jsx global>{`
+        @keyframes bounce-slow {
+          0%, 100% { transform: translateY(-20px); }
+          50% { transform: translateY(20px); }
+        }
+        .animate-bounce-slow {
+          animation: bounce-slow 6s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   );
 }

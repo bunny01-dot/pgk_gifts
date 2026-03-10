@@ -1,135 +1,108 @@
 
-"use client";
+'use client';
 
-import { useState } from "react";
-import Image from "next/image";
-import { Mail, Phone, MapPin, Instagram, MessageCircle, Send } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
-import { toast } from "@/hooks/use-toast";
+import Image from 'next/image';
+import { CONTACT_INFO } from '@/lib/data';
+import { Card, CardContent } from '@/components/ui/card';
+import { Phone, Mail, MapPin, Instagram, Youtube, MessageSquare, Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function ContactPage() {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      toast({
-        title: "Message Sent!",
-        description: "John Solomon will get back to you shortly.",
-      });
-      (e.target as HTMLFormElement).reset();
-    }, 1500);
-  };
-
   return (
-    <div className="bg-background py-20">
+    <div className="min-h-screen pt-32">
       <div className="container mx-auto px-4">
-        <div className="max-w-4xl mx-auto text-center mb-16">
-          <h1 className="text-5xl font-headline font-bold mb-6">Let's Create Together</h1>
+        <header className="text-center max-w-3xl mx-auto mb-24 space-y-6">
+          <h1 className="text-5xl md:text-7xl font-headline font-bold">Get In Touch</h1>
           <p className="text-xl text-muted-foreground">
-            Whether you want to book a photography session, inquire about custom gifts, 
-            or just say hello, we're always happy to hear from you.
+            We'd love to hear from you. Whether you have a question about our products or want to discuss a custom project, we're here to help.
           </p>
-        </div>
+        </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 mb-24">
-          {/* Contact Details */}
-          <div className="lg:col-span-1 space-y-6">
-            <Card className="border-none shadow-lg bg-primary text-primary-foreground">
-              <CardContent className="p-8 space-y-8">
-                <h3 className="text-2xl font-headline font-bold">Contact Info</h3>
-                <div className="space-y-6">
-                  <div className="flex items-start gap-4">
-                    <div className="bg-white/10 p-3 rounded-full"><Phone className="w-6 h-6" /></div>
-                    <div>
-                      <p className="font-bold">Phone</p>
-                      <p className="opacity-80">+1 (234) 567-890</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-4">
-                    <div className="bg-white/10 p-3 rounded-full"><Mail className="w-6 h-6" /></div>
-                    <div>
-                      <p className="font-bold">Email</p>
-                      <p className="opacity-80">hello@pgkgifts.com</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-4">
-                    <div className="bg-white/10 p-3 rounded-full"><MapPin className="w-6 h-6" /></div>
-                    <div>
-                      <p className="font-bold">Studio</p>
-                      <p className="opacity-80">123 Creative Studio, Art District, New York</p>
-                    </div>
-                  </div>
-                </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-start max-w-6xl mx-auto mb-24">
+          <div className="space-y-12">
+            <div className="space-y-8">
+               <h2 className="text-4xl font-headline font-bold">Contact Information</h2>
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                  <ContactItem 
+                    icon={<Phone />} 
+                    title="Phone" 
+                    content={CONTACT_INFO.phone} 
+                    subContent={CONTACT_INFO.alternateNumbers.join(' / ')}
+                  />
+                  <ContactItem 
+                    icon={<Mail />} 
+                    title="Email" 
+                    content={CONTACT_INFO.email}
+                  />
+                  <ContactItem 
+                    icon={<Clock />} 
+                    title="Opening Hours" 
+                    content={CONTACT_INFO.hours}
+                  />
+                  <ContactItem 
+                    icon={<MapPin />} 
+                    title="Our Studio" 
+                    content={CONTACT_INFO.address}
+                  />
+               </div>
+            </div>
 
-                <div className="pt-8 border-t border-white/20">
-                  <p className="font-bold mb-4">Follow Us</p>
-                  <div className="flex gap-4">
-                    <Button variant="ghost" size="icon" className="bg-white/10 hover:bg-white/20 rounded-full">
-                      <Instagram />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="bg-white/10 hover:bg-white/20 rounded-full">
-                      <MessageCircle />
-                    </Button>
-                  </div>
-                </div>
+            <div className="flex flex-col gap-4">
+               <Button asChild size="lg" className="rounded-full h-16 text-xl gap-3">
+                 <a href={CONTACT_INFO.whatsapp} target="_blank" rel="noopener noreferrer">
+                   <MessageSquare className="w-6 h-6" /> Chat on WhatsApp
+                 </a>
+               </Button>
+               <div className="flex gap-4">
+                 <Button asChild variant="outline" className="flex-1 rounded-full h-14 border-2 gap-2">
+                   <a href={CONTACT_INFO.instagram} target="_blank" rel="noopener noreferrer">
+                     <Instagram className="w-5 h-5" /> Instagram
+                   </a>
+                 </Button>
+                 <Button asChild variant="outline" className="flex-1 rounded-full h-14 border-2 gap-2">
+                   <a href={CONTACT_INFO.youtube} target="_blank" rel="noopener noreferrer">
+                     <Youtube className="w-5 h-5" /> YouTube
+                   </a>
+                 </Button>
+               </div>
+            </div>
+          </div>
+
+          <div className="space-y-8">
+            <h2 className="text-4xl font-headline font-bold">Visit Our Location</h2>
+            <Card className="overflow-hidden border-none shadow-2xl rounded-[3rem]">
+              <CardContent className="p-0 h-[500px] relative grayscale hover:grayscale-0 transition-all duration-700">
+                <iframe 
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15712.3023963483!2d78.7061763!3d9.8856143!2m3!1f0!2f0!3f0!3m2!1i1024!2i1026!3m4!1s0x3b0067645601972f%3A0xc6e467d302a24683!2zUEdLIFNUVURJTw!5e0!3m2!1sen!2sin!4v1709400000000!5m2!1sen!2sin" 
+                  width="100%" 
+                  height="100%" 
+                  style={{ border: 0 }} 
+                  allowFullScreen 
+                  loading="lazy" 
+                  referrerPolicy="no-referrer-when-downgrade"
+                ></iframe>
               </CardContent>
             </Card>
-          </div>
-
-          {/* Form */}
-          <div className="lg:col-span-2">
-            <Card className="border-none shadow-xl p-8">
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input id="name" placeholder="John Doe" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
-                    <Input id="email" type="email" placeholder="john@example.com" required />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="subject">What are you interested in?</Label>
-                  <Input id="subject" placeholder="e.g. Wedding Photography Inquiry" required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="message">Your Message</Label>
-                  <Textarea id="message" placeholder="Tell us more about your project or inquiry..." className="min-h-[150px]" required />
-                </div>
-                <Button type="submit" size="lg" className="w-full md:w-auto px-12 rounded-full" disabled={isSubmitting}>
-                  {isSubmitting ? "Sending..." : "Send Message"} <Send className="ml-2 w-4 h-4" />
-                </Button>
-              </form>
-            </Card>
+            <Button asChild variant="link" className="text-lg font-bold">
+               <a href={CONTACT_INFO.googleMap} target="_blank" rel="noopener noreferrer">Open in Google Maps <MapPin className="ml-2 w-4 h-4" /></a>
+            </Button>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
 
-        {/* Map Placeholder */}
-        <div className="w-full h-[500px] rounded-[2rem] overflow-hidden shadow-2xl relative grayscale hover:grayscale-0 transition-all duration-700">
-           <div className="absolute inset-0 bg-accent/20 flex items-center justify-center z-10">
-             <div className="text-center space-y-4">
-               <MapPin className="w-12 h-12 text-primary mx-auto animate-bounce" />
-               <p className="text-xl font-headline font-bold">Find Us in the Art District</p>
-               <p className="text-muted-foreground">Interactive Map Integration Ready</p>
-             </div>
-           </div>
-           {/* Mock Map Image */}
-           <Image 
-             src="https://picsum.photos/seed/pgk-map/1200/500" 
-             alt="Location map" 
-             fill 
-             className="object-cover opacity-30" 
-           />
-        </div>
+function ContactItem({ icon, title, content, subContent }: { icon: any; title: string; content: string; subContent?: string }) {
+  return (
+    <div className="space-y-3">
+      <div className="w-12 h-12 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center">
+        {icon}
+      </div>
+      <div>
+        <h4 className="font-bold text-muted-foreground uppercase tracking-widest text-[10px]">{title}</h4>
+        <p className="font-headline text-xl font-bold leading-tight">{content}</p>
+        {subContent && <p className="text-sm text-muted-foreground mt-1">{subContent}</p>}
       </div>
     </div>
   );
