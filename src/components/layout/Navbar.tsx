@@ -1,16 +1,26 @@
-
 'use client';
 
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
-import { Menu, X, ShoppingBag, Grid, ImageIcon, Phone, User, Camera, Sparkles } from 'lucide-react';
+import { Menu, X, ShoppingBag, Grid, ImageIcon, Phone, User, Camera, Sparkles, LogOut, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { CONTACT_INFO } from '@/lib/data';
 import { useCart } from '@/context/CartContext';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useUser, useAuth } from '@/firebase';
+import { signOut } from 'firebase/auth';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const NAV_LINKS = [
   { name: 'Home', href: '/', icon: Grid },
@@ -24,6 +34,8 @@ export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { itemCount } = useCart();
+  const { user } = useUser();
+  const auth = useAuth();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -31,6 +43,10 @@ export function Navbar() {
     handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const handleLogout = async () => {
+    await signOut(auth);
+  };
 
   return (
     <nav className={`fixed top-0 z-50 w-full transition-all duration-500 ${scrolled ? 'bg-background/80 backdrop-blur-xl border-b py-2 shadow-soft' : 'bg-transparent py-6'}`}>
@@ -88,10 +104,47 @@ export function Navbar() {
                 )}
               </AnimatePresence>
             </Link>
+            
             <ThemeToggle />
-            <Button asChild variant="outline" size="icon" className="rounded-full h-12 w-12 border-2 hover:bg-primary hover:text-primary-foreground transition-all">
-              <Link href="/admin"><User className="w-5 h-5" /></Link>
-            </Button>
+
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-12 w-12 rounded-full p-0 overflow-hidden border-2 border-primary/10">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={user.photoURL || ''} alt={user.displayName || ''} />
+                      <AvatarFallback className="bg-primary text-primary-foreground font-bold">
+                        {user.email?.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 rounded-2xl p-2" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal p-4">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-bold leading-none">{user.displayName || 'My Account'}</p>
+                      <p className="text-xs leading-none text-muted-foreground truncate">{user.email}</p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild className="rounded-xl h-12 px-4 cursor-pointer">
+                    <Link href="/admin">
+                      <LayoutDashboard className="mr-2 h-4 w-4" />
+                      <span>Admin Portal</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="rounded-xl h-12 px-4 cursor-pointer text-destructive focus:text-destructive">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button asChild variant="outline" size="icon" className="rounded-full h-12 w-12 border-2 hover:bg-primary hover:text-primary-foreground transition-all">
+                <Link href="/login"><User className="w-5 h-5" /></Link>
+              </Button>
+            )}
           </div>
         </div>
 
@@ -147,12 +200,20 @@ export function Navbar() {
               ))}
             </div>
             <div className="mt-auto space-y-4">
-               <Button asChild size="lg" className="w-full rounded-[2rem] h-20 text-2xl font-bold shadow-xl shadow-primary/20">
-                 <Link href="/shop" onClick={() => setIsOpen(false)}>Shop Now</Link>
-               </Button>
-               <Button asChild variant="outline" size="lg" className="w-full rounded-[2rem] h-20 text-2xl font-bold border-2">
-                 <Link href="/admin" onClick={() => setIsOpen(false)}>Admin Portal</Link>
-               </Button>
+               {user ? (
+                 <>
+                   <Button asChild size="lg" className="w-full rounded-[2rem] h-20 text-2xl font-bold">
+                     <Link href="/admin" onClick={() => setIsOpen(false)}>Admin Portal</Link>
+                   </Button>
+                   <Button variant="outline" size="lg" onClick={handleLogout} className="w-full rounded-[2rem] h-20 text-2xl font-bold border-2 border-destructive text-destructive">
+                     Log Out
+                   </Button>
+                 </>
+               ) : (
+                 <Button asChild size="lg" className="w-full rounded-[2rem] h-20 text-2xl font-bold shadow-xl shadow-primary/20">
+                   <Link href="/login" onClick={() => setIsOpen(false)}>Login / Sign Up</Link>
+                 </Button>
+               )}
             </div>
           </motion.div>
         )}
