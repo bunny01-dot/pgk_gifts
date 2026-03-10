@@ -28,9 +28,9 @@ export function Navbar() {
 
   return (
     <nav className={`fixed top-0 z-50 w-full transition-all duration-300 ${scrolled ? 'bg-background/80 backdrop-blur-lg border-b py-2' : 'bg-transparent py-4'}`}>
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-3 group">
-          <div className="relative w-12 h-12 transition-transform group-hover:rotate-12">
+      <div className="container mx-auto px-4 h-20 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-4 group">
+          <div className="relative w-20 h-20 transition-transform group-hover:rotate-12">
             <Image
               src={CONTACT_INFO.headerLogo}
               alt="PGK GIFTS Logo"
@@ -39,7 +39,7 @@ export function Navbar() {
             />
           </div>
           <div className="flex flex-col">
-            <span className="font-headline font-bold text-xl leading-none tracking-tighter">PGK GIFTS</span>
+            <span className="font-headline font-bold text-2xl leading-none tracking-tighter">PGK GIFTS</span>
             <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-muted-foreground">Personalized Art</span>
           </div>
         </Link>
@@ -79,7 +79,7 @@ export function Navbar() {
 
       {/* Mobile Navigation */}
       {isOpen && (
-        <div className="md:hidden fixed inset-0 top-20 bg-background z-40 p-6 flex flex-col gap-6 animate-in slide-in-from-right duration-300">
+        <div className="md:hidden fixed inset-0 top-24 bg-background z-40 p-6 flex flex-col gap-6 animate-in slide-in-from-right duration-300">
           <div className="flex flex-col gap-2">
             {NAV_LINKS.map((link) => (
               <Link
