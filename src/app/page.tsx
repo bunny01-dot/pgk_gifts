@@ -6,7 +6,6 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { ArrowRight, ShoppingBag, Package, Star, Heart, CheckCircle2, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { CONTACT_INFO, PRODUCTS } from '@/lib/data';
 import { ProductCard } from '@/components/product/ProductCard';
 import { PaymentSection } from '@/components/layout/PaymentSection';
@@ -44,8 +43,11 @@ export default function Home() {
               <Button asChild size="lg" className="rounded-full px-10 text-lg h-16 shadow-2xl">
                 <Link href="/shop">Shop Collection <ShoppingBag className="ml-2 w-5 h-5" /></Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="rounded-full px-10 text-lg h-16 border-2 bg-background/50 backdrop-blur-sm hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all">
-                <Link href="/photography" className="flex items-center">Book Photography <Camera className="ml-2 w-5 h-5" /></Link>
+              <Button asChild variant="outline" size="lg" className="rounded-full px-10 text-lg h-16 border-2 bg-background/50 backdrop-blur-sm hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all group/photo">
+                <Link href="/photography" className="flex items-center">
+                  <span className="group-hover/photo:text-white transition-colors">Book Photography</span>
+                  <Camera className="ml-2 w-5 h-5 group-hover/photo:text-white transition-colors" />
+                </Link>
               </Button>
             </div>
             <div className="flex items-center gap-8 pt-4">
