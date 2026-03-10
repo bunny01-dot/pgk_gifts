@@ -7,6 +7,7 @@ import { FloatingWhatsApp } from '@/components/FloatingWhatsApp';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { CartProvider } from '@/context/CartContext';
+import { FirebaseClientProvider } from '@/firebase';
 import Script from 'next/script';
 
 export const metadata: Metadata = {
@@ -34,15 +35,17 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <CartProvider>
-            <Navbar />
-            <main className="min-h-screen">
-              {children}
-            </main>
-            <Footer />
-            <FloatingWhatsApp />
-            <Toaster />
-          </CartProvider>
+          <FirebaseClientProvider>
+            <CartProvider>
+              <Navbar />
+              <main className="min-h-screen">
+                {children}
+              </main>
+              <Footer />
+              <FloatingWhatsApp />
+              <Toaster />
+            </CartProvider>
+          </FirebaseClientProvider>
         </ThemeProvider>
       </body>
     </html>
