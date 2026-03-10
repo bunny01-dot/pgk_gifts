@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { CreditCard, MapPin, Phone, User, CheckCircle, Loader2, ArrowLeft, ShieldCheck, Truck } from 'lucide-react';
+import { CreditCard, MapPin, Phone, User, CheckCircle, Loader2, ArrowLeft, ShieldCheck, Truck, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useCart } from '@/context/CartContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { initializeFirebase } from '@/firebase';
 import { PaymentService } from '@/services/payment.service';
@@ -22,6 +22,7 @@ export default function CheckoutPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [saveCard, setSaveCard] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -63,6 +64,7 @@ export default function CheckoutPage() {
       const rpOrder = await paymentService.createRazorpayOrder(cartTotal);
 
       // 2. Simulated Razorpay UI Flow
+      // In a real implementation, window.Razorpay would be called here.
       setTimeout(async () => {
         const mockResponse = {
           razorpay_order_id: rpOrder.id,
@@ -101,74 +103,130 @@ export default function CheckoutPage() {
           </Button>
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div>
-              <Badge variant="outline" className="mb-2 px-3 border-primary text-primary font-bold">Secure Gateway</Badge>
+              <Badge variant="outline" className="mb-2 px-3 border-primary text-primary font-bold">Secure Checkout</Badge>
               <h1 className="text-5xl font-headline font-bold leading-none">Checkout</h1>
             </div>
             <div className="flex items-center gap-4 text-muted-foreground text-sm font-bold uppercase tracking-widest">
               <span className="flex items-center gap-2 text-green-600"><ShieldCheck className="w-4 h-4" /> SSL SECURED</span>
-              <span className="flex items-center gap-2"><Truck className="w-4 h-4" /> FAST SHIPPING</span>
+              <span className="flex items-center gap-2"><Truck className="w-4 h-4" /> EXPRESS DELIVERY</span>
             </div>
           </div>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           <div className="lg:col-span-2 space-y-8">
-            <Card className="rounded-[3rem] border-none shadow-xl p-10 bg-card">
+            <Card className="rounded-[3rem] border-2 border-primary/10 shadow-soft p-10 bg-card">
               <h3 className="text-3xl font-headline font-bold mb-8 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center text-lg">1</div>
-                Shipping Information
+                Shipping Details
               </h3>
               
               <form className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-3">
-                  <Label htmlFor="name" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-4">Full Name</Label>
-                  <Input id="name" name="name" required placeholder="Receiver Name" value={formData.name} onChange={handleInputChange} className="h-16 rounded-full px-8 bg-accent/5 border-none text-lg" />
+                  <Label htmlFor="name" className="text-xs font-bold uppercase tracking-widest text-muted-foreground/70 ml-4">Full Name</Label>
+                  <Input 
+                    id="name" 
+                    name="name" 
+                    required 
+                    placeholder="e.g. John Doe" 
+                    value={formData.name} 
+                    onChange={handleInputChange} 
+                    className="h-16 rounded-full px-8 bg-background border-2 border-muted hover:border-primary/50 focus:border-primary transition-all text-lg placeholder:text-muted-foreground/40" 
+                  />
                 </div>
 
                 <div className="space-y-3">
-                  <Label htmlFor="phone" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-4">Phone</Label>
-                  <Input id="phone" name="phone" required placeholder="Contact Number" value={formData.phone} onChange={handleInputChange} className="h-16 rounded-full px-8 bg-accent/5 border-none text-lg" />
+                  <Label htmlFor="phone" className="text-xs font-bold uppercase tracking-widest text-muted-foreground/70 ml-4">Phone Number</Label>
+                  <Input 
+                    id="phone" 
+                    name="phone" 
+                    required 
+                    placeholder="e.g. 9876543210" 
+                    value={formData.phone} 
+                    onChange={handleInputChange} 
+                    className="h-16 rounded-full px-8 bg-background border-2 border-muted hover:border-primary/50 focus:border-primary transition-all text-lg placeholder:text-muted-foreground/40" 
+                  />
                 </div>
 
                 <div className="md:col-span-2 space-y-3">
-                  <Label htmlFor="address" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-4">Shipping Address</Label>
-                  <Input id="address" name="address" required placeholder="House No, Street, Area" value={formData.address} onChange={handleInputChange} className="h-16 rounded-full px-8 bg-accent/5 border-none text-lg" />
+                  <Label htmlFor="address" className="text-xs font-bold uppercase tracking-widest text-muted-foreground/70 ml-4">Street Address</Label>
+                  <Input 
+                    id="address" 
+                    name="address" 
+                    required 
+                    placeholder="House No, Building, Street Name" 
+                    value={formData.address} 
+                    onChange={handleInputChange} 
+                    className="h-16 rounded-full px-8 bg-background border-2 border-muted hover:border-primary/50 focus:border-primary transition-all text-lg placeholder:text-muted-foreground/40" 
+                  />
                 </div>
 
                 <div className="space-y-3">
-                  <Label htmlFor="city" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-4">City</Label>
-                  <Input id="city" name="city" required placeholder="Kallal" value={formData.city} onChange={handleInputChange} className="h-16 rounded-full px-8 bg-accent/5 border-none text-lg" />
+                  <Label htmlFor="city" className="text-xs font-bold uppercase tracking-widest text-muted-foreground/70 ml-4">City</Label>
+                  <Input 
+                    id="city" 
+                    name="city" 
+                    required 
+                    placeholder="e.g. Chennai" 
+                    value={formData.city} 
+                    onChange={handleInputChange} 
+                    className="h-16 rounded-full px-8 bg-background border-2 border-muted hover:border-primary/50 focus:border-primary transition-all text-lg placeholder:text-muted-foreground/40" 
+                  />
                 </div>
 
                 <div className="space-y-3">
-                  <Label htmlFor="pincode" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-4">Pincode</Label>
-                  <Input id="pincode" name="pincode" required placeholder="630305" value={formData.pincode} onChange={handleInputChange} className="h-16 rounded-full px-8 bg-accent/5 border-none text-lg" />
+                  <Label htmlFor="pincode" className="text-xs font-bold uppercase tracking-widest text-muted-foreground/70 ml-4">Pincode</Label>
+                  <Input 
+                    id="pincode" 
+                    name="pincode" 
+                    required 
+                    placeholder="e.g. 600001" 
+                    value={formData.pincode} 
+                    onChange={handleInputChange} 
+                    className="h-16 rounded-full px-8 bg-background border-2 border-muted hover:border-primary/50 focus:border-primary transition-all text-lg placeholder:text-muted-foreground/40" 
+                  />
                 </div>
               </form>
             </Card>
 
-            <Card className="rounded-[3rem] border-none shadow-soft p-10 bg-card/50 opacity-60">
-               <h3 className="text-3xl font-headline font-bold mb-4 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-muted text-muted-foreground flex items-center justify-center text-lg">2</div>
-                  Payment Method
-                </h3>
-                <p className="ml-14 text-muted-foreground">Razorpay Secure Checkout will launch in the next step.</p>
+            <Card className="rounded-[3rem] border-2 border-primary/5 shadow-soft p-10 bg-card">
+               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-accent text-primary flex items-center justify-center text-lg">2</div>
+                    <div>
+                      <h3 className="text-2xl font-headline font-bold">Payment Method</h3>
+                      <p className="text-muted-foreground text-sm">Cards, UPI, or Netbanking</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3 bg-accent/20 px-6 py-4 rounded-3xl border border-primary/5">
+                    <Checkbox 
+                      id="save-card" 
+                      checked={saveCard} 
+                      onCheckedChange={(checked) => setSaveCard(!!checked)}
+                      className="w-5 h-5"
+                    />
+                    <Label htmlFor="save-card" className="text-sm font-bold cursor-pointer">Save card for future payments</Label>
+                  </div>
+               </div>
             </Card>
           </div>
 
           <div className="lg:col-span-1">
-            <Card className="rounded-[3rem] border-none shadow-2xl p-10 bg-card sticky top-40">
-              <h3 className="text-2xl font-headline font-bold mb-8 border-b pb-6">Summary</h3>
+            <Card className="rounded-[3rem] border-2 border-primary/10 shadow-2xl p-10 bg-card sticky top-40">
+              <h3 className="text-2xl font-headline font-bold mb-8 border-b pb-6 flex items-center justify-between">
+                Order Summary
+                <Lock className="w-4 h-4 text-muted-foreground" />
+              </h3>
               
-              <div className="space-y-6 max-h-[300px] overflow-y-auto pr-2 mb-8">
+              <div className="space-y-6 max-h-[300px] overflow-y-auto pr-2 mb-8 custom-scrollbar">
                 {cart.map((item) => (
                   <div key={item.id} className="flex justify-between items-center">
                     <div className="flex gap-4 items-center">
-                      <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-muted">
+                      <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-muted border">
                         <Image src={item.image} alt={item.name} fill className="object-cover" />
                       </div>
                       <div>
-                        <p className="font-bold text-xs truncate max-w-[120px]">{item.name}</p>
+                        <p className="font-bold text-sm truncate max-w-[120px]">{item.name}</p>
                         <p className="text-[10px] text-muted-foreground uppercase font-bold">QTY: {item.quantity}</p>
                       </div>
                     </div>
@@ -177,9 +235,9 @@ export default function CheckoutPage() {
                 ))}
               </div>
 
-              <div className="space-y-4 pt-6 border-t">
+              <div className="space-y-4 pt-6 border-t border-dashed">
                 <div className="flex justify-between text-muted-foreground font-bold text-[10px] uppercase tracking-widest">
-                  <span>Shipping</span>
+                  <span>Shipping Fee</span>
                   <span className="text-green-600">FREE</span>
                 </div>
                 <div className="flex justify-between text-4xl font-headline font-bold text-primary pt-2">
@@ -191,17 +249,20 @@ export default function CheckoutPage() {
               <Button 
                 onClick={handlePayment} 
                 disabled={loading} 
-                className="w-full rounded-full h-20 text-2xl font-bold mt-12 shadow-2xl shadow-primary/20 transition-all active:scale-95"
+                className="w-full rounded-full h-20 text-2xl font-bold mt-12 shadow-2xl shadow-primary/20 transition-all active:scale-95 hover:shadow-primary/30"
               >
                 {loading ? (
                   <>Verifying <Loader2 className="ml-3 w-6 h-6 animate-spin" /></>
                 ) : (
-                  <>Pay Now <CreditCard className="ml-3 w-6 h-6" /></>
+                  <>Complete Order <CreditCard className="ml-3 w-6 h-6" /></>
                 )}
               </Button>
               
-              <div className="mt-8 flex items-center justify-center grayscale opacity-50">
-                 <Image src="https://i.postimg.cc/L5YVf2n0/Google-Pay-QR.png" alt="Payment Partners" width={100} height={25} className="object-contain" />
+              <div className="mt-8 flex flex-col items-center gap-4 opacity-60">
+                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Trusted Payment Partners</p>
+                 <div className="flex items-center gap-4 grayscale">
+                    <Image src="https://i.postimg.cc/L5YVf2n0/Google-Pay-QR.png" alt="Payment Partners" width={120} height={30} className="object-contain" />
+                 </div>
               </div>
             </Card>
           </div>
@@ -210,3 +271,5 @@ export default function CheckoutPage() {
     </div>
   );
 }
+
+import { useCart } from '@/context/CartContext';
