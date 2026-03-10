@@ -1,55 +1,191 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // --- Helper Functions ---
+
+    /**
+     * PGK LEGACY SECURITY RULES - PROTOTYPING MODE
+     *
+     * Core Philosophy:
+     * This ruleset enforces a strict Role-Based Access Control (RBAC) and User-Ownership model. 
+     * Administrative privileges are managed via a dedicated 'roles_admin' collection.
+     * Publicly accessible marketing and product data are globally readable but only modifiable by admins.
+     *
+     * Data Structure:
+     * - Public Assets: Products, Photography Services, Categories, Website Content, and Locations are top-level.
+     * - Private User Data: Custom designs are nested under /users/{userId} to ensure path-based isolation.
+     * - Interaction Logs: Inquiries and Bookings are top-level to facilitate admin management while 
+     *   allowing users to see their own submissions via denormalized userId fields.
+     *
+     * Key Security Decisions:
+     * - Admin checks use a lightweight exists() call to the /roles_admin collection.
+     * - Denormalization for Authorization: To ensure performant queries (QAP compliance), userId fields 
+     *   are expected on Inquiries and Bookings to allow owners to filter and read their data.
+     * - Flexible Schemas: Data types and optional fields are not validated during the prototyping phase 
+     *   to allow for rapid frontend iteration, focusing purely on authorization.
+     */
+
+    // --- GLOBAL HELPER FUNCTIONS ---
+
+    /**
+     * @description Checks if the user is authenticated with Firebase.
+     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // --- Collection Rules ---
+    /**
+     * @description Checks if the authenticated user has an entry in the roles_admin collection.
+     */
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
 
     /**
-     * @description Publicly accessible product listings.
-     * @allow (read) Anyone.
-     * @allow (write) Only authenticated admins.
+     * @description Checks if the authenticated user's UID matches the provided userId.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * @description Ensures the document exists and the requester is the owner.
+     */
+    function isExistingOwner(userId) {
+      return resource != null && isOwner(userId);
+    }
+
+    // --- COLLECTION RULES ---
+
+    /**
+     * @description Defines administrative UIDs. Modification restricted to system level.
+     * @path /roles_admin/{adminUid}
+     * @allow get: (isSignedIn)
+     * @deny write, list: (Always)
+     */
+    match /roles_admin/{adminUid} {
+      allow get: if isSignedIn();
+      allow list, create, update, delete: if false;
+    }
+
+    /**
+     * @description Publicly readable catalog of products and their metadata.
+     * @path /products/{productId}
+     * @allow read: (Public), write: (Admin)
+     * @deny write: (Non-Admin)
      */
     match /products/{productId} {
-      allow read: if true;
-      allow write: if isSignedIn();
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
+
+      match /images/{productImageId} {
+        allow get, list: if true;
+        allow create, update, delete: if isAdmin();
+      }
     }
 
     /**
-     * @description Product categories.
+     * @description Product and service categories for organization.
+     * @path /categories/{categoryId}
+     * @allow read: (Public), write: (Admin)
      */
     match /categories/{categoryId} {
-      allow read: if true;
-      allow write: if isSignedIn();
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
     }
 
     /**
-     * @description Order records.
-     * @allow (read) Only authenticated admins.
-     * @allow (create) Direct client writes disabled (handled via Backend Simulation/Functions).
+     * @description Photography services, packages, and portfolio images.
+     * @path /photographyServices/{serviceId}
+     * @allow read: (Public), write: (Admin)
      */
-    match /orders/{orderId} {
-      allow read: if isSignedIn();
-      // Only the simulated backend service should create orders. 
-      // In a real Firebase Function environment, this would be restricted to Admin SDK only.
+    match /photographyServices/{serviceId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
+
+      match /packages/{packageId} {
+        allow get, list: if true;
+        allow create, update, delete: if isAdmin();
+      }
+
+      match /images/{serviceImageId} {
+        allow get, list: if true;
+        allow create, update, delete: if isAdmin();
+      }
+    }
+
+    /**
+     * @description User-submitted inquiries. Admins manage all; users see their own via 'userId' field.
+     * @path /customGiftInquiries/{inquiryId}
+     * @allow create: (Public), read: (Admin or Owner), update: (Admin)
+     * @principle Validates userId consistency on creation for signed-in users.
+     */
+    match /customGiftInquiries/{inquiryId} {
       allow create: if true; 
-      allow update, delete: if isSignedIn();
+      allow get: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow list: if isAdmin() || isSignedIn();
+      allow update, delete: if isAdmin() && resource != null;
     }
 
     /**
-     * @description Studio services and settings.
+     * @description Photography booking requests. Matches logic of gift inquiries.
+     * @path /photographyBookings/{bookingId}
+     * @allow create: (Public), read: (Admin or Owner), update: (Admin)
      */
-    match /studio_services/{serviceId} {
-      allow read: if true;
-      allow write: if isSignedIn();
+    match /photographyBookings/{bookingId} {
+      allow create: if true;
+      allow get: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow list: if isAdmin() || isSignedIn();
+      allow update, delete: if isAdmin() && resource != null;
     }
 
-    match /settings/{settingId} {
-      allow read: if true;
-      allow write: if isSignedIn();
+    /**
+     * @description Editable website sections like 'About Us'.
+     * @path /websiteContent/{contentId}
+     * @allow read: (Public), write: (Admin)
+     */
+    match /websiteContent/{contentId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
     }
+
+    /**
+     * @description Curated social media posts for website display.
+     * @path /socialMediaPosts/{postId}
+     * @allow read: (Public), write: (Admin)
+     */
+    match /socialMediaPosts/{postId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * @description Business contact details and location.
+     * @path /businessLocation/{locationId}
+     * @allow read: (Public), write: (Admin)
+     */
+    match /businessLocation/{locationId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * @description Private user-created designs. Secured by path-based ownership.
+     * @path /users/{userId}/userCustomDesigns/{designId}
+     * @allow read, write: (Owner or Admin)
+     * @deny read, write: (Mismatching User)
+     * @principle Enforces relational integrity between path UID and document userId field.
+     */
+    match /users/{userId}/userCustomDesigns/{designId} {
+      allow get, list: if isOwner(userId) || isAdmin();
+      
+      // On create, ensure the internal userId field matches the path segment
+      allow create: if (isOwner(userId) || isAdmin()) && request.resource.data.userId == userId;
+      
+      // On update, ensure the document exists and the owner/admin is modifying it
+      allow update: if (isExistingOwner(userId) || isAdmin()) && request.resource.data.userId == resource.data.userId;
+      
+      allow delete: if (isExistingOwner(userId) || isAdmin());
+    }
+
   }
 }

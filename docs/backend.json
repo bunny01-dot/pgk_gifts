@@ -1,67 +1,774 @@
-
 {
   "entities": {
     "Product": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Product",
-      "description": "Represents a gift product in the store.",
       "type": "object",
+      "description": "Represents a personalized gift product available for customization and purchase.",
       "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "description": { "type": "string" },
-        "price": { "type": "number" },
-        "category": { "type": "string" },
-        "image": { "type": "string" },
-        "gallery": { "type": "array", "items": { "type": "string" } },
-        "isFeatured": { "type": "boolean" },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "updatedAt": { "type": "string", "format": "date-time" }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Product entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the gift product (e.g., 'Custom Mug', 'Personalized Canvas Print')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the product, including its features and customization options."
+        },
+        "basePrice": {
+          "type": "number",
+          "description": "The starting or base price of the product before any customizations or additions."
+        },
+        "materials": {
+          "type": "string",
+          "description": "The primary materials or composition of the product (e.g., 'Ceramic', 'Cotton Canvas')."
+        },
+        "availableSizes": {
+          "type": "array",
+          "description": "A list of available sizes or dimensions for the product.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "categoryIds": {
+          "type": "array",
+          "description": "References to Categories this product belongs to. (Relationship: Category N:N Product)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the product was first created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the product details were last updated.",
+          "format": "date-time"
+        }
       },
-      "required": ["name", "price", "category", "image"]
+      "required": [
+        "id",
+        "name",
+        "description",
+        "basePrice",
+        "materials",
+        "createdAt",
+        "updatedAt"
+      ]
     },
-    "Order": {
-      "title": "Order",
-      "description": "Represents a completed customer purchase.",
+    "ProductImage": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ProductImage",
       "type": "object",
+      "description": "Represents an image associated with a specific product, used for display in galleries.",
       "properties": {
-        "id": { "type": "string" },
-        "customerName": { "type": "string" },
-        "phone": { "type": "string" },
-        "address": { "type": "string" },
-        "city": { "type": "string" },
-        "pincode": { "type": "string" },
-        "items": { "type": "array", "items": { "$ref": "#/entities/CartItem" } },
-        "total": { "type": "number" },
-        "paymentStatus": { "type": "string", "enum": ["paid", "pending", "failed"] },
-        "razorpayOrderId": { "type": "string" },
-        "razorpayPaymentId": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ProductImage entity."
+        },
+        "productId": {
+          "type": "string",
+          "description": "Reference to the Product this image belongs to. (Relationship: Product 1:N ProductImage)"
+        },
+        "url": {
+          "type": "string",
+          "description": "The URL of the product image.",
+          "format": "uri"
+        },
+        "altText": {
+          "type": "string",
+          "description": "Alternative text for the image, important for accessibility and SEO."
+        },
+        "isThumbnail": {
+          "type": "boolean",
+          "description": "Indicates if this image is the primary thumbnail for the product."
+        },
+        "order": {
+          "type": "number",
+          "description": "The display order of the image within the product's gallery."
+        }
       },
-      "required": ["customerName", "phone", "address", "total", "paymentStatus"]
+      "required": [
+        "id",
+        "productId",
+        "url",
+        "altText",
+        "isThumbnail",
+        "order"
+      ]
     },
-    "CartItem": {
-      "title": "CartItem",
+    "Category": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Category",
       "type": "object",
+      "description": "Represents a category used to organize products and photography services.",
       "properties": {
-        "productId": { "type": "string" },
-        "name": { "type": "string" },
-        "price": { "type": "number" },
-        "quantity": { "type": "number" },
-        "image": { "type": "string" }
-      }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Category entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the category (e.g., 'Mugs', 'Wedding', 'Portraits')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of what this category encompasses."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description"
+      ]
+    },
+    "PhotographyService": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PhotographyService",
+      "type": "object",
+      "description": "Represents a photography service offered by PGK Legacy.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the PhotographyService entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the photography service (e.g., 'Wedding Photography', 'Family Portraits')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the photography service, including its scope and style."
+        },
+        "basePrice": {
+          "type": "number",
+          "description": "The starting or typical base price for the service before specific packages or add-ons."
+        },
+        "durationDescription": {
+          "type": "string",
+          "description": "A description of the typical duration of the service (e.g., 'Up to 2 hours', 'Full day coverage')."
+        },
+        "deliverables": {
+          "type": "string",
+          "description": "A summary of what clients receive (e.g., '50 edited digital photos, online gallery, print release')."
+        },
+        "categoryIds": {
+          "type": "array",
+          "description": "References to Categories this photography service belongs to. (Relationship: Category N:N PhotographyService)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the service was first created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the service details were last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "basePrice",
+        "durationDescription",
+        "deliverables",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ServicePackage": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ServicePackage",
+      "type": "object",
+      "description": "Represents a specific package within a photography service, outlining inclusions and pricing.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ServicePackage entity."
+        },
+        "serviceId": {
+          "type": "string",
+          "description": "Reference to the PhotographyService this package belongs to. (Relationship: PhotographyService 1:N ServicePackage)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the package (e.g., 'Standard Package', 'Premium Package')."
+        },
+        "price": {
+          "type": "number",
+          "description": "The price of this specific package."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of what is included in this package."
+        }
+      },
+      "required": [
+        "id",
+        "serviceId",
+        "name",
+        "price",
+        "description"
+      ]
+    },
+    "ServiceImage": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ServiceImage",
+      "type": "object",
+      "description": "Represents an image for a photography service portfolio.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ServiceImage entity."
+        },
+        "serviceId": {
+          "type": "string",
+          "description": "Reference to the PhotographyService this image belongs to. (Relationship: PhotographyService 1:N ServiceImage)"
+        },
+        "url": {
+          "type": "string",
+          "description": "The URL of the photography portfolio image.",
+          "format": "uri"
+        },
+        "altText": {
+          "type": "string",
+          "description": "Alternative text for the image, important for accessibility and SEO."
+        },
+        "order": {
+          "type": "number",
+          "description": "The display order of the image within the service's portfolio."
+        }
+      },
+      "required": [
+        "id",
+        "serviceId",
+        "url",
+        "altText",
+        "order"
+      ]
+    },
+    "CustomGiftInquiry": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CustomGiftInquiry",
+      "type": "object",
+      "description": "Records a customer's inquiry for a customized gift.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the CustomGiftInquiry entity."
+        },
+        "customerName": {
+          "type": "string",
+          "description": "The name of the customer submitting the inquiry."
+        },
+        "customerEmail": {
+          "type": "string",
+          "description": "The email address of the customer for communication.",
+          "format": "email"
+        },
+        "customerPhone": {
+          "type": "string",
+          "description": "The phone number of the customer for communication."
+        },
+        "giftDescription": {
+          "type": "string",
+          "description": "A detailed description of the customized gift the customer is requesting."
+        },
+        "inspirationPhotoUrls": {
+          "type": "array",
+          "description": "URLs of any inspiration photos uploaded by the customer to guide the design.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "budgetAmount": {
+          "type": "number",
+          "description": "The customer's indicated budget for the customized gift, if provided."
+        },
+        "submissionDateTime": {
+          "type": "string",
+          "description": "The date and time when the inquiry was submitted.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the inquiry (e.g., 'New', 'Quoted', 'Accepted', 'In Progress', 'Completed', 'Cancelled')."
+        },
+        "productId": {
+          "type": "string",
+          "description": "Reference to a Product if the inquiry is based on an existing product type. (Relationship: Product 1:N CustomGiftInquiry)"
+        }
+      },
+      "required": [
+        "id",
+        "customerName",
+        "customerEmail",
+        "customerPhone",
+        "giftDescription",
+        "submissionDateTime",
+        "status"
+      ]
+    },
+    "PhotographyBooking": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PhotographyBooking",
+      "type": "object",
+      "description": "Records a customer's booking request for a photography session.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the PhotographyBooking entity."
+        },
+        "customerName": {
+          "type": "string",
+          "description": "The name of the customer making the booking."
+        },
+        "customerEmail": {
+          "type": "string",
+          "description": "The email address of the customer for communication.",
+          "format": "email"
+        },
+        "customerPhone": {
+          "type": "string",
+          "description": "The phone number of the customer for communication."
+        },
+        "serviceId": {
+          "type": "string",
+          "description": "Reference to the PhotographyService being booked. (Relationship: PhotographyService 1:N PhotographyBooking)"
+        },
+        "packageId": {
+          "type": "string",
+          "description": "Reference to the specific ServicePackage chosen, if applicable. (Relationship: ServicePackage 1:N PhotographyBooking)"
+        },
+        "preferredDateTime": {
+          "type": "string",
+          "description": "The customer's preferred date and time for the photography session.",
+          "format": "date-time"
+        },
+        "eventLocation": {
+          "type": "string",
+          "description": "The location where the photography session is requested to take place."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Any additional notes or requests provided by the customer."
+        },
+        "submissionDateTime": {
+          "type": "string",
+          "description": "The date and time when the booking request was submitted.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the booking (e.g., 'Pending', 'Confirmed', 'Completed', 'Canceled')."
+        }
+      },
+      "required": [
+        "id",
+        "customerName",
+        "customerEmail",
+        "customerPhone",
+        "serviceId",
+        "preferredDateTime",
+        "eventLocation",
+        "submissionDateTime",
+        "status"
+      ]
+    },
+    "WebsiteContent": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "WebsiteContent",
+      "type": "object",
+      "description": "Stores various pieces of editable website content, such as 'About Us' text or banner images.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the WebsiteContent entity."
+        },
+        "sectionName": {
+          "type": "string",
+          "description": "A descriptive name for the content section (e.g., 'Homepage Hero Text', 'About Us Paragraph 1')."
+        },
+        "contentValue": {
+          "type": "string",
+          "description": "The actual content, which can be text, HTML, or a URL for an image."
+        },
+        "contentType": {
+          "type": "string",
+          "description": "The type of content stored (e.g., 'text', 'html', 'image-url')."
+        },
+        "lastUpdatedAt": {
+          "type": "string",
+          "description": "Timestamp when this content was last updated by an admin.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "sectionName",
+        "contentValue",
+        "contentType",
+        "lastUpdatedAt"
+      ]
+    },
+    "SocialMediaPost": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SocialMediaPost",
+      "type": "object",
+      "description": "Represents a social media post, likely from Instagram, curated for display on the website.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the SocialMediaPost entity."
+        },
+        "platform": {
+          "type": "string",
+          "description": "The social media platform the post originated from (e.g., 'Instagram')."
+        },
+        "postUrl": {
+          "type": "string",
+          "description": "The URL to the original social media post.",
+          "format": "uri"
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "The URL of the main image or video thumbnail from the social media post.",
+          "format": "uri"
+        },
+        "caption": {
+          "type": "string",
+          "description": "The text caption associated with the social media post."
+        },
+        "postDateTime": {
+          "type": "string",
+          "description": "The original date and time when the post was published on the social media platform.",
+          "format": "date-time"
+        },
+        "adminNotes": {
+          "type": "string",
+          "description": "Internal notes for administrators regarding this social media post."
+        },
+        "isFeatured": {
+          "type": "boolean",
+          "description": "Indicates if this social media post should be prominently featured on the website."
+        }
+      },
+      "required": [
+        "id",
+        "platform",
+        "postUrl",
+        "imageUrl",
+        "caption",
+        "postDateTime",
+        "isFeatured"
+      ]
+    },
+    "BusinessLocation": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BusinessLocation",
+      "type": "object",
+      "description": "Stores the physical business location and primary contact information for PGK Legacy.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the BusinessLocation entity (typically a singleton with a fixed ID)."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the business location (e.g., 'PGK Legacy Studio')."
+        },
+        "addressLine1": {
+          "type": "string",
+          "description": "The first line of the business's street address."
+        },
+        "addressLine2": {
+          "type": "string",
+          "description": "The second line of the business's street address, if applicable."
+        },
+        "city": {
+          "type": "string",
+          "description": "The city where the business is located."
+        },
+        "stateProvince": {
+          "type": "string",
+          "description": "The state or province where the business is located."
+        },
+        "postalCode": {
+          "type": "string",
+          "description": "The postal or ZIP code of the business location."
+        },
+        "country": {
+          "type": "string",
+          "description": "The country where the business is located."
+        },
+        "latitude": {
+          "type": "number",
+          "description": "The geographical latitude of the business location."
+        },
+        "longitude": {
+          "type": "number",
+          "description": "The geographical longitude of the business location."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The main contact phone number for the business."
+        },
+        "emailAddress": {
+          "type": "string",
+          "description": "The main contact email address for the business.",
+          "format": "email"
+        },
+        "whatsAppNumber": {
+          "type": "string",
+          "description": "The WhatsApp number for direct communication."
+        },
+        "googleMapsEmbedUrl": {
+          "type": "string",
+          "description": "The URL for embedding an interactive Google Map of the business location.",
+          "format": "uri"
+        },
+        "instagramProfileUrl": {
+          "type": "string",
+          "description": "The URL to the business's Instagram profile.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "addressLine1",
+        "city",
+        "stateProvince",
+        "postalCode",
+        "country",
+        "latitude",
+        "longitude",
+        "phoneNumber",
+        "emailAddress",
+        "whatsAppNumber",
+        "googleMapsEmbedUrl",
+        "instagramProfileUrl"
+      ]
+    },
+    "UserCustomDesign": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserCustomDesign",
+      "type": "object",
+      "description": "Represents a custom gift design created by a user using the AI visualization tool, which can be saved for later review or ordering.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserCustomDesign entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the unique identifier of the user who created or saved this design. This ID is provided by the external authentication system (Firebase)."
+        },
+        "productId": {
+          "type": "string",
+          "description": "Reference to the Product entity that this design is based on (e.g., 'Custom Mug', 'Canvas Print'). (Relationship: Product 1:N UserCustomDesign)"
+        },
+        "uploadedPhotoUrl": {
+          "type": "string",
+          "description": "The URL of the photo uploaded by the user for visualization on the product.",
+          "format": "uri"
+        },
+        "designConfiguration": {
+          "type": "string",
+          "description": "A JSON string or serialized object containing the configuration details of the AI-suggested or user-modified design (e.g., layout, text overlays, filters)."
+        },
+        "previewImageUrl": {
+          "type": "string",
+          "description": "The URL of the generated image showing the user's photo visualized on the product, based on the design configuration.",
+          "format": "uri"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the custom design was first created or saved.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the custom design was last updated.",
+          "format": "date-time"
+        },
+        "isArchived": {
+          "type": "boolean",
+          "description": "A flag indicating if the user has archived this design, typically for hiding it from active lists."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "productId",
+        "uploadedPhotoUrl",
+        "designConfiguration",
+        "previewImageUrl",
+        "createdAt",
+        "updatedAt",
+        "isArchived"
+      ]
     }
   },
   "auth": {
-    "providers": ["password"]
+    "providers": [
+      "password",
+      "anonymous"
+    ]
   },
   "firestore": {
-    "/products/{productId}": {
-      "schema": "Product",
-      "description": "Public catalog of products."
-    },
-    "/orders/{orderId}": {
-      "schema": "Order",
-      "description": "Secure storage for customer orders."
-    }
+    "structure": [
+      {
+        "path": "/products/{productId}",
+        "definition": {
+          "entityName": "Product",
+          "schema": {
+            "$ref": "#/backend/entities/Product"
+          },
+          "description": "Stores individual personalized gift products. Publicly readable by all users; write access is restricted to administrators."
+        }
+      },
+      {
+        "path": "/products/{productId}/images/{productImageId}",
+        "definition": {
+          "entityName": "ProductImage",
+          "schema": {
+            "$ref": "#/backend/entities/ProductImage"
+          },
+          "description": "Stores images associated with a specific product. Publicly readable by all users; write access is restricted to administrators. Implicitly owned by the parent Product."
+        }
+      },
+      {
+        "path": "/categories/{categoryId}",
+        "definition": {
+          "entityName": "Category",
+          "schema": {
+            "$ref": "#/backend/entities/Category"
+          },
+          "description": "Organizes products and photography services. Publicly readable by all users; write access is restricted to administrators."
+        }
+      },
+      {
+        "path": "/photographyServices/{serviceId}",
+        "definition": {
+          "entityName": "PhotographyService",
+          "schema": {
+            "$ref": "#/backend/entities/PhotographyService"
+          },
+          "description": "Stores details for each photography service offered. Publicly readable by all users; write access is restricted to administrators."
+        }
+      },
+      {
+        "path": "/photographyServices/{serviceId}/packages/{packageId}",
+        "definition": {
+          "entityName": "ServicePackage",
+          "schema": {
+            "$ref": "#/backend/entities/ServicePackage"
+          },
+          "description": "Defines specific packages for a photography service. Publicly readable by all users; write access is restricted to administrators. Implicitly owned by the parent PhotographyService."
+        }
+      },
+      {
+        "path": "/photographyServices/{serviceId}/images/{serviceImageId}",
+        "definition": {
+          "entityName": "ServiceImage",
+          "schema": {
+            "$ref": "#/backend/entities/ServiceImage"
+          },
+          "description": "Stores portfolio images for a photography service. Publicly readable by all users; write access is restricted to administrators. Implicitly owned by the parent PhotographyService."
+        }
+      },
+      {
+        "path": "/customGiftInquiries/{inquiryId}",
+        "definition": {
+          "entityName": "CustomGiftInquiry",
+          "schema": {
+            "$ref": "#/backend/entities/CustomGiftInquiry"
+          },
+          "description": "Records customer inquiries for customized gifts. Supports anonymous submissions or logged-in user submissions. Includes denormalized 'userId' (if available) for authorization independence, allowing users to read their own inquiries and administrators to manage all."
+        }
+      },
+      {
+        "path": "/photographyBookings/{bookingId}",
+        "definition": {
+          "entityName": "PhotographyBooking",
+          "schema": {
+            "$ref": "#/backend/entities/PhotographyBooking"
+          },
+          "description": "Records customer booking requests for photography sessions. Supports anonymous submissions or logged-in user submissions. Includes denormalized 'userId' (if available) for authorization independence, allowing users to read their own bookings and administrators to manage all."
+        }
+      },
+      {
+        "path": "/websiteContent/{contentId}",
+        "definition": {
+          "entityName": "WebsiteContent",
+          "schema": {
+            "$ref": "#/backend/entities/WebsiteContent"
+          },
+          "description": "Stores editable content sections of the website (e.g., 'About Us'). Publicly readable by all users; write access is restricted to administrators. Typically contains a small number of documents with well-known IDs."
+        }
+      },
+      {
+        "path": "/socialMediaPosts/{postId}",
+        "definition": {
+          "entityName": "SocialMediaPost",
+          "schema": {
+            "$ref": "#/backend/entities/SocialMediaPost"
+          },
+          "description": "Stores curated social media posts for display on the website. Publicly readable by all users; write access is restricted to administrators."
+        }
+      },
+      {
+        "path": "/businessLocation/{locationId}",
+        "definition": {
+          "entityName": "BusinessLocation",
+          "schema": {
+            "$ref": "#/backend/entities/BusinessLocation"
+          },
+          "description": "Stores the primary business location and contact information. Publicly readable by all users; write access is restricted to administrators. Expected to be a singleton document (e.g., 'main')."
+        }
+      },
+      {
+        "path": "/users/{userId}/userCustomDesigns/{designId}",
+        "definition": {
+          "entityName": "UserCustomDesign",
+          "schema": {
+            "$ref": "#/backend/entities/UserCustomDesign"
+          },
+          "description": "Stores custom gift designs created and saved by individual users. Access is restricted to the authenticated owner (userId from path and document) and administrators. Achieves Authorization Independence through path-based ownership.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user (Firebase Authentication UID) who owns this custom design."
+            },
+            {
+              "name": "designId",
+              "description": "The unique identifier for the custom gift design."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{adminUid}",
+        "definition": {
+          "entityName": "AdminRole",
+          "schema": {
+            "$ref": "#/backend/entities/AdminRole"
+          },
+          "description": "This collection serves for Database Access Control (DBAC) to define administrators. The existence of a document with an ID matching a user's UID grants administrative privileges. Access is restricted to system operations/administrators for modification, but its existence can be checked by rules."
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed following the core principles of Authorization Independence, Structural Segregation, and DBAC. Publicly accessible content (Products, Services, Categories, Website Content, Social Media Posts, Business Location) is stored in top-level collections (e.g., `/products`, `/photographyServices`). These collections are globally readable and managed by administrators, whose roles are defined in a dedicated `/roles_admin/{adminUid}` collection, enabling simple `isAdmin()` checks.\n\nUser-owned data, specifically `UserCustomDesign`, is stored hierarchically under `/users/{userId}/userCustomDesigns/{designId}`. This path-based ownership ensures that a user can only access their own designs (`request.auth.uid == userId`), adhering to the 'Private Data' and 'Hierarchical Paths' access modeling strategies. This also ensures Authorization Independence as the `userId` is part of the path and often denormalized within the document itself, removing the need for `get()` calls in rules.\n\nSubcollections like `ProductImage`, `ServicePackage`, and `ServiceImage` are directly nested under their respective parent entities. Their security posture aligns with their parents (public read, admin write), maintaining Structural Segregation and Authorization Independence as no cross-collection `get()` operations are required for access control.\n\nFor `CustomGiftInquiry` and `PhotographyBooking` entities, which can be submitted by both anonymous and logged-in users, a top-level collection (`/customGiftInquiries`, `/photographyBookings`) is used. To enable simple, debuggable security rules and QAP compliance, the `userId` of the submitting user (if logged in) MUST be denormalized directly into the `CustomGiftInquiry` and `PhotographyBooking` documents. This allows rules to grant read access to a user for their specific inquiries/bookings (`resource.data.userId == request.auth.uid`) or to administrators for all records, without complex filtering or `get()` operations. Anonymous submissions will simply have no `userId` field (or a null value), making them readable only by admins.\n\nQAPs (Query as Policy) are fully supported across the design:\n*   For public collections, any `list` operation is secure as all documents are meant to be publicly readable.\n*   For `/users/{userId}/userCustomDesigns`, a user can only `list` documents within their own user path, which is implicitly filtered by `request.auth.uid` in the path segment. Rules will enforce `userId == request.auth.uid`.\n*   For `customGiftInquiries` and `photographyBookings`, users querying for their own data will be required by rules to include `where('userId', '==', request.auth.uid)` in their query. This ensures security without filtering, as only documents matching the authenticated user's ID will be returned. Administrators can query all without a `userId` constraint.\n\nThe entire structure emphasizes explicit state modeling, predictable schemas, and radical consistency in naming conventions to ensure high debuggability and maintainability."
   }
 }
