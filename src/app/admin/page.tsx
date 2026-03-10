@@ -1,18 +1,25 @@
 
-"use client";
+'use client';
 
-import { useState } from "react";
-import { LayoutDashboard, Package, Image as ImageIcon, MessageSquare, Settings, Plus, Edit2, Trash2, Search } from "lucide-react";
+import { useState, useEffect } from "react";
+import { LayoutDashboard, Package, ShoppingBag, MessageSquare, Settings, LogOut, Search, ExternalLink, IndianRupee, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { initializeFirebase, useCollection } from "@/firebase";
+import { collection, query, orderBy, doc, updateDoc } from "firebase/firestore";
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
+  const { firestore } = initializeFirebase();
+
+  // Orders Collection
+  const ordersQuery = query(collection(firestore, 'orders'), orderBy('createdAt', 'desc'));
+  const { data: orders, loading: ordersLoading } = useCollection(ordersQuery);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,154 +33,158 @@ export default function AdminPage() {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-accent/20 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full p-8 shadow-2xl">
+        <Card className="max-w-md w-full p-8 shadow-2xl rounded-[2.5rem] border-none">
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-primary text-primary-foreground rounded-2xl flex items-center justify-center mx-auto mb-4">
               <LayoutDashboard />
             </div>
-            <h1 className="text-2xl font-headline font-bold">Admin Portal</h1>
-            <p className="text-muted-foreground">Enter your credentials to manage PGK Gifts content</p>
+            <h1 className="text-3xl font-headline font-bold">Admin Portal</h1>
+            <p className="text-muted-foreground mt-2">Enter your credentials to manage store orders</p>
           </div>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
-              <label className="text-sm font-bold">Access Key</label>
-              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
+              <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Access Key</label>
+              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="h-12 rounded-full px-6" />
             </div>
-            <Button type="submit" className="w-full h-12 rounded-full">Authorize Access</Button>
+            <Button type="submit" className="w-full h-14 rounded-full text-lg shadow-lg">Authorize Access</Button>
           </form>
         </Card>
       </div>
     );
   }
 
+  const totalRevenue = orders?.reduce((sum, order) => sum + (order.total || 0), 0) || 0;
+
   return (
-    <div className="bg-background min-h-screen">
-      <div className="border-b bg-card">
-        <div className="container mx-auto px-4 py-6 flex items-center justify-between">
+    <div className="bg-background min-h-screen pt-24 pb-20">
+      <div className="container mx-auto px-4">
+        <div className="flex flex-col md:flex-row items-center justify-between mb-12 gap-6">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white">
-              <LayoutDashboard className="w-5 h-5" />
+            <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-white shadow-xl">
+              <LayoutDashboard className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-xl font-headline font-bold">Admin Dashboard</h1>
-              <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Welcome back, John Solomon</p>
+              <h1 className="text-3xl font-headline font-bold leading-none">Admin Dashboard</h1>
+              <p className="text-xs text-muted-foreground uppercase tracking-[0.2em] font-bold mt-2">Store Management System</p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={() => setIsAuthenticated(false)}>Logout</Button>
+          <Button variant="outline" size="lg" className="rounded-full border-2 gap-2" onClick={() => setIsAuthenticated(false)}>
+            <LogOut className="w-4 h-4" /> Logout
+          </Button>
         </div>
-      </div>
 
-      <div className="container mx-auto px-4 py-12">
-        <Tabs defaultValue="products" className="space-y-8">
-          <TabsList className="bg-accent/30 p-1 rounded-full w-full max-w-2xl mx-auto flex">
-            <TabsTrigger value="products" className="flex-1 rounded-full"><Package className="mr-2 w-4 h-4" /> Products</TabsTrigger>
-            <TabsTrigger value="portfolio" className="flex-1 rounded-full"><ImageIcon className="mr-2 w-4 h-4" /> Portfolio</TabsTrigger>
-            <TabsTrigger value="inquiries" className="flex-1 rounded-full"><MessageSquare className="mr-2 w-4 h-4" /> Inquiries <Badge className="ml-2 bg-primary">3</Badge></TabsTrigger>
-            <TabsTrigger value="settings" className="flex-1 rounded-full"><Settings className="mr-2 w-4 h-4" /> Settings</TabsTrigger>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+          <Card className="rounded-[2.5rem] border-none shadow-soft bg-card p-6">
+             <div className="flex items-center gap-4">
+               <div className="w-12 h-12 rounded-2xl bg-green-100 text-green-600 flex items-center justify-center">
+                 <IndianRupee className="w-6 h-6" />
+               </div>
+               <div>
+                 <p className="text-sm text-muted-foreground font-bold uppercase tracking-widest">Total Revenue</p>
+                 <h2 className="text-3xl font-headline font-bold">₹{totalRevenue}</h2>
+               </div>
+             </div>
+          </Card>
+          <Card className="rounded-[2.5rem] border-none shadow-soft bg-card p-6">
+             <div className="flex items-center gap-4">
+               <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center">
+                 <ShoppingBag className="w-6 h-6" />
+               </div>
+               <div>
+                 <p className="text-sm text-muted-foreground font-bold uppercase tracking-widest">Orders</p>
+                 <h2 className="text-3xl font-headline font-bold">{orders?.length || 0}</h2>
+               </div>
+             </div>
+          </Card>
+          <Card className="rounded-[2.5rem] border-none shadow-soft bg-card p-6">
+             <div className="flex items-center gap-4">
+               <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center">
+                 <TrendingUp className="w-6 h-6" />
+               </div>
+               <div>
+                 <p className="text-sm text-muted-foreground font-bold uppercase tracking-widest">Active Store</p>
+                 <h2 className="text-3xl font-headline font-bold">Live</h2>
+               </div>
+             </div>
+          </Card>
+        </div>
+
+        <Tabs defaultValue="orders" className="space-y-8">
+          <TabsList className="bg-card/50 p-2 rounded-full border-2 w-full max-w-2xl mx-auto flex h-16">
+            <TabsTrigger value="orders" className="flex-1 rounded-full text-lg data-[state=active]:bg-primary data-[state=active]:text-white">
+              <ShoppingBag className="mr-2 w-5 h-5" /> Orders
+            </TabsTrigger>
+            <TabsTrigger value="products" className="flex-1 rounded-full text-lg data-[state=active]:bg-primary data-[state=active]:text-white">
+              <Package className="mr-2 w-5 h-5" /> Catalog
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="products">
-            <Card className="border-none shadow-lg">
-              <CardHeader className="flex flex-row items-center justify-between pb-6">
-                <div>
-                  <CardTitle className="font-headline text-2xl">Gift Catalog</CardTitle>
-                  <CardDescription>Manage your personalized gift products and pricing</CardDescription>
-                </div>
-                <Button className="rounded-full"><Plus className="mr-2 w-4 h-4" /> New Product</Button>
+          <TabsContent value="orders">
+            <Card className="border-none shadow-xl rounded-[2.5rem] overflow-hidden">
+              <CardHeader className="p-8 pb-4">
+                <CardTitle className="font-headline text-3xl">Customer Orders</CardTitle>
+                <CardDescription>Real-time orders processed through Razorpay</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input className="pl-10" placeholder="Search products..." />
+              <CardContent className="p-8">
+                {ordersLoading ? (
+                  <div className="text-center py-20">Loading orders...</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="hover:bg-transparent border-b-2">
+                          <TableHead className="font-bold">Customer</TableHead>
+                          <TableHead className="font-bold">Items</TableHead>
+                          <TableHead className="font-bold">Total</TableHead>
+                          <TableHead className="font-bold">Status</TableHead>
+                          <TableHead className="font-bold">Date</TableHead>
+                          <TableHead className="text-right font-bold">Action</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {orders?.map((order) => (
+                          <TableRow key={order.id} className="hover:bg-accent/10">
+                            <TableCell>
+                              <div className="font-bold">{order.customerName}</div>
+                              <div className="text-xs text-muted-foreground">{order.phone}</div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm">
+                                {order.items?.map((item: any) => `${item.name} (x${item.quantity})`).join(', ')}
+                              </div>
+                            </TableCell>
+                            <TableCell className="font-bold">₹{order.total}</TableCell>
+                            <TableCell>
+                              <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none rounded-full px-3">{order.paymentStatus}</Badge>
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {order.createdAt?.toDate().toLocaleDateString()}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button variant="ghost" size="sm" className="rounded-full gap-1">
+                                View <ExternalLink className="w-3 h-3" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </div>
-                </div>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Product</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Price</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {[
-                      { name: "Classic Mug", cat: "Drinkware", price: "$15.00", status: "Active" },
-                      { name: "Cotton T-Shirt", cat: "Apparel", price: "$25.00", status: "Active" },
-                      { name: "Gallery Canvas", cat: "Home Decor", price: "$45.00", status: "Out of Stock" }
-                    ].map((p, i) => (
-                      <TableRow key={i}>
-                        <TableCell className="font-bold">{p.name}</TableCell>
-                        <TableCell>{p.cat}</TableCell>
-                        <TableCell>{p.price}</TableCell>
-                        <TableCell>
-                          <Badge variant={p.status === "Active" ? "default" : "secondary"}>{p.status}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="icon"><Edit2 className="w-4 h-4" /></Button>
-                            <Button variant="ghost" size="icon" className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="portfolio">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-               <Card className="border-2 border-dashed flex flex-col items-center justify-center p-12 text-muted-foreground cursor-pointer hover:bg-accent/20 transition-all">
-                 <Plus className="w-12 h-12 mb-4" />
-                 <p className="font-bold">Add New Collection</p>
-               </Card>
-               {[1, 2, 3].map((i) => (
-                 <Card key={i} className="overflow-hidden group">
-                   <div className="aspect-video relative">
-                     <img src={`https://picsum.photos/seed/port-${i}/600/400`} className="object-cover w-full h-full" alt="Portfolio" />
-                   </div>
-                   <CardContent className="p-4 flex items-center justify-between">
-                     <h4 className="font-bold">Collection {i}</h4>
-                     <div className="flex gap-2">
-                       <Button variant="ghost" size="icon"><Edit2 className="w-4 h-4" /></Button>
-                       <Button variant="ghost" size="icon" className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
-                     </div>
-                   </CardContent>
-                 </Card>
-               ))}
+          <TabsContent value="products">
+            <div className="text-center py-24 bg-card rounded-[3rem] shadow-xl">
+               <Package className="w-16 h-16 mx-auto mb-6 text-muted-foreground opacity-20" />
+               <h3 className="text-3xl font-headline font-bold mb-4">Catalog Manager</h3>
+               <p className="text-muted-foreground max-w-md mx-auto">
+                 Catalog management is currently reading from the static master list. Firestore product sync coming in next update.
+               </p>
+               <Button className="mt-8 rounded-full px-12 h-14" variant="outline" disabled>Add New Product</Button>
             </div>
-          </TabsContent>
-
-          <TabsContent value="inquiries">
-             <div className="space-y-4">
-                {[
-                  { from: "Sarah Jenkins", type: "Wedding Photography", date: "2 hours ago", status: "New" },
-                  { from: "Robert Miller", type: "Bulk Mug Order", date: "Yesterday", status: "Pending" },
-                  { from: "Emily White", type: "Portrait Session", date: "3 days ago", status: "Responded" }
-                ].map((msg, i) => (
-                  <Card key={i} className="hover:shadow-md transition-all">
-                    <CardContent className="p-6 flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center font-bold text-primary">
-                          {msg.from[0]}
-                        </div>
-                        <div>
-                          <h4 className="font-bold">{msg.from}</h4>
-                          <p className="text-sm text-muted-foreground">{msg.type} • {msg.date}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <Badge variant={msg.status === "New" ? "default" : "secondary"}>{msg.status}</Badge>
-                        <Button variant="outline" size="sm">View Message</Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-             </div>
           </TabsContent>
         </Tabs>
       </div>

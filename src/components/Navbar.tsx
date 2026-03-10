@@ -4,14 +4,16 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
-import { Menu, X, ShoppingBag, Grid, ImageIcon, Phone } from 'lucide-react';
+import { Menu, X, ShoppingCart, Grid, ImageIcon, Phone, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { CONTACT_INFO } from '@/lib/data';
+import { useCart } from '@/context/CartContext';
+import { Badge } from '@/components/ui/badge';
 
 const NAV_LINKS = [
-  { name: 'Home', href: '/', icon: ShoppingBag },
-  { name: 'Products', href: '/products', icon: Grid },
+  { name: 'Home', href: '/', icon: Grid },
+  { name: 'Shop', href: '/shop', icon: ShoppingCart },
   { name: 'Gallery', href: '/gallery', icon: ImageIcon },
   { name: 'Contact', href: '/contact', icon: Phone },
 ];
@@ -19,6 +21,7 @@ const NAV_LINKS = [
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const { itemCount } = useCart();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -30,7 +33,7 @@ export function Navbar() {
     <nav className={`fixed top-0 z-50 w-full transition-all duration-300 ${scrolled ? 'bg-background/80 backdrop-blur-lg border-b py-2' : 'bg-transparent py-4'}`}>
       <div className="container mx-auto px-4 h-20 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-4 group">
-          <div className="relative w-20 h-20 transition-transform group-hover:rotate-12">
+          <div className="relative w-16 h-16 transition-transform group-hover:rotate-6">
             <Image
               src={CONTACT_INFO.headerLogo}
               alt="PGK GIFTS Logo"
@@ -39,7 +42,7 @@ export function Navbar() {
             />
           </div>
           <div className="flex flex-col">
-            <span className="font-headline font-bold text-2xl leading-none tracking-tighter">PGK GIFTS</span>
+            <span className="font-headline font-bold text-xl leading-none tracking-tighter">PGK GIFTS</span>
             <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-muted-foreground">Personalized Art</span>
           </div>
         </Link>
@@ -56,15 +59,31 @@ export function Navbar() {
             </Link>
           ))}
           <div className="flex items-center gap-4 ml-4">
+            <Link href="/cart" className="relative group p-2">
+              <ShoppingCart className="w-6 h-6 group-hover:text-primary transition-colors" />
+              {itemCount > 0 && (
+                <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px] bg-primary text-white">
+                  {itemCount}
+                </Badge>
+              )}
+            </Link>
             <ThemeToggle />
-            <Button asChild className="rounded-full px-6">
-              <a href={CONTACT_INFO.whatsapp} target="_blank" rel="noopener noreferrer">Order Now</a>
+            <Button asChild variant="outline" size="icon" className="rounded-full">
+              <Link href="/admin"><User className="w-5 h-5" /></Link>
             </Button>
           </div>
         </div>
 
         {/* Mobile Toggle */}
-        <div className="flex items-center gap-2 md:hidden">
+        <div className="flex items-center gap-4 md:hidden">
+          <Link href="/cart" className="relative p-2">
+            <ShoppingCart className="w-6 h-6" />
+            {itemCount > 0 && (
+              <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px] bg-primary text-white">
+                {itemCount}
+              </Badge>
+            )}
+          </Link>
           <ThemeToggle />
           <Button
             variant="ghost"
@@ -93,9 +112,12 @@ export function Navbar() {
               </Link>
             ))}
           </div>
-          <div className="mt-auto space-y-4">
+          <div className="mt-auto flex flex-col gap-4">
              <Button asChild size="lg" className="w-full rounded-[2rem] h-16 text-xl">
-               <a href={CONTACT_INFO.whatsapp} target="_blank" rel="noopener noreferrer">Order on WhatsApp</a>
+               <Link href="/shop" onClick={() => setIsOpen(false)}>Shop Now</Link>
+             </Button>
+             <Button asChild variant="outline" size="lg" className="w-full rounded-[2rem] h-16 text-xl">
+               <Link href="/admin" onClick={() => setIsOpen(false)}>Admin Login</Link>
              </Button>
           </div>
         </div>

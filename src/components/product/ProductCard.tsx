@@ -2,19 +2,36 @@
 'use client';
 
 import Image from 'next/image';
-import { ShoppingCart } from 'lucide-react';
+import Link from 'next/link';
+import { ShoppingCart, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
-import { Product, CONTACT_INFO } from '@/lib/data';
+import { Product } from '@/lib/data';
 import { motion } from 'framer-motion';
+import { useCart } from '@/context/CartContext';
+import { useToast } from '@/hooks/use-toast';
 
 interface ProductCardProps {
   product: Product;
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const whatsappMessage = encodeURIComponent(`Hello PGK Studio,\nI want to order this product: ${product.name}`);
-  const whatsappLink = `${CONTACT_INFO.whatsapp}&text=${whatsappMessage}`;
+  const { addToCart } = useCart();
+  const { toast } = useToast();
+
+  const handleAddToCart = () => {
+    addToCart({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.image,
+      quantity: 1,
+    });
+    toast({
+      title: "Added to Cart",
+      description: `${product.name} has been added to your shopping bag.`,
+    });
+  };
 
   return (
     <motion.div
@@ -23,27 +40,33 @@ export function ProductCard({ product }: ProductCardProps) {
       viewport={{ once: true }}
       transition={{ duration: 0.5 }}
     >
-      <Card className="overflow-hidden group border-none shadow-soft hover:shadow-xl transition-all duration-300">
-        <div className="relative aspect-square overflow-hidden bg-muted">
-          <Image
-            src={product.image}
-            alt={product.name}
-            fill
-            className="object-cover transition-transform duration-500 group-hover:scale-110"
-          />
-          <div className="absolute inset-0 bg-black/5 group-hover:bg-black/0 transition-colors" />
-        </div>
-        <CardContent className="p-4">
-          <h3 className="font-bold text-lg line-clamp-1">{product.name}</h3>
-          <p className="text-muted-foreground text-sm mb-2">{product.category}</p>
-          <p className="font-headline text-xl font-bold text-primary">{product.price}</p>
+      <Card className="overflow-hidden group border-none shadow-soft hover:shadow-xl transition-all duration-300 rounded-[2rem] bg-card">
+        <Link href={`/products/${product.id}`} className="block">
+          <div className="relative aspect-square overflow-hidden bg-muted">
+            <Image
+              src={product.image}
+              alt={product.name}
+              fill
+              className="object-cover transition-transform duration-500 group-hover:scale-110"
+            />
+            <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+              <Button variant="secondary" className="rounded-full shadow-lg h-12 w-12 p-0">
+                <Eye className="w-5 h-5" />
+              </Button>
+            </div>
+          </div>
+        </Link>
+        <CardContent className="p-6">
+          <Link href={`/products/${product.id}`}>
+            <h3 className="font-bold text-lg line-clamp-1 hover:text-primary transition-colors">{product.name}</h3>
+          </Link>
+          <p className="text-muted-foreground text-sm mb-2 uppercase tracking-wider font-bold text-[10px]">{product.category}</p>
+          <p className="font-headline text-2xl font-bold text-primary">₹{product.price}</p>
         </CardContent>
-        <CardFooter className="p-4 pt-0">
-          <Button asChild className="w-full rounded-full gap-2">
-            <a href={whatsappLink} target="_blank" rel="noopener noreferrer">
-              <ShoppingCart className="w-4 h-4" />
-              Order on WhatsApp
-            </a>
+        <CardFooter className="p-6 pt-0">
+          <Button onClick={handleAddToCart} className="w-full rounded-full gap-2 h-12">
+            <ShoppingCart className="w-4 h-4" />
+            Add to Cart
           </Button>
         </CardFooter>
       </Card>
