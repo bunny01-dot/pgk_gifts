@@ -1,52 +1,59 @@
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-
-export interface CartItem {
-  id: string;
-  name: string;
-  price: number;
-  image: string;
-  quantity: number;
-}
+import { CartItem } from '@/types/cart';
 
 interface CartContextType {
   cart: CartItem[];
-  addToCart: (item: CartItem) => void;
+  addToCart: (item: any) => void;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
   cartTotal: number;
   itemCount: number;
+  isCartOpen: boolean;
+  setIsCartOpen: (open: boolean) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   useEffect(() => {
-    const savedCart = localStorage.getItem('pgk-cart');
+    const savedCart = localStorage.getItem('pgk-cart-v2');
     if (savedCart) {
-      setCart(JSON.parse(savedCart));
+      try {
+        setCart(JSON.parse(savedCart));
+      } catch (e) {
+        console.error("Failed to load cart", e);
+      }
     }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('pgk-cart', JSON.stringify(cart));
+    localStorage.setItem('pgk-cart-v2', JSON.stringify(cart));
   }, [cart]);
 
-  const addToCart = (item: CartItem) => {
+  const addToCart = (product: any) => {
     setCart((prevCart) => {
-      const existingItem = prevCart.find((i) => i.id === item.id);
+      const existingItem = prevCart.find((i) => i.productId === product.id);
       if (existingItem) {
         return prevCart.map((i) =>
-          i.id === item.id ? { ...i, quantity: i.quantity + item.quantity } : i
+          i.productId === product.id ? { ...i, quantity: i.quantity + (product.quantity || 1) } : i
         );
       }
-      return [...prevCart, item];
+      return [...prevCart, {
+        id: Math.random().toString(36).substring(7),
+        productId: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+        quantity: product.quantity || 1,
+      }];
     });
+    setIsCartOpen(true);
   };
 
   const removeFromCart = (id: string) => {
@@ -67,7 +74,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <CartContext.Provider
-      value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal, itemCount }}
+      value={{ 
+        cart, 
+        addToCart, 
+        removeFromCart, 
+        updateQuantity, 
+        clearCart, 
+        cartTotal, 
+        itemCount,
+        isCartOpen,
+        setIsCartOpen
+      }}
     >
       {children}
     </CartContext.Provider>

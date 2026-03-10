@@ -1,13 +1,13 @@
-
 import type {Metadata} from 'next';
 import './globals.css';
-import { Navbar } from '@/components/Navbar';
+import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/Footer';
 import { FloatingWhatsApp } from '@/components/FloatingWhatsApp';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { CartProvider } from '@/context/CartContext';
 import { FirebaseClientProvider } from '@/firebase';
+import { CartDrawer } from '@/components/cart/CartDrawer';
 import Script from 'next/script';
 
 export const metadata: Metadata = {
@@ -41,6 +41,7 @@ export default function RootLayout({
               <main className="min-h-screen">
                 {children}
               </main>
+              <CartDrawer />
               <Footer />
               <FloatingWhatsApp />
               <Toaster />

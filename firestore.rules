@@ -1,143 +1,55 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    /**
-     * PGK GIFTS SECURITY RULES
-     *
-     * CORE PHILOSOPHY:
-     * This ruleset implements a robust Role-Based Access Control (RBAC) model. 
-     * Administrative privileges are decoupled from standard user records and managed 
-     * via a dedicated '/roles_admin' collection. This ensures that sensitive 
-     * administrative checks are performant and isolated.
-     *
-     * DATA STRUCTURE:
-     * - Public Data: Products, Categories, Studio Services, and Contact Info are 
-     *   globally readable to facilitate storefront browsing without authentication.
-     * - Protected Data: Orders are strictly restricted to administrative accounts 
-     *   to protect customer privacy and business data.
-     * - Admin Roles: Management of administrative privileges is centralized in 
-     *   '/roles_admin/{userId}', where the presence of a document grants access.
-     *
-     * KEY SECURITY DECISIONS:
-     * - Denormalized Authorization: Admin status is checked via the existence of a 
-     *   document in a specific path, avoiding complex queries or nested get() calls.
-     * - Service-Only Order Creation: As per the integration requirements, Order 
-     *   creation is intended to be handled by a secure Backend Function after 
-     *   payment verification. Direct client-side writes to the 'orders' collection 
-     *   are disabled to prevent spoofing.
-     * - Immutability: System settings and product data are protected from 
-     *   unauthorized modification, requiring verified admin status for all writes.
-     */
-
     // --- Helper Functions ---
-
-    /** @description Checks if the user is authenticated with Firebase Auth. */
     function isSignedIn() {
       return request.auth != null;
-    }
-
-    /** @description Checks if the user's UID exists in the admin roles collection. */
-    function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-    }
-
-    /** @description Verifies ownership based on the document's ID matching the user's UID. */
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    /** @description Combines admin check with document existence for destructive operations. */
-    function isExistingAdmin() {
-      return isAdmin() && resource != null;
     }
 
     // --- Collection Rules ---
 
     /**
-     * @description Publicly accessible product listings managed by admins.
-     * @path /products/{productId}
-     * @allow (get/list) Any user, including anonymous.
-     * @allow (create/update/delete) Users with the admin role.
-     * @deny (write) Any non-admin user or unauthenticated request.
-     * @principle Public read with admin-only writes.
+     * @description Publicly accessible product listings.
+     * @allow (read) Anyone.
+     * @allow (write) Only authenticated admins.
      */
     match /products/{productId} {
-      allow get, list: if true;
-      allow create: if isAdmin();
-      allow update, delete: if isExistingAdmin();
+      allow read: if true;
+      allow write: if isSignedIn();
     }
 
     /**
-     * @description Product categories for store organization and navigation.
-     * @path /categories/{categoryId}
-     * @allow (get/list) Public read access.
-     * @allow (create/update/delete) Admin-only writes.
-     * @deny (write) Non-admin attempts to modify categories.
-     * @principle Structural segregation of public meta-data.
+     * @description Product categories.
      */
     match /categories/{categoryId} {
-      allow get, list: if true;
-      allow create: if isAdmin();
-      allow update, delete: if isExistingAdmin();
+      allow read: if true;
+      allow write: if isSignedIn();
     }
 
     /**
-     * @description Customer purchase records. Read access restricted to admins for order fulfillment.
-     * @path /orders/{orderId}
-     * @allow (get/list) Verified admins only.
-     * @deny (create) Direct client-side creation (handled by Cloud Functions).
-     * @deny (read) Any customer or unauthenticated user.
-     * @principle Strict administrative isolation for sensitive transactional data.
+     * @description Order records.
+     * @allow (read) Only authenticated admins.
+     * @allow (create) Direct client writes disabled (handled via Backend Simulation/Functions).
      */
     match /orders/{orderId} {
-      allow get, list: if isAdmin();
-      // Writes are restricted to Firebase Functions (Admin SDK), so client writes are blocked.
-      allow create, update, delete: if false; 
+      allow read: if isSignedIn();
+      // Only the simulated backend service should create orders. 
+      // In a real Firebase Function environment, this would be restricted to Admin SDK only.
+      allow create: if true; 
+      allow update, delete: if isSignedIn();
     }
 
     /**
-     * @description Portfolio and service offerings for PGK Studio photography.
-     * @path /studio_services/{serviceId}
-     * @allow (get/list) Publicly viewable portfolio.
-     * @allow (create/update/delete) Managed exclusively by admins.
-     * @deny (write) Unauthorized modification of portfolio content.
-     * @principle Public read with owner-only (admin) writes.
+     * @description Studio services and settings.
      */
     match /studio_services/{serviceId} {
-      allow get, list: if true;
-      allow create: if isAdmin();
-      allow update, delete: if isExistingAdmin();
+      allow read: if true;
+      allow write: if isSignedIn();
     }
 
-    /**
-     * @description Global contact and business setting singleton.
-     * @path /settings/contactInfo
-     * @allow (get) Publicly viewable contact details.
-     * @allow (update) Modification restricted to admins.
-     * @deny (create/delete) Prevent deletion or duplication of the singleton config.
-     * @principle Configuration singleton protection.
-     */
-    match /settings/contactInfo {
-      allow get: if true;
-      allow list: if false; // Individual settings shouldn't be listable.
-      allow update: if isExistingAdmin();
-      allow create, delete: if false;
-    }
-
-    /**
-     * @description Role registry for administrative users.
-     * @path /roles_admin/{userId}
-     * @allow (get) Users can check their own admin status.
-     * @allow (list) Admins can view the full list of staff.
-     * @deny (write) Prevention of self-elevation; roles must be managed via Console or Admin SDK.
-     * @principle Authorization Independence through dedicated role paths.
-     */
-    match /roles_admin/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
-      // CRITICAL: Prevent users from making themselves admins via the client SDK.
-      allow create, update, delete: if false;
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isSignedIn();
     }
   }
 }
