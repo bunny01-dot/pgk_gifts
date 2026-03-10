@@ -9,5 +9,5 @@ export interface Product {
   description: string;
   active: boolean;
   featured?: boolean;
-  createdAt: any;
+  createdAt?: any;
 }

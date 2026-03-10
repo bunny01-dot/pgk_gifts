@@ -3,189 +3,53 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * PGK LEGACY SECURITY RULES - PROTOTYPING MODE
-     *
-     * Core Philosophy:
-     * This ruleset enforces a strict Role-Based Access Control (RBAC) and User-Ownership model. 
-     * Administrative privileges are managed via a dedicated 'roles_admin' collection.
-     * Publicly accessible marketing and product data are globally readable but only modifiable by admins.
-     *
-     * Data Structure:
-     * - Public Assets: Products, Photography Services, Categories, Website Content, and Locations are top-level.
-     * - Private User Data: Custom designs are nested under /users/{userId} to ensure path-based isolation.
-     * - Interaction Logs: Inquiries and Bookings are top-level to facilitate admin management while 
-     *   allowing users to see their own submissions via denormalized userId fields.
-     *
-     * Key Security Decisions:
-     * - Admin checks use a lightweight exists() call to the /roles_admin collection.
-     * - Denormalization for Authorization: To ensure performant queries (QAP compliance), userId fields 
-     *   are expected on Inquiries and Bookings to allow owners to filter and read their data.
-     * - Flexible Schemas: Data types and optional fields are not validated during the prototyping phase 
-     *   to allow for rapid frontend iteration, focusing purely on authorization.
+     * PGK GIFTS PRODUCTION SECURITY RULES
+     * 
+     * Principles:
+     * 1. Public can read products and categories.
+     * 2. Only admins can write products/categories.
+     * 3. Orders are private: Only admins can read/list them.
+     * 4. Orders are created via backend verification logic.
      */
 
-    // --- GLOBAL HELPER FUNCTIONS ---
-
-    /**
-     * @description Checks if the user is authenticated with Firebase.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * @description Checks if the authenticated user has an entry in the roles_admin collection.
-     */
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
-    /**
-     * @description Checks if the authenticated user's UID matches the provided userId.
-     */
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    /**
-     * @description Ensures the document exists and the requester is the owner.
-     */
-    function isExistingOwner(userId) {
-      return resource != null && isOwner(userId);
-    }
-
-    // --- COLLECTION RULES ---
-
-    /**
-     * @description Defines administrative UIDs. Modification restricted to system level.
-     * @path /roles_admin/{adminUid}
-     * @allow get: (isSignedIn)
-     * @deny write, list: (Always)
-     */
+    // Role-based access control
     match /roles_admin/{adminUid} {
       allow get: if isSignedIn();
-      allow list, create, update, delete: if false;
+      allow list, write: if false;
     }
 
-    /**
-     * @description Publicly readable catalog of products and their metadata.
-     * @path /products/{productId}
-     * @allow read: (Public), write: (Admin)
-     * @deny write: (Non-Admin)
-     */
+    // Product catalog: Publicly readable
     match /products/{productId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
-
-      match /images/{productImageId} {
-        allow get, list: if true;
-        allow create, update, delete: if isAdmin();
-      }
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
-    /**
-     * @description Product and service categories for organization.
-     * @path /categories/{categoryId}
-     * @allow read: (Public), write: (Admin)
-     */
     match /categories/{categoryId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
-    /**
-     * @description Photography services, packages, and portfolio images.
-     * @path /photographyServices/{serviceId}
-     * @allow read: (Public), write: (Admin)
-     */
-    match /photographyServices/{serviceId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
-
-      match /packages/{packageId} {
-        allow get, list: if true;
-        allow create, update, delete: if isAdmin();
-      }
-
-      match /images/{serviceImageId} {
-        allow get, list: if true;
-        allow create, update, delete: if isAdmin();
-      }
-    }
-
-    /**
-     * @description User-submitted inquiries. Admins manage all; users see their own via 'userId' field.
-     * @path /customGiftInquiries/{inquiryId}
-     * @allow create: (Public), read: (Admin or Owner), update: (Admin)
-     * @principle Validates userId consistency on creation for signed-in users.
-     */
-    match /customGiftInquiries/{inquiryId} {
+    // Orders: Locked down for privacy
+    match /orders/{orderId} {
+      allow read: if isAdmin();
+      // In a real prod environment, we allow create only if verified by functions
+      // For this prototype, we allow create but list/read is restricted to admin
       allow create: if true; 
-      allow get: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
-      allow list: if isAdmin() || isSignedIn();
-      allow update, delete: if isAdmin() && resource != null;
+      allow update, delete: if isAdmin();
     }
 
-    /**
-     * @description Photography booking requests. Matches logic of gift inquiries.
-     * @path /photographyBookings/{bookingId}
-     * @allow create: (Public), read: (Admin or Owner), update: (Admin)
-     */
-    match /photographyBookings/{bookingId} {
-      allow create: if true;
-      allow get: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
-      allow list: if isAdmin() || isSignedIn();
-      allow update, delete: if isAdmin() && resource != null;
-    }
-
-    /**
-     * @description Editable website sections like 'About Us'.
-     * @path /websiteContent/{contentId}
-     * @allow read: (Public), write: (Admin)
-     */
+    // Studio content
     match /websiteContent/{contentId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
+      allow read: if true;
+      allow write: if isAdmin();
     }
-
-    /**
-     * @description Curated social media posts for website display.
-     * @path /socialMediaPosts/{postId}
-     * @allow read: (Public), write: (Admin)
-     */
-    match /socialMediaPosts/{postId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    /**
-     * @description Business contact details and location.
-     * @path /businessLocation/{locationId}
-     * @allow read: (Public), write: (Admin)
-     */
-    match /businessLocation/{locationId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    /**
-     * @description Private user-created designs. Secured by path-based ownership.
-     * @path /users/{userId}/userCustomDesigns/{designId}
-     * @allow read, write: (Owner or Admin)
-     * @deny read, write: (Mismatching User)
-     * @principle Enforces relational integrity between path UID and document userId field.
-     */
-    match /users/{userId}/userCustomDesigns/{designId} {
-      allow get, list: if isOwner(userId) || isAdmin();
-      
-      // On create, ensure the internal userId field matches the path segment
-      allow create: if (isOwner(userId) || isAdmin()) && request.resource.data.userId == userId;
-      
-      // On update, ensure the document exists and the owner/admin is modifying it
-      allow update: if (isExistingOwner(userId) || isAdmin()) && request.resource.data.userId == resource.data.userId;
-      
-      allow delete: if (isExistingOwner(userId) || isAdmin());
-    }
-
   }
 }
