@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { ArrowRight, ShoppingBag, Package, Star, Heart, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, ShoppingBag, Package, Star, Heart, CheckCircle2, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CONTACT_INFO, PRODUCTS } from '@/lib/data';
@@ -44,8 +44,8 @@ export default function Home() {
               <Button asChild size="lg" className="rounded-full px-10 text-lg h-16 shadow-2xl">
                 <Link href="/shop">Shop Collection <ShoppingBag className="ml-2 w-5 h-5" /></Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="rounded-full px-10 text-lg h-16 border-2 bg-background/50 backdrop-blur-sm">
-                <Link href="/gallery">View Gallery <ArrowRight className="ml-2 w-5 h-5" /></Link>
+              <Button asChild variant="outline" size="lg" className="rounded-full px-10 text-lg h-16 border-2 bg-background/50 backdrop-blur-sm hover:bg-primary hover:text-white hover:border-primary transition-all">
+                <Link href="/photography" className="flex items-center">Book Photography <Camera className="ml-2 w-5 h-5" /></Link>
               </Button>
             </div>
             <div className="flex items-center gap-8 pt-4">
@@ -92,7 +92,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Featured Section Header */}
+      {/* Featured Section */}
       <section className="py-32 bg-background">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center mb-20 space-y-6">
@@ -136,32 +136,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Categories Fast Links */}
-      <section className="py-32 bg-accent/5">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-            {[
-              { name: "Light Lamps", href: "/shop?cat=Light Lamps", icon: "✨", color: "bg-amber-100" },
-              { name: "Cute Toys", href: "/shop?cat=Cute Toys", icon: "🧸", color: "bg-pink-100" },
-              { name: "Customized Gifts", href: "/shop?cat=Customized Gifts", icon: "🎁", color: "bg-purple-100" }
-            ].map((cat) => (
-              <Link key={cat.name} href={cat.href} className="group">
-                <Card className="p-12 text-center bg-card border-none shadow-soft hover:shadow-2xl transition-all duration-500 rounded-[3rem] overflow-hidden relative">
-                  <div className={`absolute -top-10 -right-10 w-32 h-32 ${cat.color} rounded-full opacity-20 blur-3xl`} />
-                  <div className="text-7xl mb-8 group-hover:scale-110 transition-transform duration-500">{cat.icon}</div>
-                  <h3 className="text-3xl font-headline font-bold mb-4">{cat.name}</h3>
-                  <div className="inline-flex items-center gap-2 font-bold text-primary group-hover:gap-4 transition-all">
-                    Explore Now <ArrowRight className="w-5 h-5" />
-                  </div>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Payment Section */}
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-32">
         <PaymentSection />
       </div>
 

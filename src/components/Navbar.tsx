@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
-import { Menu, X, ShoppingCart, Grid, ImageIcon, Phone, User } from 'lucide-react';
+import { Menu, X, ShoppingCart, Grid, ImageIcon, Phone, User, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { CONTACT_INFO } from '@/lib/data';
@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 const NAV_LINKS = [
   { name: 'Home', href: '/', icon: Grid },
   { name: 'Shop', href: '/shop', icon: ShoppingCart },
+  { name: 'Photography', href: '/photography', icon: Camera },
   { name: 'Gallery', href: '/gallery', icon: ImageIcon },
   { name: 'Contact', href: '/contact', icon: Phone },
 ];
@@ -26,7 +27,7 @@ export function Navbar() {
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll(); // Check initial scroll
+    handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -64,7 +65,7 @@ export function Navbar() {
             <Link href="/cart" className="relative group p-2">
               <ShoppingCart className="w-6 h-6 group-hover:text-primary transition-colors" />
               {itemCount > 0 && (
-                <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px] bg-primary text-white">
+                <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px] bg-primary text-white border-none">
                   {itemCount}
                 </Badge>
               )}
@@ -81,7 +82,7 @@ export function Navbar() {
           <Link href="/cart" className="relative p-2">
             <ShoppingCart className="w-6 h-6" />
             {itemCount > 0 && (
-              <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px] bg-primary text-white">
+              <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px] bg-primary text-white border-none">
                 {itemCount}
               </Badge>
             )}
@@ -100,7 +101,7 @@ export function Navbar() {
 
       {/* Mobile Navigation */}
       {isOpen && (
-        <div className="md:hidden fixed inset-0 top-32 bg-background z-40 p-6 flex flex-col gap-6 animate-in slide-in-from-right duration-300">
+        <div className="md:hidden fixed inset-0 top-[128px] bg-background z-40 p-6 flex flex-col gap-6 animate-in slide-in-from-right duration-300">
           <div className="flex flex-col gap-2">
             {NAV_LINKS.map((link) => (
               <Link
