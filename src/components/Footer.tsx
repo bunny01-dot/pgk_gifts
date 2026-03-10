@@ -1,19 +1,22 @@
-
 'use client';
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Instagram, Mail, Phone, MapPin, Youtube, MessageCircle } from 'lucide-react';
+import { Instagram, Mail, Phone, MapPin, Youtube, MessageCircle, ArrowUpRight, Sparkles } from 'lucide-react';
 import { CONTACT_INFO } from '@/lib/data';
+import { Button } from '@/components/ui/button';
 
 export function Footer() {
   return (
-    <footer className="bg-primary text-primary-foreground pt-24 pb-12 rounded-t-[3rem] mt-24">
-      <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-20">
-          <div className="space-y-6">
-            <Link href="/" className="flex flex-col gap-6 group">
-              <div className="relative w-64 h-64 transition-transform group-hover:scale-110">
+    <footer className="bg-primary text-primary-foreground pt-32 pb-16 rounded-t-[4rem] mt-32 relative overflow-hidden">
+      {/* Decorative Blur */}
+      <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-white/5 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
+      
+      <div className="container mx-auto px-4 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-20 mb-24">
+          <div className="space-y-10 md:col-span-1">
+            <Link href="/" className="flex flex-col gap-8 group">
+              <div className="relative w-64 h-64 transition-transform duration-500 group-hover:scale-110">
                 <Image
                   src={CONTACT_INFO.footerLogo}
                   alt="PGK GIFTS Logo"
@@ -21,72 +24,81 @@ export function Footer() {
                   className="object-contain"
                 />
               </div>
-              <h3 className="font-headline text-3xl font-bold tracking-tighter">PGK GIFTS</h3>
+              <div className="space-y-4">
+                <h3 className="font-headline text-4xl font-bold tracking-tighter">PGK GIFTS</h3>
+                <p className="text-primary-foreground/60 text-lg leading-relaxed max-w-xs italic font-medium">
+                  "{CONTACT_INFO.tagline}"
+                </p>
+              </div>
             </Link>
-            <p className="text-primary-foreground/70 text-lg leading-relaxed">
-              {CONTACT_INFO.tagline}. We bring your memories to life with premium craftsmanship and love.
-            </p>
-            <div className="flex gap-4">
-              <a href={CONTACT_INFO.instagram} target="_blank" rel="noopener noreferrer" className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center hover:bg-white hover:text-primary transition-all">
-                <Instagram className="w-6 h-6" />
-              </a>
-              <a href={CONTACT_INFO.youtube} target="_blank" rel="noopener noreferrer" className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center hover:bg-white hover:text-primary transition-all">
-                <Youtube className="w-6 h-6" />
-              </a>
-              <a href={CONTACT_INFO.whatsapp} target="_blank" rel="noopener noreferrer" className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center hover:bg-white hover:text-primary transition-all">
-                <MessageCircle className="w-6 h-6" />
-              </a>
+            <div className="flex gap-5">
+              {[
+                { icon: Instagram, href: CONTACT_INFO.instagram },
+                { icon: Youtube, href: CONTACT_INFO.youtube },
+                { icon: MessageCircle, href: CONTACT_INFO.whatsapp }
+              ].map((social, i) => (
+                <a key={i} href={social.href} target="_blank" rel="noopener noreferrer" className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center hover:bg-white hover:text-primary transition-all duration-500 group">
+                  <social.icon className="w-6 h-6 transition-transform group-hover:scale-110" />
+                </a>
+              ))}
             </div>
           </div>
 
-          <div>
-            <h4 className="font-headline text-xl mb-8 uppercase tracking-[0.2em] font-bold text-white/50">Quick Links</h4>
-            <ul className="space-y-4 text-lg">
-              <li><Link href="/" className="hover:translate-x-2 transition-transform inline-block">Home</Link></li>
-              <li><Link href="/shop" className="hover:translate-x-2 transition-transform inline-block">Shop</Link></li>
-              <li><Link href="/gallery" className="hover:translate-x-2 transition-transform inline-block">Photo Gallery</Link></li>
-              <li><Link href="/contact" className="hover:translate-x-2 transition-transform inline-block">Contact Us</Link></li>
+          <div className="space-y-10">
+            <h4 className="font-bold uppercase tracking-[0.3em] text-[10px] text-white/40">Navigation</h4>
+            <ul className="space-y-6">
+              {[
+                { name: 'Home', href: '/' },
+                { name: 'Artistic Shop', href: '/shop' },
+                { name: 'Photography', href: '/photography' },
+                { name: 'Photo Gallery', href: '/gallery' },
+                { name: 'Contact Us', href: '/contact' }
+              ].map((link) => (
+                <li key={link.name}>
+                  <Link href={link.href} className="text-xl font-headline font-medium hover:text-white/60 transition-all flex items-center justify-between group">
+                    {link.name} <ArrowUpRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
-          <div>
-            <h4 className="font-headline text-xl mb-8 uppercase tracking-[0.2em] font-bold text-white/50">Collections</h4>
-            <ul className="space-y-4 text-lg text-primary-foreground/70">
-              <li>Light Lamps</li>
-              <li>Customized Gifts</li>
-              <li>Cute Gift Toys</li>
-              <li>Personalized Frames</li>
-              <li>Photo Mugs & Pillows</li>
+          <div className="space-y-10">
+            <h4 className="font-bold uppercase tracking-[0.3em] text-[10px] text-white/40">Our World</h4>
+            <ul className="space-y-6 text-xl font-headline font-medium text-primary-foreground/60">
+              <li className="hover:text-primary-foreground transition-colors cursor-default flex items-center gap-3"><Sparkles className="w-4 h-4 opacity-30" /> LED Light Lamps</li>
+              <li className="hover:text-primary-foreground transition-colors cursor-default flex items-center gap-3"><Sparkles className="w-4 h-4 opacity-30" /> Personalized Mugs</li>
+              <li className="hover:text-primary-foreground transition-colors cursor-default flex items-center gap-3"><Sparkles className="w-4 h-4 opacity-30" /> Cute Plush Toys</li>
+              <li className="hover:text-primary-foreground transition-colors cursor-default flex items-center gap-3"><Sparkles className="w-4 h-4 opacity-30" /> Bespoke Frames</li>
+              <li className="hover:text-primary-foreground transition-colors cursor-default flex items-center gap-3"><Sparkles className="w-4 h-4 opacity-30" /> Studio Services</li>
             </ul>
           </div>
 
-          <div>
-            <h4 className="font-headline text-xl mb-8 uppercase tracking-[0.2em] font-bold text-white/50">Reach Us</h4>
-            <ul className="space-y-6 text-sm">
-              <li className="flex gap-4">
-                <Phone className="w-6 h-6 flex-shrink-0 text-white/50" />
-                <div>
-                  <p className="font-bold text-lg">{CONTACT_INFO.phone}</p>
-                  <p className="text-white/50">{CONTACT_INFO.alternateNumbers.join(' / ')}</p>
-                </div>
-              </li>
-              <li className="flex gap-4">
-                <Mail className="w-6 h-6 flex-shrink-0 text-white/50" />
-                <p className="text-lg">{CONTACT_INFO.email}</p>
-              </li>
-              <li className="flex gap-4">
-                <MapPin className="w-6 h-6 flex-shrink-0 text-white/50" />
-                <p className="text-sm leading-relaxed text-white/70">{CONTACT_INFO.address}</p>
-              </li>
-            </ul>
+          <div className="space-y-10">
+            <h4 className="font-bold uppercase tracking-[0.3em] text-[10px] text-white/40">Find Us</h4>
+            <div className="space-y-8">
+              <div className="group">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-2">Main Office</p>
+                <p className="text-lg leading-relaxed text-white/80 group-hover:text-white transition-colors">{CONTACT_INFO.address}</p>
+              </div>
+              <div className="group">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-2">Connect Directly</p>
+                <p className="text-2xl font-headline font-bold text-white mb-1">{CONTACT_INFO.phone}</p>
+                <p className="text-sm text-white/40">{CONTACT_INFO.email}</p>
+              </div>
+              <Button asChild variant="outline" className="rounded-full border-white/20 hover:bg-white hover:text-primary font-bold">
+                <a href={CONTACT_INFO.googleMap} target="_blank" rel="noopener noreferrer">Get Directions</a>
+              </Button>
+            </div>
           </div>
         </div>
 
-        <div className="pt-12 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-6 text-white/40 font-bold tracking-widest text-[10px] uppercase">
-          <p>&copy; {new Date().getFullYear()} PGK GIFTS & STUDIO. ALL RIGHTS RESERVED.</p>
-          <div className="flex gap-8">
-            <Link href="#" className="hover:text-white transition-colors">Privacy Policy</Link>
-            <Link href="#" className="hover:text-white transition-colors">Terms of Service</Link>
+        <div className="pt-16 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8 text-[10px] font-bold tracking-[0.3em] uppercase text-white/30">
+          <p className="flex items-center gap-2">&copy; {new Date().getFullYear()} PGK GIFTS & STUDIO <span className="w-1 h-1 bg-white/20 rounded-full" /> All Rights Reserved.</p>
+          <div className="flex gap-10">
+            <Link href="#" className="hover:text-white transition-colors">Privacy</Link>
+            <Link href="#" className="hover:text-white transition-colors">Terms</Link>
+            <Link href="#" className="hover:text-white transition-colors">Shipping</Link>
           </div>
         </div>
       </div>

@@ -13,7 +13,7 @@ export const CONTACT_INFO = {
   youtube: "https://youtube.com/@pgk_frames_kallal",
   googleMap: "https://maps.app.goo.gl/8gF9FSyhokzJeakW6",
   upiId: "kalab320-2@okhdfcbank",
-  // Using the circular logo for both to ensure consistency as requested
+  // Swapped and unified to use ONLY the circle logo everywhere
   headerLogo: "https://i.postimg.cc/FzMVV8SY/logo-1.png",
   footerLogo: "https://i.postimg.cc/FzMVV8SY/logo-1.png",
   qrCode: "https://i.postimg.cc/L5YVf2n0/Google-Pay-QR.png"

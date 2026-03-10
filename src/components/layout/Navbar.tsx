@@ -1,0 +1,162 @@
+
+'use client';
+
+import Link from 'next/link';
+import Image from 'next/image';
+import { useState, useEffect } from 'react';
+import { Menu, X, ShoppingBag, Grid, ImageIcon, Phone, User, Camera, Sparkles } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { CONTACT_INFO } from '@/lib/data';
+import { useCart } from '@/context/CartContext';
+import { Badge } from '@/components/ui/badge';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const NAV_LINKS = [
+  { name: 'Home', href: '/', icon: Grid },
+  { name: 'Shop', href: '/shop', icon: ShoppingBag },
+  { name: 'Photography', href: '/photography', icon: Camera },
+  { name: 'Gallery', href: '/gallery', icon: ImageIcon },
+  { name: 'Contact', href: '/contact', icon: Phone },
+];
+
+export function Navbar() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const { itemCount } = useCart();
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  return (
+    <nav className={`fixed top-0 z-50 w-full transition-all duration-500 ${scrolled ? 'bg-background/80 backdrop-blur-xl border-b py-2 shadow-soft' : 'bg-transparent py-6'}`}>
+      <div className="container mx-auto px-4 h-24 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-5 group">
+          <div className="relative w-24 h-24 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6">
+            <Image
+              src={CONTACT_INFO.headerLogo}
+              alt="PGK GIFTS Logo"
+              fill
+              className="object-contain"
+              priority
+            />
+          </div>
+          <div className="flex flex-col">
+            <span className="font-headline font-bold text-3xl leading-none tracking-tighter text-foreground">PGK GIFTS</span>
+            <div className="flex items-center gap-1.5 mt-1">
+              <Sparkles className="w-2.5 h-2.5 text-primary" />
+              <span className="text-[10px] uppercase tracking-[0.3em] font-bold text-muted-foreground">The Art of Gifting</span>
+            </div>
+          </div>
+        </Link>
+
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex items-center gap-10">
+          <div className="flex items-center gap-8">
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.name}
+                href={link.href}
+                className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground hover:text-primary transition-all relative group/link"
+              >
+                {link.name}
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover/link:w-full" />
+              </Link>
+            ))}
+          </div>
+          
+          <div className="h-8 w-[1px] bg-muted mx-4" />
+
+          <div className="flex items-center gap-4">
+            <Link href="/cart" className="relative group p-3 rounded-full hover:bg-accent transition-colors">
+              <ShoppingBag className="w-6 h-6 text-foreground group-hover:text-primary transition-colors" />
+              <AnimatePresence>
+                {itemCount > 0 && (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0 }}
+                  >
+                    <Badge className="absolute top-1 right-1 h-6 w-6 flex items-center justify-center p-0 text-[10px] bg-primary text-primary-foreground border-2 border-background shadow-lg">
+                      {itemCount}
+                    </Badge>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </Link>
+            <ThemeToggle />
+            <Button asChild variant="outline" size="icon" className="rounded-full h-12 w-12 border-2 hover:bg-primary hover:text-primary-foreground transition-all">
+              <Link href="/admin"><User className="w-5 h-5" /></Link>
+            </Button>
+          </div>
+        </div>
+
+        {/* Mobile Toggle */}
+        <div className="flex items-center gap-2 md:hidden">
+          <Link href="/cart" className="relative p-3 rounded-full hover:bg-accent">
+            <ShoppingBag className="w-6 h-6 text-foreground" />
+            {itemCount > 0 && (
+              <Badge className="absolute top-1 right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px] bg-primary text-primary-foreground border-2 border-background">
+                {itemCount}
+              </Badge>
+            )}
+          </Link>
+          <ThemeToggle />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsOpen(!isOpen)}
+            className="rounded-full h-12 w-12"
+          >
+            {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </Button>
+        </div>
+      </div>
+
+      {/* Mobile Navigation */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div 
+            initial={{ opacity: 0, x: '100%' }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: '100%' }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="md:hidden fixed inset-0 top-[96px] bg-background z-40 p-8 flex flex-col gap-8 shadow-2xl"
+          >
+            <div className="flex flex-col gap-4">
+              {NAV_LINKS.map((link, i) => (
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  key={link.name}
+                >
+                  <Link
+                    href={link.href}
+                    className="flex items-center gap-6 text-4xl font-headline font-bold p-4 hover:text-primary transition-colors"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <link.icon className="w-8 h-8 opacity-20" />
+                    {link.name}
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+            <div className="mt-auto space-y-4">
+               <Button asChild size="lg" className="w-full rounded-[2rem] h-20 text-2xl font-bold shadow-xl shadow-primary/20">
+                 <Link href="/shop" onClick={() => setIsOpen(false)}>Shop Now</Link>
+               </Button>
+               <Button asChild variant="outline" size="lg" className="w-full rounded-[2rem] h-20 text-2xl font-bold border-2">
+                 <Link href="/admin" onClick={() => setIsOpen(false)}>Admin Portal</Link>
+               </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </nav>
+  );
+}
