@@ -33,11 +33,13 @@ const NAV_LINKS = [
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { itemCount } = useCart();
   const { user } = useUser();
   const auth = useAuth();
 
   useEffect(() => {
+    setMounted(true);
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll();
@@ -47,6 +49,8 @@ export function Navbar() {
   const handleLogout = async () => {
     await signOut(auth);
   };
+
+  if (!mounted) return null;
 
   return (
     <nav className={`fixed top-0 z-50 w-full transition-all duration-500 ${scrolled ? 'bg-background/80 backdrop-blur-xl border-b py-2 shadow-soft' : 'bg-transparent py-6'}`}>

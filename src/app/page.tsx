@@ -52,7 +52,7 @@ export default function Home() {
               <Button asChild size="lg" className="rounded-full px-10 text-lg h-16 shadow-2xl shadow-primary/20">
                 <Link href="/shop">Shop Collection <ShoppingBag className="ml-2 w-5 h-5" /></Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="rounded-full px-10 text-lg h-16 border-2 bg-background/50 backdrop-blur-sm hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all">
+              <Button asChild variant="outline" size="lg" className="rounded-full px-10 text-lg h-16 border-2 bg-background/50 backdrop-blur-sm hover:bg-primary hover:text-primary-foreground transition-all">
                 <Link href="/gallery" className="flex items-center">
                   <span>Browse Categories</span>
                   <ArrowRight className="ml-2 w-5 h-5" />
@@ -62,11 +62,11 @@ export default function Home() {
             
             <div className="flex items-center gap-12 pt-8 border-t border-muted">
                <div className="flex flex-col">
-                  <span className="text-4xl font-headline font-bold">1,200+</span>
+                  <span className="text-4xl font-headline font-bold text-foreground">1,200+</span>
                   <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Orders Fulfilled</span>
                </div>
                <div className="flex flex-col">
-                  <span className="text-4xl font-headline font-bold">4.9/5</span>
+                  <span className="text-4xl font-headline font-bold text-foreground">4.9/5</span>
                   <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Client Happiness</span>
                </div>
             </div>
@@ -95,7 +95,7 @@ export default function Home() {
                    <Heart className="w-6 h-6 fill-current" />
                 </div>
                 <div>
-                   <p className="font-bold text-sm">Most Loved</p>
+                   <p className="font-bold text-sm text-foreground">Most Loved</p>
                    <p className="text-xs text-muted-foreground">Panda LED Lamp</p>
                 </div>
               </motion.div>
@@ -108,7 +108,7 @@ export default function Home() {
       <section className="py-32 bg-background">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center mb-24 space-y-6">
-            <h2 className="text-5xl md:text-6xl font-headline font-bold">Featured Treasures</h2>
+            <h2 className="text-5xl md:text-6xl font-headline font-bold text-foreground">Featured Treasures</h2>
             <div className="h-1 w-20 bg-primary mx-auto rounded-full" />
             <p className="text-xl text-muted-foreground">Handpicked favorites that bring warmth to every corner of your home.</p>
           </div>
@@ -159,7 +159,7 @@ export default function Home() {
               <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-accent text-primary text-xs font-bold uppercase tracking-widest">
                 <MapPin className="w-4 h-4" /> Visit Our Studio
               </div>
-              <h2 className="text-5xl md:text-6xl font-headline font-bold leading-tight">Find Us in Tamil Nadu</h2>
+              <h2 className="text-5xl md:text-6xl font-headline font-bold leading-tight text-foreground">Find Us in Tamil Nadu</h2>
               <p className="text-xl text-muted-foreground leading-relaxed max-w-lg">
                 Experience our craft in person. Visit our Kallal studio to see our latest customized gifts and discuss your unique projects.
               </p>
@@ -186,7 +186,7 @@ export default function Home() {
               </Button>
             </div>
 
-            <Card className="rounded-[3rem] overflow-hidden border-none shadow-2xl h-[500px] relative">
+            <Card className="rounded-[3rem] overflow-hidden border-none shadow-2xl h-[500px] relative bg-muted">
               <iframe 
                 src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15712.3023963483!2d78.7061763!3d9.8856143!2m3!1f0!2f0!3f0!3m2!1i1024!2i1026!3m4!1s0x3b0067645601972f%3A0xc6e467d302a24683!2zUEdLIFNUVURJTw!5e0!3m2!1sen!2sin!4v1709400000000!5m2!1sen!2sin" 
                 width="100%" 
@@ -194,7 +194,7 @@ export default function Home() {
                 style={{ border: 0 }} 
                 allowFullScreen 
                 loading="lazy" 
-                className="dark:opacity-80 transition-opacity"
+                className="transition-opacity"
               ></iframe>
             </Card>
           </div>

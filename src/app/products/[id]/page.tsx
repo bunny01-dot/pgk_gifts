@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -16,7 +15,7 @@ import { ToastAction } from '@/components/ui/toast';
 export default function ProductDetailPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { addToCart } = useCart();
+  const { addToCart, setIsCartOpen } = useCart();
   const { toast } = useToast();
   const [quantity, setQuantity] = useState(1);
 
@@ -26,7 +25,7 @@ export default function ProductDetailPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
-          <h2 className="text-3xl font-bold">Product not found</h2>
+          <h2 className="text-3xl font-bold text-foreground">Product not found</h2>
           <Button onClick={() => router.push('/shop')}>Back to Shop</Button>
         </div>
       </div>
@@ -43,14 +42,14 @@ export default function ProductDetailPage() {
     });
     
     if (redirect) {
-      router.push('/cart');
+      router.push('/checkout');
     } else {
       toast({
-        title: "Added to Cart",
+        title: "Added to Bag",
         description: `${product.name} has been added to your shopping bag.`,
         action: (
-          <ToastAction altText="Go to cart" onClick={() => router.push('/cart')}>
-            View Cart
+          <ToastAction altText="View Bag" onClick={() => setIsCartOpen(true)}>
+            View Bag
           </ToastAction>
         ),
       });
@@ -58,12 +57,12 @@ export default function ProductDetailPage() {
   };
 
   return (
-    <div className="min-h-screen pt-32 pb-20">
+    <div className="min-h-screen pt-32 pb-20 bg-background">
       <div className="container mx-auto px-4">
         <Button 
           variant="ghost" 
           onClick={() => router.back()} 
-          className="mb-8 hover:bg-accent/50 rounded-full"
+          className="mb-8 hover:bg-accent/50 rounded-full text-foreground"
         >
           <ArrowLeft className="mr-2 w-4 h-4" /> Back to Collection
         </Button>
@@ -113,16 +112,16 @@ export default function ProductDetailPage() {
             </p>
 
             <div className="space-y-4">
-              <h4 className="font-bold flex items-center gap-2"><Check className="text-green-500 w-5 h-5" /> In Stock & Ready to Ship</h4>
+              <h4 className="font-bold flex items-center gap-2 text-foreground"><Check className="text-green-500 w-5 h-5" /> In Stock & Ready to Ship</h4>
               <p className="text-sm text-muted-foreground">Free shipping on orders over ₹1000 across India.</p>
             </div>
 
             <div className="flex flex-col gap-6 pt-6">
               <div className="flex items-center gap-4">
                 <div className="flex items-center border-2 rounded-full px-4 h-14 bg-card">
-                  <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="p-2 font-bold text-xl">-</button>
-                  <span className="w-12 text-center font-bold text-xl">{quantity}</span>
-                  <button onClick={() => setQuantity(quantity + 1)} className="p-2 font-bold text-xl">+</button>
+                  <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="p-2 font-bold text-xl text-foreground">-</button>
+                  <span className="w-12 text-center font-bold text-xl text-foreground">{quantity}</span>
+                  <button onClick={() => setQuantity(quantity + 1)} className="p-2 font-bold text-xl text-foreground">+</button>
                 </div>
                 <div className="flex flex-1 gap-2">
                   <Button variant="outline" size="icon" className="rounded-full h-14 w-14 border-2"><Heart className="w-6 h-6" /></Button>
@@ -132,7 +131,7 @@ export default function ProductDetailPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <Button onClick={() => handleAddToCart()} variant="outline" className="h-16 rounded-full text-xl font-bold border-2">
-                  <ShoppingCart className="mr-2 w-6 h-6" /> Add to Cart
+                  <ShoppingCart className="mr-2 w-6 h-6" /> Add to Bag
                 </Button>
                 <Button onClick={() => handleAddToCart(true)} className="h-16 rounded-full text-xl font-bold shadow-xl">
                   Buy Now

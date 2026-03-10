@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Instagram, Mail, Phone, MapPin, Youtube, MessageCircle, ArrowUpRight, Sparkles } from 'lucide-react';
@@ -7,6 +8,12 @@ import { CONTACT_INFO } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 
 export function Footer() {
+  const [currentYear, setCurrentYear] = useState(2024);
+
+  useEffect(() => {
+    setCurrentYear(new Date().getFullYear());
+  }, []);
+
   return (
     <footer className="bg-primary text-primary-foreground pt-32 pb-16 rounded-t-[4rem] mt-32 relative overflow-hidden">
       {/* Decorative Blur */}
@@ -94,11 +101,11 @@ export function Footer() {
         </div>
 
         <div className="pt-16 border-t border-primary-foreground/5 flex flex-col md:flex-row justify-between items-center gap-8 text-[10px] font-bold tracking-[0.3em] uppercase text-primary-foreground/30">
-          <p className="flex items-center gap-2">&copy; {new Date().getFullYear()} PGK GIFTS & STUDIO <span className="w-1 h-1 bg-primary-foreground/20 rounded-full" /> All Rights Reserved.</p>
+          <p className="flex items-center gap-2">&copy; {currentYear} PGK GIFTS & STUDIO <span className="w-1 h-1 bg-primary-foreground/20 rounded-full" /> All Rights Reserved.</p>
           <div className="flex gap-10">
             <Link href="#" className="hover:text-primary-foreground transition-colors">Privacy</Link>
-            <Link href="#" className="hover:text-white transition-colors">Terms</Link>
-            <Link href="#" className="hover:text-white transition-colors">Shipping</Link>
+            <Link href="#" className="hover:text-primary-foreground transition-colors">Terms</Link>
+            <Link href="#" className="hover:text-primary-foreground transition-colors">Shipping</Link>
           </div>
         </div>
       </div>
