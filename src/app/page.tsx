@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { ArrowRight, MessageSquare, Package, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { CONTACT_INFO, PRODUCTS } from '@/lib/data';
 import { ProductCard } from '@/components/product/ProductCard';
 import { PaymentSection } from '@/components/layout/PaymentSection';
