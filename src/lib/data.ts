@@ -31,7 +31,6 @@ export interface Product {
 }
 
 export const PRODUCTS: Product[] = [
-  // Light Lamps
   {
     id: "panda-lamp-1",
     name: "Panda Light Lamp",
@@ -59,7 +58,6 @@ export const PRODUCTS: Product[] = [
     description: "Multi-color changing unicorn lamp for a magical room.",
     featured: true
   },
-  // Cute Toys
   {
     id: "breathing-teddy",
     name: "Breathing Teddy",
@@ -77,7 +75,6 @@ export const PRODUCTS: Product[] = [
     category: "Cute Toys",
     description: "Spring-mounted rabbit toy for your car dashboard."
   },
-  // Customized Gifts
   {
     id: "custom-mug",
     name: "Custom Mug Print",
