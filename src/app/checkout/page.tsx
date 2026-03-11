@@ -64,6 +64,7 @@ export default function CheckoutPage() {
 
       const rpOrder = await paymentService.createRazorpayOrder(cartTotal);
 
+      // Simulate Razorpay verification & Persistence
       setTimeout(async () => {
         const mockResponse = {
           razorpay_order_id: rpOrder.id,
