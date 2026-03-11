@@ -62,7 +62,7 @@ export default function CheckoutPage() {
       const paymentService = new PaymentService(firestore);
       const rpOrder = await paymentService.createRazorpayOrder(cartTotal);
 
-      // Simulate secure Razorpay verification & Persistence
+      // Secure payment verification simulation
       setTimeout(async () => {
         const mockResponse = {
           razorpay_order_id: rpOrder.id,
@@ -94,34 +94,34 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-screen pt-40 pb-32 bg-accent/5">
       <div className="container mx-auto px-4 max-w-6xl">
-        <header className="mb-12">
-          <Button variant="ghost" onClick={() => router.back()} className="mb-6 rounded-full group text-xl font-bold hover:bg-accent">
-            <ArrowLeft className="mr-3 w-6 h-6 group-hover:-translate-x-2 transition-transform" /> Return to Bag
+        <header className="mb-16">
+          <Button variant="ghost" onClick={() => router.back()} className="mb-8 rounded-full group text-xl font-bold hover:bg-accent h-14">
+            <ArrowLeft className="mr-3 w-6 h-6 group-hover:-translate-x-2 transition-transform" /> Back to Bag
           </Button>
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-10">
             <div>
-              <Badge variant="outline" className="mb-4 px-4 py-1 border-primary text-primary font-bold text-xs uppercase tracking-[0.3em]">Checkout Protocol</Badge>
-              <h1 className="text-7xl font-headline font-bold leading-none">Complete Order</h1>
+              <Badge variant="outline" className="mb-6 px-4 py-1.5 border-primary text-primary font-bold text-[10px] uppercase tracking-[0.3em]">Secure Checkout</Badge>
+              <h1 className="text-7xl font-headline font-bold leading-none tracking-tighter">Complete Purchase</h1>
             </div>
-            <div className="flex items-center gap-8 text-muted-foreground text-sm font-bold uppercase tracking-widest">
-              <span className="flex items-center gap-3 text-green-600"><ShieldCheck className="w-6 h-6" /> SSL ENCRYPTED</span>
-              <span className="flex items-center gap-3"><Truck className="w-6 h-6" /> PRIORITY SHIPPING</span>
+            <div className="flex items-center gap-10 text-muted-foreground text-[10px] font-bold uppercase tracking-widest">
+              <span className="flex items-center gap-3 text-green-600"><ShieldCheck className="w-5 h-5" /> 256-BIT SSL</span>
+              <span className="flex items-center gap-3"><Truck className="w-5 h-5" /> FAST SHIPPING</span>
             </div>
           </div>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-16">
-          <div className="lg:col-span-2 space-y-10">
-            {/* Outlined Shipping Card */}
-            <Card className="rounded-[3rem] border-2 border-primary/20 shadow-soft p-12 bg-card">
-              <h3 className="text-4xl font-headline font-bold mb-10 flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-primary text-white flex items-center justify-center text-2xl font-headline">1</div>
+          <div className="lg:col-span-2 space-y-12">
+            {/* Outlined Shipping Card for Premium visibility */}
+            <Card className="rounded-[4rem] border-2 border-primary/20 shadow-soft p-12 bg-card">
+              <h3 className="text-4xl font-headline font-bold mb-12 flex items-center gap-6">
+                <div className="w-16 h-16 rounded-[1.5rem] bg-primary text-white flex items-center justify-center text-3xl font-headline">1</div>
                 Shipping Destination
               </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <div className="space-y-4">
-                  <Label htmlFor="name" className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/80 ml-6">Customer Name</Label>
+                  <Label htmlFor="name" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 ml-6">Customer Name</Label>
                   <Input 
                     id="name" 
                     name="name" 
@@ -129,12 +129,12 @@ export default function CheckoutPage() {
                     placeholder="e.g. Rahul Sharma" 
                     value={formData.name} 
                     onChange={handleInputChange} 
-                    className="h-20 rounded-full px-10 bg-accent/5 border-2 border-muted hover:border-primary/40 focus:border-primary transition-all text-2xl placeholder:text-muted-foreground/30 text-foreground" 
+                    className="h-20 rounded-full px-10 bg-accent/5 border-2 border-muted hover:border-primary focus:border-primary transition-all text-2xl font-medium" 
                   />
                 </div>
 
                 <div className="space-y-4">
-                  <Label htmlFor="phone" className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/80 ml-6">Mobile Number</Label>
+                  <Label htmlFor="phone" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 ml-6">Mobile Number</Label>
                   <Input 
                     id="phone" 
                     name="phone" 
@@ -142,12 +142,12 @@ export default function CheckoutPage() {
                     placeholder="+91 00000 00000" 
                     value={formData.phone} 
                     onChange={handleInputChange} 
-                    className="h-20 rounded-full px-10 bg-accent/5 border-2 border-muted hover:border-primary/40 focus:border-primary transition-all text-2xl placeholder:text-muted-foreground/30 text-foreground" 
+                    className="h-20 rounded-full px-10 bg-accent/5 border-2 border-muted hover:border-primary focus:border-primary transition-all text-2xl font-medium" 
                   />
                 </div>
 
                 <div className="md:col-span-2 space-y-4">
-                  <Label htmlFor="address" className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/80 ml-6">Detailed Address</Label>
+                  <Label htmlFor="address" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 ml-6">Detailed Address</Label>
                   <Input 
                     id="address" 
                     name="address" 
@@ -155,12 +155,12 @@ export default function CheckoutPage() {
                     placeholder="House/Office Number, Street, Area" 
                     value={formData.address} 
                     onChange={handleInputChange} 
-                    className="h-20 rounded-full px-10 bg-accent/5 border-2 border-muted hover:border-primary/40 focus:border-primary transition-all text-2xl placeholder:text-muted-foreground/30 text-foreground" 
+                    className="h-20 rounded-full px-10 bg-accent/5 border-2 border-muted hover:border-primary focus:border-primary transition-all text-2xl font-medium" 
                   />
                 </div>
 
                 <div className="space-y-4">
-                  <Label htmlFor="city" className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/80 ml-6">Town / City</Label>
+                  <Label htmlFor="city" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 ml-6">Town / City</Label>
                   <Input 
                     id="city" 
                     name="city" 
@@ -168,12 +168,12 @@ export default function CheckoutPage() {
                     placeholder="e.g. Chennai" 
                     value={formData.city} 
                     onChange={handleInputChange} 
-                    className="h-20 rounded-full px-10 bg-accent/5 border-2 border-muted hover:border-primary/40 focus:border-primary transition-all text-2xl placeholder:text-muted-foreground/30 text-foreground" 
+                    className="h-20 rounded-full px-10 bg-accent/5 border-2 border-muted hover:border-primary focus:border-primary transition-all text-2xl font-medium" 
                   />
                 </div>
 
                 <div className="space-y-4">
-                  <Label htmlFor="pincode" className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/80 ml-6">Area Pincode</Label>
+                  <Label htmlFor="pincode" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 ml-6">Area Pincode</Label>
                   <Input 
                     id="pincode" 
                     name="pincode" 
@@ -181,54 +181,54 @@ export default function CheckoutPage() {
                     placeholder="600001" 
                     value={formData.pincode} 
                     onChange={handleInputChange} 
-                    className="h-20 rounded-full px-10 bg-accent/5 border-2 border-muted hover:border-primary/40 focus:border-primary transition-all text-2xl placeholder:text-muted-foreground/30 text-foreground" 
+                    className="h-20 rounded-full px-10 bg-accent/5 border-2 border-muted hover:border-primary focus:border-primary transition-all text-2xl font-medium" 
                   />
                 </div>
               </div>
             </Card>
 
             <Card className="rounded-[3rem] border-2 border-primary/10 shadow-soft p-12 bg-card">
-               <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-                  <div className="flex items-center gap-5">
-                    <div className="w-14 h-14 rounded-2xl bg-accent text-primary flex items-center justify-center text-2xl font-headline">2</div>
+               <div className="flex flex-col md:flex-row md:items-center justify-between gap-10">
+                  <div className="flex items-center gap-6">
+                    <div className="w-16 h-16 rounded-[1.5rem] bg-accent text-primary flex items-center justify-center text-3xl font-headline">2</div>
                     <div>
                       <h3 className="text-4xl font-headline font-bold">Payment Gateway</h3>
                       <p className="text-muted-foreground text-xl">Powered by Razorpay Secure</p>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-4 bg-accent/20 px-8 py-6 rounded-[2rem] border-2 border-primary/10 transition-colors hover:bg-accent/30">
+                  <div className="flex items-center space-x-5 bg-accent/20 px-8 py-6 rounded-full border-2 border-primary/10">
                     <Checkbox 
                       id="save-card" 
                       checked={saveCard} 
                       onCheckedChange={(checked) => setSaveCard(!!checked)}
-                      className="w-7 h-7 border-2 border-primary"
+                      className="w-7 h-7"
                     />
-                    <Label htmlFor="save-card" className="text-xl font-bold cursor-pointer text-foreground">Save details for 1-click checkout</Label>
+                    <Label htmlFor="save-card" className="text-xl font-bold cursor-pointer">Save details for later</Label>
                   </div>
                </div>
             </Card>
           </div>
 
           <div className="lg:col-span-1">
-            <Card className="rounded-[3rem] border-2 border-primary/20 shadow-2xl p-12 bg-card sticky top-40 overflow-hidden">
-              <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
+            <Card className="rounded-[4rem] border-2 border-primary/20 shadow-2xl p-12 bg-card sticky top-40 overflow-hidden">
+              <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
                 <Lock className="w-32 h-32 rotate-12" />
               </div>
               <h3 className="text-4xl font-headline font-bold mb-10 border-b-2 border-dashed pb-8 flex items-center justify-between">
                 Summary
-                <Badge variant="secondary" className="font-bold text-xs">{cart.length} Items</Badge>
+                <Badge variant="secondary" className="font-bold text-sm">{cart.length} Items</Badge>
               </h3>
               
               <div className="space-y-8 max-h-[350px] overflow-y-auto pr-4 mb-10 custom-scrollbar">
                 {cart.map((item) => (
                   <div key={item.id} className="flex justify-between items-center group">
                     <div className="flex gap-5 items-center">
-                      <div className="relative w-20 h-20 rounded-2xl overflow-hidden bg-muted border-2 border-muted group-hover:border-primary/20 transition-all">
+                      <div className="relative w-20 h-20 rounded-2xl overflow-hidden bg-muted border-2 border-transparent group-hover:border-primary/20 transition-all">
                         <Image src={item.image} alt={item.name} fill className="object-cover" />
                       </div>
                       <div>
                         <p className="font-bold text-xl truncate max-w-[140px]">{item.name}</p>
-                        <p className="text-xs text-muted-foreground uppercase font-black tracking-widest mt-1">QTY: {item.quantity}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mt-1">QTY: {item.quantity}</p>
                       </div>
                     </div>
                     <p className="font-headline font-bold text-2xl">{formatPrice(item.price * item.quantity)}</p>
@@ -237,12 +237,12 @@ export default function CheckoutPage() {
               </div>
 
               <div className="space-y-6 pt-8 border-t-2 border-muted">
-                <div className="flex justify-between text-muted-foreground font-bold text-xs uppercase tracking-[0.2em]">
+                <div className="flex justify-between text-muted-foreground font-bold text-[10px] uppercase tracking-[0.2em]">
                   <span>Shipping Fee</span>
                   <span className="text-green-600">INCLUDED</span>
                 </div>
-                <div className="flex justify-between text-6xl font-headline font-bold text-primary pt-4">
-                  <span className="text-2xl text-muted-foreground font-body self-center mr-2">Total</span>
+                <div className="flex justify-between text-6xl font-headline font-bold text-primary pt-6">
+                  <span className="text-2xl text-muted-foreground font-body self-center mr-3">Total</span>
                   <span>{formatPrice(cartTotal)}</span>
                 </div>
               </div>
@@ -250,18 +250,14 @@ export default function CheckoutPage() {
               <Button 
                 onClick={handlePayment} 
                 disabled={loading} 
-                className="w-full rounded-full h-24 text-3xl font-headline font-bold mt-12 shadow-2xl shadow-primary/20 transition-all active:scale-95 hover:shadow-primary/40 hover:-translate-y-1"
+                className="w-full rounded-full h-24 text-4xl font-headline font-bold mt-12 shadow-2xl shadow-primary/20 transition-all active:scale-95"
               >
                 {loading ? (
                   <>Verifying <Loader2 className="ml-4 w-10 h-10 animate-spin" /></>
                 ) : (
-                  <>Pay Securely <CreditCard className="ml-4 w-10 h-10" /></>
+                  <>Pay Securely <CreditCard className="ml-5 w-10 h-10" /></>
                 )}
               </Button>
-              
-              <div className="mt-8 flex items-center justify-center gap-3 text-muted-foreground/60 text-xs font-bold uppercase tracking-widest">
-                <CheckCircle2 className="w-5 h-5 text-green-500/50" /> Fully Secured 256-bit SSL
-              </div>
             </Card>
           </div>
         </div>

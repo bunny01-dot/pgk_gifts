@@ -75,7 +75,7 @@ export function Navbar() {
           </div>
         </Link>
 
-        {/* Desktop Nav - Larger font sizes and shifted further to the right */}
+        {/* Desktop Nav - High visibility text-xl links pushed to the right */}
         <div className="hidden md:flex items-center gap-16 ml-auto">
           <div className="flex items-center gap-14">
             {NAV_LINKS.map((link) => (
@@ -92,7 +92,7 @@ export function Navbar() {
           
           <div className="h-10 w-[1px] bg-muted/30" />
 
-          <div className="flex items-center gap-10 pr-4">
+          <div className="flex items-center gap-10">
             <Link href="/cart" className="relative group p-3 rounded-full hover:bg-accent/50 transition-colors">
               <ShoppingBag className="w-10 h-10 text-foreground group-hover:text-primary transition-colors" />
               <AnimatePresence>
@@ -203,22 +203,6 @@ export function Navbar() {
                   </Link>
                 </motion.div>
               ))}
-            </div>
-            <div className="mt-auto space-y-4">
-               {user ? (
-                 <>
-                   <Button asChild size="lg" className="w-full rounded-[2.5rem] h-20 text-2xl font-bold shadow-xl">
-                     <Link href="/admin" onClick={() => setIsOpen(false)}>Manage Store</Link>
-                   </Button>
-                   <Button variant="outline" size="lg" onClick={handleLogout} className="w-full rounded-[2.5rem] h-20 text-2xl font-bold border-2 border-destructive text-destructive hover:bg-destructive/5">
-                     Sign Out
-                   </Button>
-                 </>
-               ) : (
-                 <Button asChild size="lg" className="w-full rounded-[2.5rem] h-20 text-2xl font-bold shadow-2xl shadow-primary/20">
-                   <Link href="/login" onClick={() => setIsOpen(false)}>Login / Sign Up</Link>
-                 </Button>
-               )}
             </div>
           </motion.div>
         )}

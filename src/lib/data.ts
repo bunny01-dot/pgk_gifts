@@ -73,7 +73,8 @@ export const PRODUCTS: Product[] = [
     price: 170,
     image: "https://i.postimg.cc/JndqGG4P/Rabbit-car-dashboard-170-rs.jpg",
     category: "Cute Toys",
-    description: "Spring-mounted rabbit toy for your car dashboard."
+    description: "Spring-mounted rabbit toy for your car dashboard.",
+    featured: false
   },
   {
     id: "custom-mug",
@@ -99,6 +100,7 @@ export const PRODUCTS: Product[] = [
     price: 250,
     image: "https://i.postimg.cc/hvk116mR/heart-sponge.png",
     category: "Customized Gifts",
-    description: "Soft heart-shaped sponge frame for anniversary gifts."
+    description: "Soft heart-shaped sponge frame for anniversary gifts.",
+    featured: false
   }
 ];
