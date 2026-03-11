@@ -1,11 +1,10 @@
-
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Package, Truck, CheckCircle2, Clock, MapPin, ArrowLeft, Loader2, MessageSquare, CreditCard, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useFirestore } from '@/firebase';
 import { OrdersService } from '@/services/orders.service';
@@ -23,19 +22,24 @@ export default function OrderTrackingPage() {
   const firestore = useFirestore();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     const fetchOrder = async () => {
-      if (!firestore || !orderId) return;
+      if (!firestore || !orderId || !isMounted) return;
       const ordersService = new OrdersService(firestore);
       const data = await ordersService.getOrderById(orderId as string);
       setOrder(data);
       setLoading(false);
     };
     fetchOrder();
-  }, [orderId, firestore]);
+  }, [orderId, firestore, isMounted]);
 
-  if (loading) {
+  if (!isMounted || loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-accent/5 gap-8">
         <Loader2 className="w-20 h-20 animate-spin text-primary" />
@@ -50,7 +54,7 @@ export default function OrderTrackingPage() {
         <div className="w-40 h-40 bg-destructive/10 text-destructive rounded-[3rem] flex items-center justify-center mb-12 shadow-2xl">
           <Package className="w-20 h-20" />
         </div>
-        <h1 className="text-6xl font-headline font-bold mb-8">Order Not Found</h1>
+        <h1 className="text-6xl font-headline font-bold mb-8 text-foreground">Order Not Found</h1>
         <p className="text-muted-foreground mb-12 text-2xl max-w-md mx-auto">Reference <span className="font-bold text-foreground font-mono">#{orderId}</span> is missing.</p>
         <Button onClick={() => router.push('/shop')} className="rounded-full h-20 px-16 text-2xl font-bold shadow-xl">Return to Shop</Button>
       </div>
@@ -69,19 +73,19 @@ export default function OrderTrackingPage() {
   return (
     <div className="min-h-screen pt-40 pb-32 bg-accent/5">
       <div className="container mx-auto px-4 max-w-5xl">
-        <Button variant="ghost" onClick={() => router.back()} className="mb-12 rounded-full font-bold text-2xl group hover:bg-accent h-16">
+        <Button variant="ghost" onClick={() => router.back()} className="mb-12 rounded-full font-bold text-2xl group hover:bg-accent h-16 px-8">
           <ArrowLeft className="mr-4 w-8 h-8 group-hover:-translate-x-2 transition-transform" /> Transaction Status
         </Button>
 
         <header className="flex flex-col md:flex-row justify-between items-start md:items-end mb-20 gap-10">
           <div className="space-y-6">
             <Badge variant="outline" className="rounded-full px-8 py-2 border-primary text-primary font-bold uppercase tracking-[0.4em] text-xs">Live Status</Badge>
-            <h1 className="text-8xl font-headline font-bold leading-none tracking-tighter">#{order.orderId}</h1>
+            <h1 className="text-8xl font-headline font-bold leading-none tracking-tighter text-foreground">#{order.orderId || order.id.slice(0, 6)}</h1>
             <p className="text-muted-foreground text-3xl">Placed on {formatDate(order.createdAt)}</p>
           </div>
           <div className="flex flex-col items-end gap-6">
              <Badge variant="secondary" className="h-20 px-16 rounded-full font-headline font-bold text-4xl border-none bg-primary text-primary-foreground shadow-2xl uppercase">
-               {order.status}
+               {order.status || 'PENDING'}
              </Badge>
              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.4em] flex items-center gap-4">
                <CreditCard className="w-5 h-5" /> PAYMENT: {order.paymentStatus === 'paid' ? 'CONFIRMED' : 'PENDING'}
@@ -97,7 +101,7 @@ export default function OrderTrackingPage() {
               <div className="hidden md:block absolute top-1/2 left-0 right-0 h-3 bg-accent/20 -translate-y-1/2 -z-0 rounded-full" />
               <div 
                 className="hidden md:block absolute top-1/2 left-0 h-3 bg-primary -translate-y-1/2 transition-all duration-1000 -z-0 rounded-full shadow-[0_0_30px_rgba(0,0,0,0.15)]" 
-                style={{ width: `${(currentStageIndex / (stages.length - 1)) * 100}%` }}
+                style={{ width: `${Math.max(0, currentStageIndex / (stages.length - 1)) * 100}%` }}
               />
               {stages.map((stage, i) => {
                 const Icon = stage.icon;
@@ -124,13 +128,12 @@ export default function OrderTrackingPage() {
           </Card>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-            {/* Delivery Info */}
             <Card className="rounded-[4rem] border-2 border-primary/5 shadow-2xl p-16 bg-card">
               <div className="flex items-center gap-6 mb-12">
                   <div className="w-16 h-16 rounded-[1.5rem] bg-accent/50 text-primary flex items-center justify-center">
                     <MapPin className="w-8 h-8" />
                   </div>
-                  <h3 className="text-4xl font-headline font-bold">Destination</h3>
+                  <h3 className="text-4xl font-headline font-bold text-foreground">Destination</h3>
               </div>
               <div className="space-y-8 text-muted-foreground text-2xl">
                 <div>
@@ -145,28 +148,27 @@ export default function OrderTrackingPage() {
               </div>
             </Card>
 
-            {/* Order Items */}
             <Card className="rounded-[4rem] border-2 border-primary/5 shadow-2xl p-16 bg-card">
               <div className="flex items-center gap-6 mb-12">
                   <div className="w-16 h-16 rounded-[1.5rem] bg-accent/50 text-primary flex items-center justify-center">
                     <ShoppingBag className="w-8 h-8" />
                   </div>
-                  <h3 className="text-4xl font-headline font-bold">The Package</h3>
+                  <h3 className="text-4xl font-headline font-bold text-foreground">The Package</h3>
               </div>
               <div className="space-y-8">
                 <div className="max-h-[300px] overflow-y-auto pr-6 custom-scrollbar space-y-8">
-                  {order.items.map((item, i) => (
+                  {order.items?.map((item, i) => (
                     <div key={i} className="flex justify-between items-center border-b border-dashed border-muted pb-8 last:border-none last:pb-0">
                       <div className="flex gap-8 items-center">
                         <div className="relative w-24 h-24 rounded-3xl overflow-hidden bg-muted border-2 border-transparent">
                           <Image src={item.image} alt={item.name} fill className="object-cover" />
                         </div>
                         <div>
-                          <p className="font-bold text-2xl leading-tight">{item.name}</p>
+                          <p className="font-bold text-2xl leading-tight text-foreground">{item.name}</p>
                           <p className="text-xs text-muted-foreground uppercase font-black tracking-widest mt-3">QTY: {item.quantity}</p>
                         </div>
                       </div>
-                      <p className="font-headline font-bold text-3xl">{formatPrice(item.price * item.quantity)}</p>
+                      <p className="font-headline font-bold text-3xl text-foreground">{formatPrice(item.price * item.quantity)}</p>
                     </div>
                   ))}
                 </div>

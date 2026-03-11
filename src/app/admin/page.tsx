@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { LayoutDashboard, ShoppingBag, LogOut, IndianRupee, TrendingUp, Search, ShieldAlert, CheckCircle2, Clock, Truck, Package, Loader2, Eye } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, LogOut, IndianRupee, TrendingUp, Search, ShieldAlert, Loader2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -27,6 +27,11 @@ export default function AdminPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const adminDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -36,7 +41,7 @@ export default function AdminPage() {
   const { data: adminRole, isLoading: isAdminCheckLoading } = useDoc(adminDocRef);
 
   useEffect(() => {
-    if (isUserLoading || isAdminCheckLoading) return;
+    if (isUserLoading || isAdminCheckLoading || !isMounted) return;
 
     if (!user) {
       router.push('/login?redirect=/admin');
@@ -50,7 +55,7 @@ export default function AdminPage() {
     });
 
     return () => unsubscribe();
-  }, [user, isUserLoading, isAdminCheckLoading, firestore, router]);
+  }, [user, isUserLoading, isAdminCheckLoading, firestore, router, isMounted]);
 
   const updateStatus = async (orderId: string, status: OrderStatus) => {
     const ordersService = new OrdersService(firestore);
@@ -62,7 +67,7 @@ export default function AdminPage() {
     router.push('/');
   };
 
-  if (isUserLoading || isAdminCheckLoading) {
+  if (!isMounted || isUserLoading || isAdminCheckLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-accent/5">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
@@ -77,7 +82,7 @@ export default function AdminPage() {
           <div className="w-20 h-20 bg-destructive/10 text-destructive rounded-3xl flex items-center justify-center mx-auto mb-6">
             <ShieldAlert size={40} />
           </div>
-          <h1 className="text-3xl font-headline font-bold mb-4">Access Denied</h1>
+          <h1 className="text-3xl font-headline font-bold mb-4 text-foreground">Access Denied</h1>
           <p className="text-muted-foreground mb-8">
             Authenticated as <span className="font-bold text-foreground">{user.email}</span>. No admin role assigned.
           </p>
@@ -85,7 +90,7 @@ export default function AdminPage() {
             <Button asChild className="w-full h-14 rounded-full font-bold">
               <Link href="/">Back to Home</Link>
             </Button>
-            <Button variant="outline" onClick={handleLogout} className="w-full h-14 rounded-full font-bold">
+            <Button variant="outline" onClick={handleLogout} className="w-full h-14 rounded-full font-bold border-2">
               Logout
             </Button>
           </div>
@@ -96,7 +101,7 @@ export default function AdminPage() {
 
   const filteredOrders = orders.filter(o => 
     o.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    o.orderId.toLowerCase().includes(searchQuery.toLowerCase())
+    (o.orderId && o.orderId.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const totalRevenue = orders.reduce((sum, o) => sum + (o.paymentStatus === 'paid' ? o.total : 0), 0);
@@ -110,7 +115,7 @@ export default function AdminPage() {
               <LayoutDashboard className="w-8 h-8" />
             </div>
             <div>
-              <h1 className="text-5xl font-headline font-bold leading-none">Management</h1>
+              <h1 className="text-5xl font-headline font-bold leading-none text-foreground">Management</h1>
               <p className="text-[10px] text-muted-foreground uppercase tracking-[0.4em] font-bold mt-2">Authenticated: {user?.email}</p>
             </div>
           </div>
@@ -131,14 +136,14 @@ export default function AdminPage() {
           <CardHeader className="p-10 border-b">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div>
-                <CardTitle className="font-headline text-4xl">Live Transactions</CardTitle>
+                <CardTitle className="font-headline text-4xl text-foreground">Live Transactions</CardTitle>
                 <CardDescription className="text-lg">Real-time order tracking and fulfillment</CardDescription>
               </div>
               <div className="relative w-full md:w-96">
                 <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input 
+                <input 
                   placeholder="Filter by customer or ID..." 
-                  className="pl-12 h-16 rounded-full border-2 focus-visible:ring-primary text-lg"
+                  className="w-full pl-12 h-16 rounded-full border-2 bg-background focus:ring-2 focus:ring-primary outline-none px-6 text-lg"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -173,20 +178,20 @@ export default function AdminPage() {
                     ) : (
                       filteredOrders.map((order) => (
                         <TableRow key={order.id} className="hover:bg-accent/5 transition-colors group">
-                          <TableCell className="pl-10 font-mono text-xs font-bold text-primary">#{order.orderId}</TableCell>
+                          <TableCell className="pl-10 font-mono text-xs font-bold text-primary">#{order.orderId || order.id.slice(0, 6)}</TableCell>
                           <TableCell>
-                            <div className="font-bold text-lg">{order.customerName}</div>
+                            <div className="font-bold text-lg text-foreground">{order.customerName}</div>
                             <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{order.phone}</div>
                           </TableCell>
                           <TableCell>
                             <div className="text-xs max-w-[250px] truncate font-medium text-muted-foreground">
-                              {order.items.map(i => `${i.name} (x${i.quantity})`).join(', ')}
+                              {order.items?.map(i => `${i.name} (x${i.quantity})`).join(', ') || 'No items'}
                             </div>
                           </TableCell>
                           <TableCell className="font-bold text-xl text-foreground">{formatPrice(order.total)}</TableCell>
                           <TableCell>
                             <Badge variant="secondary" className={`rounded-full px-4 py-1.5 font-bold border-none ${getStatusColor(order.status)}`}>
-                              {order.status.toUpperCase()}
+                              {order.status?.toUpperCase() || 'PENDING'}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-xs font-bold text-muted-foreground">
@@ -241,7 +246,7 @@ function StatCard({ icon: Icon, color, label, value }: { icon: any, color: strin
         </div>
         <div>
           <p className="text-xs text-muted-foreground font-bold uppercase tracking-[0.3em]">{label}</p>
-          <h2 className="text-5xl font-headline font-bold mt-2">{value}</h2>
+          <h2 className="text-5xl font-headline font-bold mt-2 text-foreground">{value}</h2>
         </div>
       </div>
     </Card>
