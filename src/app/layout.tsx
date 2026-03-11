@@ -2,7 +2,6 @@ import type {Metadata} from 'next';
 import './globals.css';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/Footer';
-import { FloatingWhatsApp } from '@/components/FloatingWhatsApp';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { CartProvider } from '@/context/CartContext';
@@ -43,7 +42,6 @@ export default function RootLayout({
               </main>
               <CartDrawer />
               <Footer />
-              <FloatingWhatsApp />
               <Toaster />
             </CartProvider>
           </FirebaseClientProvider>
