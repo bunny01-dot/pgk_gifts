@@ -67,22 +67,22 @@ export function Navbar() {
             />
           </div>
           <div className="flex flex-col">
-            <span className="font-headline font-bold text-3xl leading-none tracking-tighter text-foreground">PGK GIFTS</span>
+            <span className="font-headline font-bold text-4xl leading-none tracking-tighter text-foreground">PGK GIFTS</span>
             <div className="flex items-center gap-1.5 mt-1">
-              <Sparkles className="w-2.5 h-2.5 text-primary" />
-              <span className="text-[10px] uppercase tracking-[0.3em] font-bold text-muted-foreground">The Art of Gifting</span>
+              <Sparkles className="w-3 h-3 text-primary" />
+              <span className="text-[11px] uppercase tracking-[0.4em] font-bold text-muted-foreground/60">The Art of Gifting</span>
             </div>
           </div>
         </Link>
 
-        {/* Desktop Nav - High visibility right-aligned navigation */}
-        <div className="hidden md:flex items-center gap-14 ml-auto">
-          <div className="flex items-center gap-12">
+        {/* Desktop Nav - Larger font sizes and shifted further to the right */}
+        <div className="hidden md:flex items-center gap-16 ml-auto">
+          <div className="flex items-center gap-14">
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.name}
                 href={link.href}
-                className="text-xl font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-all relative group/link"
+                className="text-xl font-bold uppercase tracking-[0.2em] text-muted-foreground hover:text-primary transition-all relative group/link"
               >
                 {link.name}
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover/link:w-full" />
@@ -90,19 +90,20 @@ export function Navbar() {
             ))}
           </div>
           
-          <div className="h-10 w-[1px] bg-muted/50" />
+          <div className="h-10 w-[1px] bg-muted/30" />
 
-          <div className="flex items-center gap-8 pr-4">
-            <Link href="/cart" className="relative group p-3 rounded-full hover:bg-accent transition-colors">
-              <ShoppingBag className="w-9 h-9 text-foreground group-hover:text-primary transition-colors" />
+          <div className="flex items-center gap-10 pr-4">
+            <Link href="/cart" className="relative group p-3 rounded-full hover:bg-accent/50 transition-colors">
+              <ShoppingBag className="w-10 h-10 text-foreground group-hover:text-primary transition-colors" />
               <AnimatePresence>
                 {itemCount > 0 && (
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     exit={{ scale: 0 }}
+                    className="absolute -top-1 -right-1"
                   >
-                    <Badge className="absolute -top-1 -right-1 h-7 w-7 flex items-center justify-center p-0 text-xs bg-primary text-primary-foreground border-2 border-background shadow-lg font-black">
+                    <Badge className="h-8 w-8 flex items-center justify-center p-0 text-xs bg-primary text-primary-foreground border-2 border-background shadow-xl font-black rounded-full">
                       {itemCount}
                     </Badge>
                   </motion.div>
@@ -115,50 +116,50 @@ export function Navbar() {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-14 w-14 rounded-full p-0 overflow-hidden border-2 border-primary/10">
-                    <Avatar className="h-14 w-14">
+                  <Button variant="ghost" className="relative h-16 w-16 rounded-full p-0 overflow-hidden border-2 border-primary/10 hover:border-primary/30 transition-all">
+                    <Avatar className="h-16 w-16">
                       <AvatarImage src={user.photoURL || ''} alt={user.displayName || ''} />
-                      <AvatarFallback className="bg-primary text-primary-foreground font-bold text-lg">
+                      <AvatarFallback className="bg-primary text-primary-foreground font-bold text-xl">
                         {user.email?.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-64 rounded-2xl p-2" align="end" forceMount>
-                  <DropdownMenuLabel className="font-normal p-4">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-base font-bold leading-none">{user.displayName || 'My Account'}</p>
-                      <p className="text-sm leading-none text-muted-foreground truncate">{user.email}</p>
+                <DropdownMenuContent className="w-72 rounded-[2rem] p-3 shadow-2xl border-none bg-card/95 backdrop-blur-xl" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal p-6">
+                    <div className="flex flex-col space-y-2">
+                      <p className="text-xl font-headline font-bold leading-none">{user.displayName || 'Member'}</p>
+                      <p className="text-xs leading-none text-muted-foreground truncate">{user.email}</p>
                     </div>
                   </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild className="rounded-xl h-14 px-4 cursor-pointer">
+                  <DropdownMenuSeparator className="bg-muted/30" />
+                  <DropdownMenuItem asChild className="rounded-2xl h-16 px-6 cursor-pointer focus:bg-primary/5">
                     <Link href="/admin">
-                      <LayoutDashboard className="mr-3 h-5 w-5" />
-                      <span className="text-base font-medium">Admin Portal</span>
+                      <LayoutDashboard className="mr-4 h-6 w-6 text-primary" />
+                      <span className="text-lg font-bold">Admin Portal</span>
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="rounded-xl h-14 px-4 cursor-pointer text-destructive focus:text-destructive">
-                    <LogOut className="mr-3 h-5 w-5" />
-                    <span className="text-base font-medium">Log out</span>
+                  <DropdownMenuSeparator className="bg-muted/30" />
+                  <DropdownMenuItem onClick={handleLogout} className="rounded-2xl h-16 px-6 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/5">
+                    <LogOut className="mr-4 h-6 w-6" />
+                    <span className="text-lg font-bold">Log out</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button asChild variant="outline" size="icon" className="rounded-full h-14 w-14 border-2 hover:bg-primary hover:text-primary-foreground transition-all">
-                <Link href="/login"><User className="w-7 h-7" /></Link>
+              <Button asChild variant="outline" size="icon" className="rounded-full h-16 w-16 border-2 hover:bg-primary hover:text-primary-foreground transition-all group">
+                <Link href="/login"><User className="w-8 h-8 group-hover:scale-110 transition-transform" /></Link>
               </Button>
             )}
           </div>
         </div>
 
         {/* Mobile Nav */}
-        <div className="flex items-center gap-2 md:hidden">
-          <Link href="/cart" className="relative p-3 rounded-full hover:bg-accent">
-            <ShoppingBag className="w-8 h-8 text-foreground" />
+        <div className="flex items-center gap-4 md:hidden">
+          <Link href="/cart" className="relative p-3 rounded-full hover:bg-accent/50">
+            <ShoppingBag className="w-9 h-9 text-foreground" />
             {itemCount > 0 && (
-              <Badge className="absolute -top-1 -right-1 h-6 w-6 flex items-center justify-center p-0 text-xs bg-primary text-primary-foreground border-2 border-background font-bold shadow-lg">
+              <Badge className="absolute -top-1 -right-1 h-7 w-7 flex items-center justify-center p-0 text-xs bg-primary text-primary-foreground border-2 border-background font-bold shadow-lg rounded-full">
                 {itemCount}
               </Badge>
             )}
@@ -168,9 +169,9 @@ export function Navbar() {
             variant="ghost"
             size="icon"
             onClick={() => setIsOpen(!isOpen)}
-            className="rounded-full h-12 w-12"
+            className="rounded-full h-14 w-14"
           >
-            {isOpen ? <X className="w-8 h-8" /> : <Menu className="w-8 h-8" />}
+            {isOpen ? <X className="w-9 h-9" /> : <Menu className="w-9 h-9" />}
           </Button>
         </div>
       </div>
@@ -181,10 +182,10 @@ export function Navbar() {
             initial={{ opacity: 0, x: '100%' }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: '100%' }}
-            transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="md:hidden fixed inset-0 top-[96px] bg-background z-40 p-8 flex flex-col gap-8 shadow-2xl"
+            transition={{ type: "spring", damping: 30, stiffness: 200 }}
+            className="md:hidden fixed inset-0 top-[96px] bg-background z-40 p-10 flex flex-col gap-10 shadow-2xl"
           >
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-6">
               {NAV_LINKS.map((link, i) => (
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
@@ -194,10 +195,10 @@ export function Navbar() {
                 >
                   <Link
                     href={link.href}
-                    className="flex items-center gap-6 text-4xl font-headline font-bold p-4 hover:text-primary transition-colors"
+                    className="flex items-center gap-8 text-5xl font-headline font-bold p-4 hover:text-primary transition-colors border-b border-muted/20"
                     onClick={() => setIsOpen(false)}
                   >
-                    <link.icon className="w-8 h-8 opacity-20" />
+                    <link.icon className="w-10 h-10 text-primary/30" />
                     {link.name}
                   </Link>
                 </motion.div>
@@ -206,15 +207,15 @@ export function Navbar() {
             <div className="mt-auto space-y-4">
                {user ? (
                  <>
-                   <Button asChild size="lg" className="w-full rounded-[2rem] h-20 text-2xl font-bold">
-                     <Link href="/admin" onClick={() => setIsOpen(false)}>Admin Portal</Link>
+                   <Button asChild size="lg" className="w-full rounded-[2.5rem] h-20 text-2xl font-bold shadow-xl">
+                     <Link href="/admin" onClick={() => setIsOpen(false)}>Manage Store</Link>
                    </Button>
-                   <Button variant="outline" size="lg" onClick={handleLogout} className="w-full rounded-[2rem] h-20 text-2xl font-bold border-2 border-destructive text-destructive">
-                     Log Out
+                   <Button variant="outline" size="lg" onClick={handleLogout} className="w-full rounded-[2.5rem] h-20 text-2xl font-bold border-2 border-destructive text-destructive hover:bg-destructive/5">
+                     Sign Out
                    </Button>
                  </>
                ) : (
-                 <Button asChild size="lg" className="w-full rounded-[2rem] h-20 text-2xl font-bold shadow-xl shadow-primary/20">
+                 <Button asChild size="lg" className="w-full rounded-[2.5rem] h-20 text-2xl font-bold shadow-2xl shadow-primary/20">
                    <Link href="/login" onClick={() => setIsOpen(false)}>Login / Sign Up</Link>
                  </Button>
                )}
