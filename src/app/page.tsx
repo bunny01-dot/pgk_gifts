@@ -32,24 +32,26 @@ export default function Home() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-            className="space-y-10 text-center lg:text-left"
+            className="space-y-10 text-center lg:text-left relative"
           >
+            {/* Bouncing Decorative Image Near Text */}
+            <div className="absolute -top-20 -left-10 hidden lg:block">
+              <div className="relative w-32 h-32 rounded-[2rem] overflow-hidden border-4 border-card shadow-2xl animate-bounce-slow">
+                <Image 
+                  src="https://i.postimg.cc/kG6y8qBj/500-rs-6-colour-lights-panda-light-lamp.png"
+                  alt="Decorative Panda"
+                  fill
+                  className="object-cover scale-125"
+                />
+              </div>
+            </div>
+
             <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-secondary text-primary text-xs font-bold uppercase tracking-widest border border-border">
               <Sparkles className="w-4 h-4" /> The PGK Heritage
             </div>
             
             <h1 className="text-6xl md:text-8xl lg:text-9xl font-headline font-bold leading-[0.95] tracking-tight text-foreground relative">
               Artistry
-              <span className="inline-block align-middle mx-3 md:mx-6">
-                <div className="relative w-16 h-16 md:w-28 md:h-28 rounded-full overflow-hidden border-4 border-card shadow-2xl animate-bounce-slow">
-                   <Image 
-                    src="https://i.postimg.cc/kG6y8qBj/500-rs-6-colour-lights-panda-light-lamp.png"
-                    alt="Panda Hero Icon"
-                    fill
-                    className="object-cover scale-125"
-                   />
-                </div>
-              </span>
               in <br />
               <span className="text-muted-foreground/60 italic font-serif">Detail</span>
             </h1>
