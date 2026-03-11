@@ -51,62 +51,6 @@ export const PRODUCTS: Product[] = [
     featured: true
   },
   {
-    id: "classic-panda-lamp",
-    name: "Classic Panda Lamp",
-    price: 499,
-    image: "https://i.postimg.cc/hjGsD9g4/panda.jpg",
-    category: "Light Lamps",
-    description: "Our signature panda lamp in its classic sitting pose."
-  },
-  {
-    id: "panda-2",
-    name: "Panda Lamp V2",
-    price: 450,
-    image: "https://i.postimg.cc/CMX32KH5/panda-2.png",
-    category: "Light Lamps",
-    description: "Upgraded LED panda lamp with touch sensitivity."
-  },
-  {
-    id: "panda-heart",
-    name: "Panda with Heart",
-    price: 550,
-    image: "https://i.postimg.cc/tTgkqhyQ/panda-with-heart.png",
-    category: "Light Lamps",
-    description: "Special edition panda holding a glowing heart."
-  },
-  {
-    id: "panda-yellow-hat",
-    name: "Panda with Yellow Hat",
-    price: 480,
-    image: "https://i.postimg.cc/SsKdSWqN/panda-with-yellow-hat.jpg",
-    category: "Light Lamps",
-    description: "Adorable panda wearing a stylish yellow hat."
-  },
-  {
-    id: "sleeping-panda-2",
-    name: "Quiet Sleeping Panda",
-    price: 420,
-    image: "https://i.postimg.cc/sX0cvvDG/sleeping-panda.png",
-    category: "Light Lamps",
-    description: "Serene sleeping panda lamp for a peaceful night."
-  },
-  {
-    id: "rabbit-lamp",
-    name: "Cute Rabbit Lamp",
-    price: 450,
-    image: "https://i.postimg.cc/sX0cvvD5/rabbit.png",
-    category: "Light Lamps",
-    description: "Soft white rabbit lamp with long glowing ears."
-  },
-  {
-    id: "rabbit-sleeping",
-    name: "Sleeping Rabbit",
-    price: 430,
-    image: "https://i.postimg.cc/ydNj1FBD/rabbit-sleeping.png",
-    category: "Light Lamps",
-    description: "Gentle sleeping rabbit LED light."
-  },
-  {
     id: "unicorn-lamp",
     name: "Magical Unicorn Lamp",
     price: 600,
@@ -124,22 +68,6 @@ export const PRODUCTS: Product[] = [
     category: "Cute Toys",
     description: "A realistic breathing teddy bear. Soothing for all ages.",
     featured: true
-  },
-  {
-    id: "dog-bowtie",
-    name: "Dog with Bowtie",
-    price: 280,
-    image: "https://i.postimg.cc/NF9xTB5V/dog-with-bowtie.jpg",
-    category: "Cute Toys",
-    description: "Dapper little dog plushie with a cute red bowtie."
-  },
-  {
-    id: "rabbit-panda-toy",
-    name: "Rabbit Panda Mix",
-    price: 320,
-    image: "https://i.postimg.cc/zBPjVVXh/rabiit-panda.jpg",
-    category: "Cute Toys",
-    description: "Unique hybrid plush toy combining rabbit and panda features."
   },
   {
     id: "rabbit-dashboard",

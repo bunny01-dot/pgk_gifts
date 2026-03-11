@@ -3,11 +3,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { CreditCard, MapPin, Phone, User, CheckCircle, Loader2, ArrowLeft, ShieldCheck, Truck, Lock } from 'lucide-react';
+import { CreditCard, ArrowLeft, ShieldCheck, Truck, Lock, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
@@ -97,7 +96,7 @@ export default function CheckoutPage() {
     <div className="min-h-screen pt-40 pb-32 bg-accent/5">
       <div className="container mx-auto px-4 max-w-6xl">
         <header className="mb-12">
-          <Button variant="ghost" onClick={() => router.back()} className="mb-6 rounded-full group text-lg">
+          <Button variant="ghost" onClick={() => router.back()} className="mb-6 rounded-full group text-lg font-bold">
             <ArrowLeft className="mr-2 w-5 h-5 group-hover:-translate-x-1 transition-transform" /> Back to Store
           </Button>
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -120,7 +119,7 @@ export default function CheckoutPage() {
                 Shipping Details
               </h3>
               
-              <form className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-3">
                   <Label htmlFor="name" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 ml-4">Full Name</Label>
                   <Input 
@@ -130,7 +129,7 @@ export default function CheckoutPage() {
                     placeholder="e.g. John Doe" 
                     value={formData.name} 
                     onChange={handleInputChange} 
-                    className="h-16 rounded-full px-8 bg-background border-2 border-muted hover:border-primary/50 focus:border-primary transition-all text-xl placeholder:text-muted-foreground/40" 
+                    className="h-16 rounded-full px-8 bg-background border-2 border-muted hover:border-primary/50 focus:border-primary transition-all text-xl placeholder:text-muted-foreground/40 text-foreground" 
                   />
                 </div>
 
@@ -143,7 +142,7 @@ export default function CheckoutPage() {
                     placeholder="e.g. 9876543210" 
                     value={formData.phone} 
                     onChange={handleInputChange} 
-                    className="h-16 rounded-full px-8 bg-background border-2 border-muted hover:border-primary/50 focus:border-primary transition-all text-xl placeholder:text-muted-foreground/40" 
+                    className="h-16 rounded-full px-8 bg-background border-2 border-muted hover:border-primary/50 focus:border-primary transition-all text-xl placeholder:text-muted-foreground/40 text-foreground" 
                   />
                 </div>
 
@@ -156,7 +155,7 @@ export default function CheckoutPage() {
                     placeholder="House No, Building, Street Name" 
                     value={formData.address} 
                     onChange={handleInputChange} 
-                    className="h-16 rounded-full px-8 bg-background border-2 border-muted hover:border-primary/50 focus:border-primary transition-all text-xl placeholder:text-muted-foreground/40" 
+                    className="h-16 rounded-full px-8 bg-background border-2 border-muted hover:border-primary/50 focus:border-primary transition-all text-xl placeholder:text-muted-foreground/40 text-foreground" 
                   />
                 </div>
 
@@ -169,7 +168,7 @@ export default function CheckoutPage() {
                     placeholder="e.g. Chennai" 
                     value={formData.city} 
                     onChange={handleInputChange} 
-                    className="h-16 rounded-full px-8 bg-background border-2 border-muted hover:border-primary/50 focus:border-primary transition-all text-xl placeholder:text-muted-foreground/40" 
+                    className="h-16 rounded-full px-8 bg-background border-2 border-muted hover:border-primary/50 focus:border-primary transition-all text-xl placeholder:text-muted-foreground/40 text-foreground" 
                   />
                 </div>
 
@@ -182,10 +181,10 @@ export default function CheckoutPage() {
                     placeholder="e.g. 600001" 
                     value={formData.pincode} 
                     onChange={handleInputChange} 
-                    className="h-16 rounded-full px-8 bg-background border-2 border-muted hover:border-primary/50 focus:border-primary transition-all text-xl placeholder:text-muted-foreground/40" 
+                    className="h-16 rounded-full px-8 bg-background border-2 border-muted hover:border-primary/50 focus:border-primary transition-all text-xl placeholder:text-muted-foreground/40 text-foreground" 
                   />
                 </div>
-              </form>
+              </div>
             </Card>
 
             <Card className="rounded-[3rem] border-2 border-primary/5 shadow-soft p-10 bg-card">
@@ -202,9 +201,9 @@ export default function CheckoutPage() {
                       id="save-card" 
                       checked={saveCard} 
                       onCheckedChange={(checked) => setSaveCard(!!checked)}
-                      className="w-6 h-6"
+                      className="w-6 h-6 border-2 border-primary"
                     />
-                    <Label htmlFor="save-card" className="text-lg font-bold cursor-pointer">Save card for future payments</Label>
+                    <Label htmlFor="save-card" className="text-lg font-bold cursor-pointer text-foreground">Save card for future payments</Label>
                   </div>
                </div>
             </Card>

@@ -75,7 +75,7 @@ export function Navbar() {
           </div>
         </Link>
 
-        {/* Desktop Nav - Shifted Right and Larger Font */}
+        {/* Desktop Nav - Larger and Shifted Right */}
         <div className="hidden md:flex items-center gap-12 ml-auto">
           <div className="flex items-center gap-10">
             {NAV_LINKS.map((link) => (
