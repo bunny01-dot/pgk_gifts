@@ -75,6 +75,7 @@ export function Navbar() {
           </div>
         </Link>
 
+        {/* Desktop Nav - Shifted Right and Larger Font */}
         <div className="hidden md:flex items-center gap-12 ml-auto">
           <div className="flex items-center gap-10">
             {NAV_LINKS.map((link) => (
@@ -152,6 +153,7 @@ export function Navbar() {
           </div>
         </div>
 
+        {/* Mobile Nav */}
         <div className="flex items-center gap-2 md:hidden">
           <Link href="/cart" className="relative p-3 rounded-full hover:bg-accent">
             <ShoppingBag className="w-8 h-8 text-foreground" />

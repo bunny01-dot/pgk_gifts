@@ -31,6 +31,7 @@ export interface Product {
 }
 
 export const PRODUCTS: Product[] = [
+  // Light Lamps
   {
     id: "panda-lamp-1",
     name: "Panda Light Lamp",
@@ -46,7 +47,7 @@ export const PRODUCTS: Product[] = [
     price: 99,
     image: "https://i.postimg.cc/Hnq99Ryq/Light-lamp-sleeping-panda-99-rs.png",
     category: "Light Lamps",
-    description: "A tiny adorable sleeping panda lamp, affordable and cute. Great for kids' rooms or as a unique stocking stuffer.",
+    description: "A tiny adorable sleeping panda lamp, affordable and cute.",
     featured: true
   },
   {
@@ -55,33 +56,124 @@ export const PRODUCTS: Product[] = [
     price: 499,
     image: "https://i.postimg.cc/hjGsD9g4/panda.jpg",
     category: "Light Lamps",
-    description: "Our signature panda lamp in its classic sitting pose. Durable and energy-efficient LED light."
+    description: "Our signature panda lamp in its classic sitting pose."
   },
+  {
+    id: "panda-2",
+    name: "Panda Lamp V2",
+    price: 450,
+    image: "https://i.postimg.cc/CMX32KH5/panda-2.png",
+    category: "Light Lamps",
+    description: "Upgraded LED panda lamp with touch sensitivity."
+  },
+  {
+    id: "panda-heart",
+    name: "Panda with Heart",
+    price: 550,
+    image: "https://i.postimg.cc/tTgkqhyQ/panda-with-heart.png",
+    category: "Light Lamps",
+    description: "Special edition panda holding a glowing heart."
+  },
+  {
+    id: "panda-yellow-hat",
+    name: "Panda with Yellow Hat",
+    price: 480,
+    image: "https://i.postimg.cc/SsKdSWqN/panda-with-yellow-hat.jpg",
+    category: "Light Lamps",
+    description: "Adorable panda wearing a stylish yellow hat."
+  },
+  {
+    id: "sleeping-panda-2",
+    name: "Quiet Sleeping Panda",
+    price: 420,
+    image: "https://i.postimg.cc/sX0cvvDG/sleeping-panda.png",
+    category: "Light Lamps",
+    description: "Serene sleeping panda lamp for a peaceful night."
+  },
+  {
+    id: "rabbit-lamp",
+    name: "Cute Rabbit Lamp",
+    price: 450,
+    image: "https://i.postimg.cc/sX0cvvD5/rabbit.png",
+    category: "Light Lamps",
+    description: "Soft white rabbit lamp with long glowing ears."
+  },
+  {
+    id: "rabbit-sleeping",
+    name: "Sleeping Rabbit",
+    price: 430,
+    image: "https://i.postimg.cc/ydNj1FBD/rabbit-sleeping.png",
+    category: "Light Lamps",
+    description: "Gentle sleeping rabbit LED light."
+  },
+  {
+    id: "unicorn-lamp",
+    name: "Magical Unicorn Lamp",
+    price: 600,
+    image: "https://i.postimg.cc/QtnbHHxf/unicorn.png",
+    category: "Light Lamps",
+    description: "Multi-color changing unicorn lamp for a magical room.",
+    featured: true
+  },
+  // Cute Toys
   {
     id: "breathing-teddy",
     name: "Breathing Teddy",
     price: 350,
     image: "https://i.postimg.cc/2j1pTWv5/BREATHING-TEDDY-350-RS.jpg",
     category: "Cute Toys",
-    description: "A realistic breathing teddy bear. Incredibly soft and soothing for all ages.",
+    description: "A realistic breathing teddy bear. Soothing for all ages.",
     featured: true
   },
+  {
+    id: "dog-bowtie",
+    name: "Dog with Bowtie",
+    price: 280,
+    image: "https://i.postimg.cc/NF9xTB5V/dog-with-bowtie.jpg",
+    category: "Cute Toys",
+    description: "Dapper little dog plushie with a cute red bowtie."
+  },
+  {
+    id: "rabbit-panda-toy",
+    name: "Rabbit Panda Mix",
+    price: 320,
+    image: "https://i.postimg.cc/zBPjVVXh/rabiit-panda.jpg",
+    category: "Cute Toys",
+    description: "Unique hybrid plush toy combining rabbit and panda features."
+  },
+  {
+    id: "rabbit-dashboard",
+    name: "Rabbit Dashboard Toy",
+    price: 170,
+    image: "https://i.postimg.cc/JndqGG4P/Rabbit-car-dashboard-170-rs.jpg",
+    category: "Cute Toys",
+    description: "Spring-mounted rabbit toy for your car dashboard."
+  },
+  // Customized Gifts
   {
     id: "custom-mug",
     name: "Custom Mug Print",
     price: 199,
     image: "https://i.postimg.cc/VLtxPcDT/Mug-print-199-rs.png",
     category: "Customized Gifts",
-    description: "Your photo on a premium ceramic mug. High-definition print that is dishwasher and microwave safe.",
+    description: "Your photo on a premium ceramic mug.",
     featured: true
   },
   {
     id: "mini-pillow",
-    name: "Mini Pillow",
+    name: "Mini Photo Pillow",
     price: 150,
     image: "https://i.postimg.cc/L6PcFMNB/Mini-pillow-150rs.png",
     category: "Customized Gifts",
-    description: "Small 12x12 customized photo pillow. Soft material with high-quality fabric printing.",
+    description: "Small customized photo pillow for your car or couch.",
     featured: true
+  },
+  {
+    id: "heart-sponge",
+    name: "Heart Sponge Frame",
+    price: 250,
+    image: "https://i.postimg.cc/hvk116mR/heart-sponge.png",
+    category: "Customized Gifts",
+    description: "Soft heart-shaped sponge frame for anniversary gifts."
   }
 ];
