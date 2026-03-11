@@ -49,7 +49,6 @@ function LoginContent() {
         initiateEmailSignUp(auth, email, password);
       }
       
-      // Artificial delay for feedback
       setTimeout(() => {
         setLoading(false);
       }, 2000);
@@ -181,21 +180,6 @@ function LoginContent() {
                 </motion.div>
               </AnimatePresence>
             </Tabs>
-
-            <div className="mt-12 pt-10 border-t border-dashed border-border/50 flex flex-col items-center gap-8">
-              <div className="flex items-center gap-4 text-muted-foreground text-[10px] font-black uppercase tracking-[0.2em]">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-green-500" /> Secure
-                </div>
-                <div className="w-1.5 h-1.5 rounded-full bg-border" />
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-yellow-500" /> Verified
-                </div>
-              </div>
-              <p className="text-[10px] text-center text-muted-foreground uppercase tracking-[0.3em] leading-relaxed px-10 font-light">
-                Secure 256-bit encryption active. <br /> Private Data Protection Policy applies.
-              </p>
-            </div>
           </CardContent>
         </Card>
       </motion.div>
@@ -206,7 +190,7 @@ function LoginContent() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
       </div>
     }>

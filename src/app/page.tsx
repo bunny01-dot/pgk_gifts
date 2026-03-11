@@ -45,7 +45,7 @@ export default function Home() {
                 transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
                 className="inline-block align-middle mx-3 md:mx-6"
               >
-                <div className="relative w-16 h-16 md:w-28 md:h-28 rounded-3xl overflow-hidden border-4 border-card shadow-2xl rotate-6 group cursor-pointer hover:rotate-0 transition-transform">
+                <div className="relative w-16 h-16 md:w-28 md:h-28 rounded-full overflow-hidden border-4 border-card shadow-2xl rotate-6 group cursor-pointer hover:rotate-0 transition-all duration-500 animate-bounce-slow">
                    <Image 
                     src="https://i.postimg.cc/kG6y8qBj/500-rs-6-colour-lights-panda-light-lamp.png"
                     alt="Panda Hero Icon"
@@ -72,20 +72,6 @@ export default function Home() {
                 <Link href="/gallery">Our Portfolio</Link>
               </Button>
             </div>
-            
-            <div className="flex items-center justify-center lg:justify-start gap-12 pt-10">
-              <div className="text-center lg:text-left">
-                <p className="text-4xl font-headline font-bold">12k+</p>
-                <p className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground font-black mt-1">Global Clients</p>
-              </div>
-              <div className="w-px h-12 bg-border/50" />
-              <div className="text-center lg:text-left">
-                <div className="flex items-center justify-center lg:justify-start gap-1 text-yellow-500 mb-1">
-                  {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 fill-current" />)}
-                </div>
-                <p className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground font-black">Vouched Studio</p>
-              </div>
-            </div>
           </motion.div>
 
           <motion.div
@@ -103,35 +89,6 @@ export default function Home() {
                 priority
               />
             </div>
-
-            {/* Floating Contextual Badges */}
-            <motion.div 
-              animate={{ y: [0, -10, 0] }}
-              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute top-20 right-0 bg-card p-6 rounded-[2rem] shadow-premium border border-border/50 flex items-center gap-5 hidden sm:flex"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center text-primary">
-                <ShieldCheck className="w-7 h-7" />
-              </div>
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Certified Quality</p>
-                <p className="text-sm font-bold">Studio Inspected</p>
-              </div>
-            </motion.div>
-
-            <motion.div 
-              animate={{ y: [0, 10, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-              className="absolute bottom-20 left-0 bg-card p-6 rounded-[2rem] shadow-premium border border-border/50 flex items-center gap-5 hidden sm:flex"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center text-primary">
-                <Truck className="w-7 h-7" />
-              </div>
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Express Transit</p>
-                <p className="text-sm font-bold">Priority Shipping</p>
-              </div>
-            </motion.div>
           </motion.div>
         </div>
       </section>
@@ -158,43 +115,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      {/* Trust Grid */}
-      <section className="py-32 border-y border-border/50">
-        <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-20">
-            <TrustItem 
-              icon={<ShoppingBag className="w-9 h-9" />} 
-              title="Secure Commerce" 
-              desc="Fully encrypted payments via Razorpay for a safe and reliable shopping experience."
-            />
-            <TrustItem 
-              icon={<Star className="w-9 h-9" />} 
-              title="Bespoke Quality" 
-              desc="Every item is hand-selected and inspected in our studio for material perfection."
-            />
-            <TrustItem 
-              icon={<Truck className="w-9 h-9" />} 
-              title="Statewide Delivery" 
-              desc="Swift and tracked shipping to every corner of Tamil Nadu and beyond."
-            />
-          </div>
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function TrustItem({ icon, title, desc }: { icon: React.ReactNode, title: string, desc: string }) {
-  return (
-    <div className="flex flex-col items-center text-center space-y-6 group">
-      <div className="w-20 h-20 rounded-[2rem] bg-secondary text-primary flex items-center justify-center transition-all group-hover:scale-110 group-hover:rotate-3 shadow-sm">
-        {icon}
-      </div>
-      <div className="space-y-3">
-        <h3 className="text-2xl font-headline font-bold">{title}</h3>
-        <p className="text-muted-foreground leading-relaxed font-light">{desc}</p>
-      </div>
     </div>
   );
 }
