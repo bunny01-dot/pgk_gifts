@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -62,7 +61,7 @@ export function Navbar() {
             />
           </div>
           <div className="flex flex-col">
-            <span className="font-headline font-bold text-2xl tracking-tighter text-foreground leading-none">PGK GIFTS</span>
+            <span className="font-headline font-bold text-2xl tracking-tighter text-foreground leading-none uppercase">PGK GIFTS</span>
             <span className="text-[10px] uppercase tracking-[0.3em] font-black text-muted-foreground mt-1 truncate max-w-[150px]">
               {CONTACT_INFO.tagline}
             </span>
@@ -100,7 +99,7 @@ export function Navbar() {
                     exit={{ scale: 0 }}
                     className="absolute -top-1 -right-1"
                   >
-                    <Badge className="h-5 w-5 flex items-center justify-center p-0 text-[10px] bg-primary text-white rounded-full border-2 border-background">
+                    <Badge className="h-5 w-5 flex items-center justify-center p-0 text-[10px] bg-primary text-primary-foreground rounded-full border-2 border-background">
                       {itemCount}
                     </Badge>
                   </motion.div>
@@ -116,7 +115,7 @@ export function Navbar() {
                   <Button variant="ghost" className="relative h-12 w-12 rounded-2xl p-0 hover:bg-secondary border border-border/50 shadow-sm">
                     <Avatar className="h-10 w-10">
                       <AvatarImage src={user.photoURL || ''} alt={user.displayName || ''} />
-                      <AvatarFallback className="bg-primary text-white font-bold text-xs">
+                      <AvatarFallback className="bg-primary text-primary-foreground font-bold text-xs">
                         {user.email?.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
@@ -136,7 +135,7 @@ export function Navbar() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="mx-2 my-2" />
-                  <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer rounded-xl h-11 px-3">
+                  <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer rounded-xl h-11 px-3 hover:bg-destructive/10">
                     <LogOut className="mr-3 h-4 w-4" /> Sign Out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -154,7 +153,7 @@ export function Navbar() {
           <button onClick={() => setIsCartOpen(true)} className="relative p-2">
             <ShoppingBag className="w-6 h-6" />
             {itemCount > 0 && (
-              <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px] bg-primary text-white rounded-full border-2 border-background">
+              <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px] bg-primary text-primary-foreground rounded-full border-2 border-background">
                 {itemCount}
               </Badge>
             )}

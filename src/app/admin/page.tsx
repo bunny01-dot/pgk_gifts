@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { LayoutDashboard, ShoppingBag, LogOut, IndianRupee, TrendingUp, Search, ShieldAlert, Loader2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -111,7 +110,7 @@ export default function AdminPage() {
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row items-center justify-between mb-12 gap-6">
           <div className="flex items-center gap-5">
-            <div className="w-16 h-16 bg-primary rounded-[2rem] flex items-center justify-center text-white shadow-2xl">
+            <div className="w-16 h-16 bg-primary rounded-[2rem] flex items-center justify-center text-primary-foreground shadow-2xl">
               <LayoutDashboard className="w-8 h-8" />
             </div>
             <div>
@@ -234,9 +233,9 @@ export default function AdminPage() {
 
 function StatCard({ icon: Icon, color, label, value }: { icon: any, color: string, label: string, value: string }) {
   const colors: any = {
-    green: "bg-green-100 text-green-600 shadow-green-100",
-    blue: "bg-blue-100 text-blue-600 shadow-blue-100",
-    purple: "bg-purple-100 text-purple-600 shadow-purple-100"
+    green: "bg-green-100 text-green-700 shadow-green-100 dark:bg-green-500/10 dark:text-green-400 dark:shadow-none",
+    blue: "bg-blue-100 text-blue-700 shadow-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:shadow-none",
+    purple: "bg-purple-100 text-purple-700 shadow-purple-100 dark:bg-purple-500/10 dark:text-purple-400 dark:shadow-none"
   };
   return (
     <Card className="rounded-[3rem] border-none shadow-soft bg-card p-10 transition-all hover:scale-[1.03] hover:shadow-2xl">
@@ -255,11 +254,11 @@ function StatCard({ icon: Icon, color, label, value }: { icon: any, color: strin
 
 function getStatusColor(status: OrderStatus) {
   switch (status) {
-    case 'pending': return 'bg-yellow-100 text-yellow-700';
-    case 'processing': return 'bg-blue-100 text-blue-700';
-    case 'shipped': return 'bg-purple-100 text-purple-700';
-    case 'delivered': return 'bg-green-100 text-green-700';
-    case 'cancelled': return 'bg-red-100 text-red-700';
-    default: return 'bg-slate-100 text-slate-700';
+    case 'pending': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400';
+    case 'processing': return 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400';
+    case 'shipped': return 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400';
+    case 'delivered': return 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400';
+    case 'cancelled': return 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400';
+    default: return 'bg-slate-100 text-slate-700 dark:bg-slate-500/20 dark:text-slate-400';
   }
 }
