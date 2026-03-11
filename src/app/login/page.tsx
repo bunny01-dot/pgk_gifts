@@ -41,7 +41,6 @@ function LoginContent() {
     const formData = new FormData(e.currentTarget);
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
-    const name = formData.get('name') as string;
 
     try {
       if (activeTab === 'login') {
@@ -50,6 +49,7 @@ function LoginContent() {
         initiateEmailSignUp(auth, email, password);
       }
       
+      // Artificial delay for feedback
       setTimeout(() => {
         setLoading(false);
       }, 2000);
@@ -66,27 +66,27 @@ function LoginContent() {
 
   if (isUserLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-accent/5">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-accent/5 py-32 px-4">
-      <div className="absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-accent/10 rounded-full blur-[100px]" />
+    <div className="min-h-screen flex items-center justify-center bg-secondary/30 py-32 px-4 relative overflow-hidden">
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[150px]" />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-primary/3 rounded-full blur-[120px]" />
       </div>
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-xl"
       >
-        <div className="text-center mb-10 space-y-4">
-          <Link href="/" className="inline-block">
-            <div className="relative w-32 h-32 mx-auto">
+        <div className="text-center mb-12 space-y-4">
+          <Link href="/" className="inline-block group">
+            <div className="relative w-24 h-24 mx-auto transition-transform duration-700 group-hover:scale-110">
               <Image
                 src={CONTACT_INFO.headerLogo}
                 alt="PGK GIFTS Logo"
@@ -95,16 +95,16 @@ function LoginContent() {
               />
             </div>
           </Link>
-          <h1 className="text-4xl font-headline font-bold">Welcome to PGK Gifts</h1>
-          <p className="text-muted-foreground">Premium personalized gifts and memories.</p>
+          <h1 className="text-5xl font-headline font-bold">Studio Access</h1>
+          <p className="text-muted-foreground font-light text-lg">Secure authentication for our premium members.</p>
         </div>
 
-        <Card className="rounded-[3rem] border-none shadow-2xl overflow-hidden bg-card/80 backdrop-blur-xl">
-          <CardContent className="p-10">
+        <Card className="rounded-[2.5rem] border border-border/50 shadow-premium overflow-hidden bg-card/80 backdrop-blur-3xl">
+          <CardContent className="p-12">
             <Tabs defaultValue="login" onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 rounded-full h-14 bg-accent/20 p-1 mb-10">
-                <TabsTrigger value="login" className="rounded-full font-bold uppercase tracking-widest text-xs data-[state=active]:bg-white data-[state=active]:shadow-lg">Login</TabsTrigger>
-                <TabsTrigger value="signup" className="rounded-full font-bold uppercase tracking-widest text-xs data-[state=active]:bg-white data-[state=active]:shadow-lg">Sign Up</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 rounded-2xl h-16 bg-secondary p-1.5 mb-10">
+                <TabsTrigger value="login" className="rounded-xl font-bold uppercase tracking-[0.2em] text-[10px] data-[state=active]:bg-white data-[state=active]:shadow-lg">Sign In</TabsTrigger>
+                <TabsTrigger value="signup" className="rounded-xl font-bold uppercase tracking-[0.2em] text-[10px] data-[state=active]:bg-white data-[state=active]:shadow-lg">Join Us</TabsTrigger>
               </TabsList>
 
               <AnimatePresence mode="wait">
@@ -113,53 +113,53 @@ function LoginContent() {
                   initial={{ opacity: 0, x: 10 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -10 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: 0.3 }}
                 >
-                  <form onSubmit={handleSubmit} className="space-y-6">
+                  <form onSubmit={handleSubmit} className="space-y-8">
                     {activeTab === 'signup' && (
-                      <div className="space-y-2">
-                        <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-4">Full Name</Label>
+                      <div className="space-y-3">
+                        <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground ml-6">Full Name</Label>
                         <div className="relative">
-                          <User className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                          <User className="absolute left-7 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                           <Input
                             name="name"
                             required
-                            placeholder="John Doe"
-                            className="h-16 rounded-full pl-16 pr-8 bg-accent/5 border-none focus-visible:ring-primary"
+                            placeholder="Recipient Name"
+                            className="h-16 rounded-full pl-16 pr-8 bg-secondary/50 border-border focus-visible:ring-primary text-base"
                           />
                         </div>
                       </div>
                     )}
 
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-4">Email Address</Label>
+                    <div className="space-y-3">
+                      <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground ml-6">Email Address</Label>
                       <div className="relative">
-                        <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                        <Mail className="absolute left-7 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                         <Input
                           name="email"
                           type="email"
                           required
-                          placeholder="name@example.com"
-                          className="h-16 rounded-full pl-16 pr-8 bg-accent/5 border-none focus-visible:ring-primary"
+                          placeholder="studio@pgk.com"
+                          className="h-16 rounded-full pl-16 pr-8 bg-secondary/50 border-border focus-visible:ring-primary text-base"
                         />
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center ml-4">
-                        <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Password</Label>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center ml-6">
+                        <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Password</Label>
                         {activeTab === 'login' && (
-                          <Button variant="link" className="text-[10px] uppercase font-bold text-primary p-0 h-auto">Forgot Password?</Button>
+                          <Button variant="link" className="text-[10px] uppercase font-bold text-primary p-0 h-auto tracking-widest opacity-60 hover:opacity-100">Reset</Button>
                         )}
                       </div>
                       <div className="relative">
-                        <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                        <Lock className="absolute left-7 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                         <Input
                           name="password"
                           type="password"
                           required
                           placeholder="••••••••"
-                          className="h-16 rounded-full pl-16 pr-8 bg-accent/5 border-none focus-visible:ring-primary"
+                          className="h-16 rounded-full pl-16 pr-8 bg-secondary/50 border-border focus-visible:ring-primary text-base"
                         />
                       </div>
                     </div>
@@ -167,12 +167,14 @@ function LoginContent() {
                     <Button
                       type="submit"
                       disabled={loading}
-                      className="w-full h-16 rounded-full text-lg font-bold shadow-xl transition-all active:scale-95"
+                      className="w-full h-16 rounded-full text-lg font-bold shadow-2xl shadow-primary/20 transition-all active:scale-95 mt-4"
                     >
                       {loading ? (
                         <Loader2 className="w-6 h-6 animate-spin" />
                       ) : (
-                        <>{activeTab === 'login' ? 'Sign In' : 'Create Account'} <ArrowRight className="ml-2 w-5 h-5" /></>
+                        <span className="flex items-center gap-3">
+                          {activeTab === 'login' ? 'Authenticate' : 'Establish Account'} <ArrowRight className="w-5 h-5" />
+                        </span>
                       )}
                     </Button>
                   </form>
@@ -180,13 +182,18 @@ function LoginContent() {
               </AnimatePresence>
             </Tabs>
 
-            <div className="mt-10 pt-10 border-t border-dashed flex flex-col items-center gap-6">
-              <div className="flex items-center gap-3 text-muted-foreground text-xs font-medium">
-                <CheckCircle2 className="w-4 h-4 text-green-500" /> Secure Encryption
-                <Sparkles className="w-4 h-4 text-yellow-500 ml-2" /> One-click Auth
+            <div className="mt-12 pt-10 border-t border-dashed border-border/50 flex flex-col items-center gap-8">
+              <div className="flex items-center gap-4 text-muted-foreground text-[10px] font-black uppercase tracking-[0.2em]">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-500" /> Secure
+                </div>
+                <div className="w-1.5 h-1.5 rounded-full bg-border" />
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-yellow-500" /> Verified
+                </div>
               </div>
-              <p className="text-[10px] text-center text-muted-foreground uppercase tracking-widest leading-relaxed px-10">
-                By continuing, you agree to PGK Gifts' Terms of Service and Privacy Policy.
+              <p className="text-[10px] text-center text-muted-foreground uppercase tracking-[0.3em] leading-relaxed px-10 font-light">
+                Secure 256-bit encryption active. <br /> Private Data Protection Policy applies.
               </p>
             </div>
           </CardContent>
@@ -199,7 +206,7 @@ function LoginContent() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-accent/5">
+      <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
       </div>
     }>
