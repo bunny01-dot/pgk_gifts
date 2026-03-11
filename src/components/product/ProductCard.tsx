@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
-import { ShoppingBag, Eye, Star, Heart } from 'lucide-react';
+import { Eye, Star, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Product } from '@/lib/data';
@@ -53,30 +53,24 @@ export function ProductCard({ product }: ProductCardProps) {
               />
             </Link>
             
-            {/* Action Buttons Overlay */}
-            <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+            {/* Action Buttons Overlay - Simplified and themed */}
+            <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
               <Button 
                 onClick={handleQuickView}
-                variant="secondary" 
-                className="rounded-full h-12 w-12 p-0 shadow-lg bg-white/90 backdrop-blur-sm"
+                variant="outline" 
+                className="rounded-full h-16 w-16 p-0 shadow-2xl bg-background/90 backdrop-blur-md border-2 border-primary/20 hover:scale-110 transition-transform"
               >
-                <Eye className="w-5 h-5" />
-              </Button>
-              <Button 
-                onClick={handleAddToCart}
-                className="rounded-full h-12 w-12 p-0 shadow-lg"
-              >
-                <ShoppingBag className="w-5 h-5" />
+                <Eye className="w-8 h-8 text-primary" />
               </Button>
             </div>
 
             {product.featured && (
-              <Badge className="absolute top-4 left-4 bg-primary text-white font-bold tracking-widest text-[10px] uppercase h-6 px-3">
+              <Badge className="absolute top-4 left-4 bg-primary text-primary-foreground font-bold tracking-widest text-[10px] uppercase h-6 px-3">
                 Featured
               </Badge>
             )}
             
-            <button className="absolute top-4 right-4 h-10 w-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-all translate-y-[-10px] group-hover:translate-y-0">
+            <button className="absolute top-4 right-4 h-10 w-10 rounded-full bg-background/80 backdrop-blur-md flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-all translate-y-[-10px] group-hover:translate-y-0">
               <Heart className="w-5 h-5 text-muted-foreground hover:text-red-500 transition-colors" />
             </button>
           </div>
@@ -100,7 +94,7 @@ export function ProductCard({ product }: ProductCardProps) {
           </CardContent>
 
           <CardFooter className="px-6 pb-6 pt-0">
-             <Button onClick={handleAddToCart} variant="outline" className="w-full rounded-full h-12 font-bold border-2 group-hover:bg-primary group-hover:text-white transition-all">
+             <Button onClick={handleAddToCart} variant="outline" className="w-full rounded-full h-12 font-bold border-2 group-hover:bg-primary group-hover:text-primary-foreground transition-all">
                 Add to Bag
              </Button>
           </CardFooter>
