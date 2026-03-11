@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -34,31 +35,33 @@ export default function Home() {
             transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
             className="space-y-10 text-center lg:text-left relative"
           >
-            {/* Bouncing Decorative Image Near Text */}
-            <div className="absolute -top-20 -left-10 hidden lg:block">
-              <div className="relative w-32 h-32 rounded-[2rem] overflow-hidden border-4 border-card shadow-2xl animate-bounce-slow">
+            {/* Round-edged bouncing panda near hero text */}
+            <div className="absolute -top-24 -left-12 hidden lg:block">
+              <div className="relative w-36 h-36 rounded-[2.5rem] overflow-hidden border-4 border-card shadow-2xl animate-bounce-slow bg-card">
                 <Image 
                   src="https://i.postimg.cc/kG6y8qBj/500-rs-6-colour-lights-panda-light-lamp.png"
-                  alt="Decorative Panda"
+                  alt="Heritage Panda"
                   fill
-                  className="object-cover scale-125"
+                  className="object-cover scale-110"
                 />
               </div>
             </div>
 
             <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-secondary text-primary text-xs font-bold uppercase tracking-widest border border-border">
-              <Sparkles className="w-4 h-4" /> The PGK Heritage
+              <Sparkles className="w-4 h-4" /> Your Moments, Our Masterpiece
             </div>
             
-            <h1 className="text-6xl md:text-8xl lg:text-9xl font-headline font-bold leading-[0.95] tracking-tight text-foreground relative">
-              Artistry
-              in <br />
-              <span className="text-muted-foreground/60 italic font-serif">Detail</span>
+            <h1 className="text-6xl md:text-8xl lg:text-9xl font-headline font-bold leading-[0.95] tracking-tight text-foreground">
+              Moments Captured,<br />
+              <span className="text-muted-foreground/60 italic font-serif">Memories Crafted</span>
             </h1>
 
-            <p className="text-xl md:text-2xl text-muted-foreground max-w-xl mx-auto lg:mx-0 leading-relaxed font-light">
-              Bespoke lamps, handcrafted toys, and legacy frames designed to turn fleeting moments into physical treasures.
-            </p>
+            <div className="space-y-2">
+              <p className="text-2xl md:text-3xl font-headline font-bold text-primary">Where Art Meets Heart</p>
+              <p className="text-xl md:text-2xl text-muted-foreground max-w-xl mx-auto lg:mx-0 leading-relaxed font-light">
+                Your Life, Beautifully Crafted.
+              </p>
+            </div>
 
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-6 pt-6">
               <Button asChild size="lg" className="rounded-full px-12 h-16 text-lg font-bold shadow-xl transition-all hover:scale-105 active:scale-95">

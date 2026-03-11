@@ -2,7 +2,7 @@
 export const CONTACT_INFO = {
   businessName: "PGK GIFTS",
   studioName: "PGK STUDIO",
-  tagline: "Turning Your Memories into Beautiful Personalized Gifts",
+  tagline: "Your Moments, Our Masterpiece.",
   address: "PGK Studio, Indira Nagar Church Road, Blessing Complex, Kallal – 630305, Near Britto School, Sivagangai District (Karaikudi Hub), Tamil Nadu",
   phone: "6383775476",
   alternateNumbers: ["8903200487", "7305181483"],
