@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -75,13 +74,13 @@ export function Navbar() {
           </div>
         </Link>
 
-        <div className="hidden md:flex items-center gap-12 ml-auto">
-          <div className="flex items-center gap-10">
+        <div className="hidden md:flex items-center gap-16 ml-auto">
+          <div className="flex items-center gap-12">
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.name}
                 href={link.href}
-                className="text-lg font-bold uppercase tracking-wider text-muted-foreground hover:text-primary transition-all relative group/link"
+                className="text-xl font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-all relative group/link"
               >
                 {link.name}
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover/link:w-full" />
@@ -89,11 +88,11 @@ export function Navbar() {
             ))}
           </div>
           
-          <div className="h-8 w-[1px] bg-muted mx-2" />
+          <div className="h-10 w-[1px] bg-muted/50" />
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-8 pr-2">
             <Link href="/cart" className="relative group p-3 rounded-full hover:bg-accent transition-colors">
-              <ShoppingBag className="w-8 h-8 text-foreground group-hover:text-primary transition-colors" />
+              <ShoppingBag className="w-9 h-9 text-foreground group-hover:text-primary transition-colors" />
               <AnimatePresence>
                 {itemCount > 0 && (
                   <motion.div
@@ -101,7 +100,7 @@ export function Navbar() {
                     animate={{ scale: 1 }}
                     exit={{ scale: 0 }}
                   >
-                    <Badge className="absolute -top-1 -right-1 h-6 w-6 flex items-center justify-center p-0 text-xs bg-primary text-primary-foreground border-2 border-background shadow-lg font-bold">
+                    <Badge className="absolute -top-1 -right-1 h-7 w-7 flex items-center justify-center p-0 text-xs bg-primary text-primary-foreground border-2 border-background shadow-lg font-black">
                       {itemCount}
                     </Badge>
                   </motion.div>
@@ -114,39 +113,39 @@ export function Navbar() {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-12 w-12 rounded-full p-0 overflow-hidden border-2 border-primary/10">
-                    <Avatar className="h-12 w-12">
+                  <Button variant="ghost" className="relative h-14 w-14 rounded-full p-0 overflow-hidden border-2 border-primary/10">
+                    <Avatar className="h-14 w-14">
                       <AvatarImage src={user.photoURL || ''} alt={user.displayName || ''} />
-                      <AvatarFallback className="bg-primary text-primary-foreground font-bold">
+                      <AvatarFallback className="bg-primary text-primary-foreground font-bold text-lg">
                         {user.email?.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 rounded-2xl p-2" align="end" forceMount>
+                <DropdownMenuContent className="w-64 rounded-2xl p-2" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal p-4">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-bold leading-none">{user.displayName || 'My Account'}</p>
-                      <p className="text-xs leading-none text-muted-foreground truncate">{user.email}</p>
+                      <p className="text-base font-bold leading-none">{user.displayName || 'My Account'}</p>
+                      <p className="text-sm leading-none text-muted-foreground truncate">{user.email}</p>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild className="rounded-xl h-12 px-4 cursor-pointer">
+                  <DropdownMenuItem asChild className="rounded-xl h-14 px-4 cursor-pointer">
                     <Link href="/admin">
-                      <LayoutDashboard className="mr-2 h-4 w-4" />
-                      <span>Admin Portal</span>
+                      <LayoutDashboard className="mr-3 h-5 w-5" />
+                      <span className="text-base font-medium">Admin Portal</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="rounded-xl h-12 px-4 cursor-pointer text-destructive focus:text-destructive">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
+                  <DropdownMenuItem onClick={handleLogout} className="rounded-xl h-14 px-4 cursor-pointer text-destructive focus:text-destructive">
+                    <LogOut className="mr-3 h-5 w-5" />
+                    <span className="text-base font-medium">Log out</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button asChild variant="outline" size="icon" className="rounded-full h-12 w-12 border-2 hover:bg-primary hover:text-primary-foreground transition-all">
-                <Link href="/login"><User className="w-6 h-6" /></Link>
+              <Button asChild variant="outline" size="icon" className="rounded-full h-14 w-14 border-2 hover:bg-primary hover:text-primary-foreground transition-all">
+                <Link href="/login"><User className="w-7 h-7" /></Link>
               </Button>
             )}
           </div>

@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, ArrowLeft, Heart, Share2, Check, ZoomIn, ShoppingBag, ShieldCheck, Truck } from 'lucide-react';
+import { ShoppingCart, ArrowLeft, Heart, Share2, Check, ZoomIn, ShoppingBag, ShieldCheck, Truck, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PRODUCTS } from '@/lib/data';
 import { useCart } from '@/context/CartContext';
@@ -49,9 +49,14 @@ export default function ProductDetailPage() {
         title: "Added to Bag",
         description: `${product.name} has been added.`,
         action: (
-          <ToastAction altText="View Bag" onClick={() => setIsCartOpen(true)}>
-            View Bag
-          </ToastAction>
+          <div className="flex gap-2">
+            <ToastAction altText="View Bag" onClick={() => setIsCartOpen(true)}>
+              View Bag
+            </ToastAction>
+            <Button size="sm" variant="outline" className="h-8 rounded-full text-[10px] font-bold" onClick={() => router.push('/cart')}>
+              Go to Cart
+            </Button>
+          </div>
         ),
       });
     }
@@ -140,27 +145,27 @@ export default function ProductDetailPage() {
               </div>
             </div>
 
-            <p className="text-xl text-muted-foreground leading-relaxed max-w-xl">
+            <p className="text-2xl text-muted-foreground leading-relaxed max-w-xl">
               {product.description}
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-               <div className="flex items-center gap-4 p-4 rounded-2xl bg-accent/5 border border-primary/5">
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                    <Truck className="w-6 h-6" />
+               <div className="flex items-center gap-4 p-6 rounded-2xl bg-accent/5 border border-primary/5">
+                  <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                    <Truck className="w-7 h-7" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-widest">Free Shipping</p>
-                    <p className="text-[10px] text-muted-foreground">Orders above ₹1000</p>
+                    <p className="text-sm font-bold uppercase tracking-widest">Free Shipping</p>
+                    <p className="text-xs text-muted-foreground">Orders above ₹1000</p>
                   </div>
                </div>
-               <div className="flex items-center gap-4 p-4 rounded-2xl bg-accent/5 border border-primary/5">
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                    <ShieldCheck className="w-6 h-6" />
+               <div className="flex items-center gap-4 p-6 rounded-2xl bg-accent/5 border border-primary/5">
+                  <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                    <ShieldCheck className="w-7 h-7" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-widest">Quality Check</p>
-                    <p className="text-[10px] text-muted-foreground">100% Hand-crafted</p>
+                    <p className="text-sm font-bold uppercase tracking-widest">Quality Check</p>
+                    <p className="text-xs text-muted-foreground">100% Hand-crafted</p>
                   </div>
                </div>
             </div>
@@ -179,10 +184,10 @@ export default function ProductDetailPage() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Button onClick={() => handleAddToCart()} variant="outline" className="h-20 rounded-full text-xl font-bold border-2">
-                  <ShoppingBag className="mr-3 w-6 h-6" /> Add to Bag
+                <Button onClick={() => handleAddToCart()} variant="outline" className="h-20 rounded-full text-2xl font-bold border-2">
+                  <ShoppingBag className="mr-3 w-7 h-7" /> Add to Bag
                 </Button>
-                <Button onClick={() => handleAddToCart(true)} className="h-20 rounded-full text-xl font-bold shadow-2xl shadow-primary/20">
+                <Button onClick={() => handleAddToCart(true)} className="h-20 rounded-full text-2xl font-bold shadow-2xl shadow-primary/20">
                   Buy Now
                 </Button>
               </div>
