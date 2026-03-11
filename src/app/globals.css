@@ -4,48 +4,53 @@
 
 @layer base {
   :root {
-    --background: 0 0% 98%;
-    --foreground: 20 14.3% 4.1%;
-    --card: 0 0% 100%;
-    --card-foreground: 20 14.3% 4.1%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 20 14.3% 4.1%;
-    --primary: 20 14.3% 4.1%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 30 20% 95%;
-    --secondary-foreground: 20 14.3% 4.1%;
-    --muted: 30 10% 90%;
-    --muted-foreground: 20 10% 40%;
-    --accent: 30 20% 95%;
-    --accent-foreground: 20 14.3% 4.1%;
+    /* #FAFCFB converted to HSL: 150 20% 98% */
+    --background: 150 20% 98%;
+    --foreground: 303 62% 14%;
+    --card: 150 20% 98%;
+    --card-foreground: 303 62% 14%;
+    --popover: 150 20% 98%;
+    --popover-foreground: 303 62% 14%;
+    
+    /* #3B0E39 converted to HSL: 303 62% 14% */
+    --primary: 303 62% 14%;
+    --primary-foreground: 150 20% 98%;
+    
+    --secondary: 303 10% 90%;
+    --secondary-foreground: 303 62% 14%;
+    --muted: 303 10% 90%;
+    --muted-foreground: 303 20% 40%;
+    --accent: 303 10% 90%;
+    --accent-foreground: 303 62% 14%;
+    
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 20% 98%;
-    --border: 20 10% 90%;
-    --input: 20 10% 90%;
-    --ring: 20 14.3% 4.1%;
+    --border: 303 10% 85%;
+    --input: 303 10% 85%;
+    --ring: 303 62% 14%;
     --radius: 0.75rem;
   }
 
   .dark {
-    --background: 20 14.3% 4.1%;
-    --foreground: 0 0% 98%;
-    --card: 20 14.3% 6%;
-    --card-foreground: 0 0% 98%;
-    --popover: 20 14.3% 6%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 20 14.3% 4.1%;
-    --secondary: 20 14.3% 12%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 20 14.3% 15%;
-    --muted-foreground: 0 0% 70%;
-    --accent: 20 14.3% 12%;
-    --accent-foreground: 0 0% 98%;
+    --background: 303 62% 14%;
+    --foreground: 150 20% 98%;
+    --card: 303 62% 10%;
+    --card-foreground: 150 20% 98%;
+    --popover: 303 62% 10%;
+    --popover-foreground: 150 20% 98%;
+    --primary: 150 20% 98%;
+    --primary-foreground: 303 62% 14%;
+    --secondary: 303 62% 20%;
+    --secondary-foreground: 150 20% 98%;
+    --muted: 303 62% 20%;
+    --muted-foreground: 150 20% 70%;
+    --accent: 303 62% 20%;
+    --accent-foreground: 150 20% 98%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 20 14.3% 15%;
-    --input: 20 14.3% 15%;
-    --ring: 0 0% 83.9%;
+    --destructive-foreground: 150 20% 98%;
+    --border: 303 62% 25%;
+    --input: 303 62% 25%;
+    --ring: 150 20% 98%;
   }
 }
 
@@ -62,7 +67,7 @@
 }
 
 .shadow-premium {
-  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 40px -10px rgba(59, 14, 57, 0.1);
 }
 
 .glass {
@@ -79,8 +84,13 @@
   @apply bg-primary/10 rounded-full hover:bg-primary/20 transition-colors;
 }
 
-.animate-float {
-  animation: float 6s ease-in-out infinite;
+@keyframes bounce-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 2.5s ease-in-out infinite;
 }
 
 @keyframes float {
@@ -89,11 +99,6 @@
   100% { transform: translateY(0px); }
 }
 
-@keyframes bounce-slow {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-15px); }
-}
-
-.animate-bounce-slow {
-  animation: bounce-slow 2.5s ease-in-out infinite;
+.animate-float {
+  animation: float 6s ease-in-out infinite;
 }
