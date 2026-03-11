@@ -35,18 +35,6 @@ export default function Home() {
             transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
             className="space-y-10 text-center lg:text-left relative"
           >
-            {/* Round-edged bouncing panda near hero text */}
-            <div className="absolute -top-24 -left-12 hidden lg:block">
-              <div className="relative w-36 h-36 rounded-[2.5rem] overflow-hidden border-4 border-card shadow-2xl animate-bounce-slow bg-card">
-                <Image 
-                  src="https://i.postimg.cc/kG6y8qBj/500-rs-6-colour-lights-panda-light-lamp.png"
-                  alt="Heritage Panda"
-                  fill
-                  className="object-cover scale-110"
-                />
-              </div>
-            </div>
-
             <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-secondary text-primary text-xs font-bold uppercase tracking-widest border border-border">
               <Sparkles className="w-4 h-4" /> Your Moments, Our Masterpiece
             </div>
@@ -81,12 +69,12 @@ export default function Home() {
             transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
             className="relative h-[500px] lg:h-[750px] flex items-center justify-center"
           >
-            <div className="relative w-full h-full max-w-[600px] animate-float">
+            <div className="relative w-full h-full max-w-[600px] animate-float rounded-[4rem] overflow-hidden shadow-2xl">
               <Image
                 src="https://i.postimg.cc/kG6y8qBj/500-rs-6-colour-lights-panda-light-lamp.png"
                 alt="Bespoke Panda Lamp"
                 fill
-                className="object-contain drop-shadow-[0_35px_35px_rgba(0,0,0,0.1)]"
+                className="object-cover drop-shadow-[0_35px_35px_rgba(0,0,0,0.1)]"
                 priority
               />
             </div>
