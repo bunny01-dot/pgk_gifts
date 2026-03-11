@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -62,7 +63,7 @@ export function Navbar() {
           </div>
           <div className="flex flex-col">
             <span className="font-headline font-bold text-2xl tracking-tighter text-foreground leading-none uppercase">PGK GIFTS</span>
-            <span className="text-[10px] uppercase tracking-[0.3em] font-black text-muted-foreground mt-1 truncate max-w-[150px]">
+            <span className="text-[10px] uppercase tracking-[0.3em] font-black text-muted-foreground mt-1 whitespace-nowrap">
               {CONTACT_INFO.tagline}
             </span>
           </div>

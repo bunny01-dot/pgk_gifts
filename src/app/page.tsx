@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { PRODUCTS } from '@/lib/data';
+import { PRODUCTS, CONTACT_INFO } from '@/lib/data';
 import { ProductCard } from '@/components/product/ProductCard';
 
 export default function Home() {
@@ -35,8 +35,8 @@ export default function Home() {
             transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
             className="space-y-10 text-center lg:text-left relative"
           >
-            <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-secondary text-primary text-xs font-bold uppercase tracking-widest border border-border">
-              <Sparkles className="w-4 h-4" /> Your Moments, Our Masterpiece
+            <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-secondary text-primary text-xs font-bold uppercase tracking-[0.2em] border border-border">
+              <Sparkles className="w-4 h-4" /> {CONTACT_INFO.tagline}
             </div>
             
             <h1 className="text-6xl md:text-8xl lg:text-9xl font-headline font-bold leading-[0.95] tracking-tight text-foreground">
@@ -69,7 +69,11 @@ export default function Home() {
             transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
             className="relative h-[500px] lg:h-[750px] flex items-center justify-center"
           >
-            <div className="relative w-full h-full max-w-[600px] animate-float rounded-[4rem] overflow-hidden shadow-2xl">
+            <motion.div 
+              animate={{ y: [0, -15, 0] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+              className="relative w-full h-full max-w-[600px] rounded-[4rem] overflow-hidden shadow-2xl"
+            >
               <Image
                 src="https://i.postimg.cc/kG6y8qBj/500-rs-6-colour-lights-panda-light-lamp.png"
                 alt="Bespoke Panda Lamp"
@@ -77,7 +81,7 @@ export default function Home() {
                 className="object-cover drop-shadow-[0_35px_35px_rgba(0,0,0,0.1)]"
                 priority
               />
-            </div>
+            </motion.div>
           </motion.div>
         </div>
       </section>
@@ -88,9 +92,9 @@ export default function Home() {
           <div className="flex flex-col md:flex-row items-end justify-between mb-20 gap-8">
             <div className="space-y-6 max-w-2xl">
               <p className="text-xs font-black uppercase tracking-[0.5em] text-muted-foreground">The Boutique Catalog</p>
-              <h2 className="text-5xl md:text-7xl font-headline font-bold leading-tight">Featured Treasures</h2>
+              <h2 className="text-5xl md:text-7xl font-headline font-bold leading-tight text-foreground">Featured Treasures</h2>
             </div>
-            <Button variant="link" asChild className="text-lg font-bold group h-auto p-0 hover:no-underline">
+            <Button variant="link" asChild className="text-lg font-bold group h-auto p-0 hover:no-underline text-primary">
               <Link href="/shop" className="flex items-center gap-3">
                 Browse Full Catalog <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
               </Link>
