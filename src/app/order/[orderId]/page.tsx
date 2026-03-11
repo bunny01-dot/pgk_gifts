@@ -7,30 +7,31 @@ import { Package, Truck, CheckCircle2, Clock, MapPin, ArrowLeft, Loader2, Messag
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { initializeFirebase } from '@/firebase';
+import { useFirestore } from '@/firebase';
 import { OrdersService } from '@/services/orders.service';
 import { Order } from '@/types/order';
 import { formatPrice } from '@/utils/currency';
 import { formatDate } from '@/utils/date';
 import { CONTACT_INFO } from '@/lib/data';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default function OrderTrackingPage() {
   const { orderId } = useParams();
   const router = useRouter();
+  const firestore = useFirestore();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchOrder = async () => {
-      const { firestore } = initializeFirebase();
       const ordersService = new OrdersService(firestore);
       const data = await ordersService.getOrderById(orderId as string);
       setOrder(data);
       setLoading(false);
     };
     fetchOrder();
-  }, [orderId]);
+  }, [orderId, firestore]);
 
   if (loading) {
     return (
@@ -72,7 +73,7 @@ export default function OrderTrackingPage() {
         <header className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
           <div className="space-y-2">
             <Badge className="rounded-full px-4 border-primary text-primary font-bold uppercase tracking-widest text-[10px]">Tracking Order</Badge>
-            <h1 className="text-5xl font-headline font-bold">#{order.orderId}</h1>
+            <h1 className="text-5xl font-headline font-bold leading-none">#{order.orderId}</h1>
             <p className="text-muted-foreground text-xl">Placed on {formatDate(order.createdAt)}</p>
           </div>
           <Badge variant="secondary" className="h-12 px-8 rounded-full font-bold text-xl border-none bg-primary text-primary-foreground">
@@ -82,7 +83,7 @@ export default function OrderTrackingPage() {
 
         <div className="grid grid-cols-1 gap-8">
           <Card className="rounded-[3rem] border-none shadow-xl p-10 bg-card">
-            <div className="relative flex justify-between items-center">
+            <div className="relative flex justify-between items-center px-4">
               <div className="absolute top-1/2 left-0 right-0 h-1 bg-accent -translate-y-1/2 -z-0" />
               <div 
                 className="absolute top-1/2 left-0 h-1 bg-primary -translate-y-1/2 transition-all duration-1000 -z-0" 
@@ -92,7 +93,7 @@ export default function OrderTrackingPage() {
                 const Icon = stage.icon;
                 const isActive = i <= currentStageIndex;
                 return (
-                  <div key={stage.id} className="relative z-10 flex flex-col items-center gap-4 bg-card">
+                  <div key={stage.id} className="relative z-10 flex flex-col items-center gap-4 bg-card px-2">
                     <div className={`w-16 h-16 rounded-full flex items-center justify-center border-4 transition-all duration-500 ${isActive ? 'bg-primary border-primary text-white scale-110 shadow-xl' : 'bg-accent/20 border-accent text-muted-foreground'}`}>
                       <Icon className="w-7 h-7" />
                     </div>

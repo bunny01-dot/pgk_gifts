@@ -75,9 +75,9 @@ export function Navbar() {
           </div>
         </Link>
 
-        {/* Desktop Nav - Larger and Shifted Right */}
-        <div className="hidden md:flex items-center gap-12 ml-auto">
-          <div className="flex items-center gap-10">
+        {/* Desktop Nav - High visibility right-aligned navigation */}
+        <div className="hidden md:flex items-center gap-14 ml-auto">
+          <div className="flex items-center gap-12">
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.name}
@@ -92,7 +92,7 @@ export function Navbar() {
           
           <div className="h-10 w-[1px] bg-muted/50" />
 
-          <div className="flex items-center gap-6 pr-4">
+          <div className="flex items-center gap-8 pr-4">
             <Link href="/cart" className="relative group p-3 rounded-full hover:bg-accent transition-colors">
               <ShoppingBag className="w-9 h-9 text-foreground group-hover:text-primary transition-colors" />
               <AnimatePresence>

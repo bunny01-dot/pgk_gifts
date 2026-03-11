@@ -10,7 +10,7 @@ import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { initializeFirebase } from '@/firebase';
+import { useFirestore } from '@/firebase';
 import { PaymentService } from '@/services/payment.service';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +21,7 @@ export default function CheckoutPage() {
   const { cart, cartTotal, clearCart } = useCart();
   const router = useRouter();
   const { toast } = useToast();
+  const firestore = useFirestore();
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [saveCard, setSaveCard] = useState(false);
@@ -58,12 +59,10 @@ export default function CheckoutPage() {
     setLoading(true);
 
     try {
-      const { firestore } = initializeFirebase();
       const paymentService = new PaymentService(firestore);
-
       const rpOrder = await paymentService.createRazorpayOrder(cartTotal);
 
-      // Simulate Razorpay verification & Persistence
+      // Simulate secure Razorpay verification & Persistence
       setTimeout(async () => {
         const mockResponse = {
           razorpay_order_id: rpOrder.id,
@@ -113,7 +112,7 @@ export default function CheckoutPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           <div className="lg:col-span-2 space-y-8">
-            <Card className="rounded-[3rem] border-2 border-primary/10 shadow-soft p-10 bg-card">
+            <Card className="rounded-[3rem] border-2 border-primary/20 shadow-soft p-10 bg-card">
               <h3 className="text-4xl font-headline font-bold mb-8 flex items-center gap-3">
                 <div className="w-12 h-12 rounded-2xl bg-primary text-white flex items-center justify-center text-xl">1</div>
                 Shipping Details
@@ -126,7 +125,7 @@ export default function CheckoutPage() {
                     id="name" 
                     name="name" 
                     required 
-                    placeholder="e.g. John Doe" 
+                    placeholder="Enter your full name" 
                     value={formData.name} 
                     onChange={handleInputChange} 
                     className="h-16 rounded-full px-8 bg-background border-2 border-muted hover:border-primary/50 focus:border-primary transition-all text-xl placeholder:text-muted-foreground/40 text-foreground" 
@@ -139,7 +138,7 @@ export default function CheckoutPage() {
                     id="phone" 
                     name="phone" 
                     required 
-                    placeholder="e.g. 9876543210" 
+                    placeholder="Enter 10 digit mobile number" 
                     value={formData.phone} 
                     onChange={handleInputChange} 
                     className="h-16 rounded-full px-8 bg-background border-2 border-muted hover:border-primary/50 focus:border-primary transition-all text-xl placeholder:text-muted-foreground/40 text-foreground" 
@@ -187,13 +186,13 @@ export default function CheckoutPage() {
               </div>
             </Card>
 
-            <Card className="rounded-[3rem] border-2 border-primary/5 shadow-soft p-10 bg-card">
+            <Card className="rounded-[3rem] border-2 border-primary/10 shadow-soft p-10 bg-card">
                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-2xl bg-accent text-primary flex items-center justify-center text-xl">2</div>
                     <div>
                       <h3 className="text-3xl font-headline font-bold">Payment Method</h3>
-                      <p className="text-muted-foreground text-lg">Cards, UPI, or Netbanking</p>
+                      <p className="text-muted-foreground text-lg text-primary/70">Securely processed via Razorpay</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-3 bg-accent/20 px-6 py-4 rounded-3xl border border-primary/5">
@@ -203,14 +202,14 @@ export default function CheckoutPage() {
                       onCheckedChange={(checked) => setSaveCard(!!checked)}
                       className="w-6 h-6 border-2 border-primary"
                     />
-                    <Label htmlFor="save-card" className="text-lg font-bold cursor-pointer text-foreground">Save card for future payments</Label>
+                    <Label htmlFor="save-card" className="text-lg font-bold cursor-pointer text-foreground">Save details for faster checkout</Label>
                   </div>
                </div>
             </Card>
           </div>
 
           <div className="lg:col-span-1">
-            <Card className="rounded-[3rem] border-2 border-primary/10 shadow-2xl p-10 bg-card sticky top-40">
+            <Card className="rounded-[3rem] border-2 border-primary/20 shadow-2xl p-10 bg-card sticky top-40">
               <h3 className="text-3xl font-headline font-bold mb-8 border-b pb-6 flex items-center justify-between">
                 Order Summary
                 <Lock className="w-5 h-5 text-muted-foreground" />
