@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { ArrowRight, Sparkles, Star, ShieldCheck, Truck, ShoppingBag } from 'lucide-react';
+import { ArrowRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PRODUCTS } from '@/lib/data';
 import { ProductCard } from '@/components/product/ProductCard';
@@ -40,12 +40,8 @@ export default function Home() {
             
             <h1 className="text-6xl md:text-8xl lg:text-9xl font-headline font-bold leading-[0.95] tracking-tight text-foreground relative">
               Artistry
-              <motion.span 
-                animate={{ y: [0, -15, 0], rotate: [5, 0, 5] }}
-                transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-                className="inline-block align-middle mx-3 md:mx-6"
-              >
-                <div className="relative w-16 h-16 md:w-28 md:h-28 rounded-full overflow-hidden border-4 border-card shadow-2xl rotate-6 group cursor-pointer hover:rotate-0 transition-all duration-500 animate-bounce-slow">
+              <span className="inline-block align-middle mx-3 md:mx-6">
+                <div className="relative w-16 h-16 md:w-28 md:h-28 rounded-full overflow-hidden border-4 border-card shadow-2xl animate-bounce-slow">
                    <Image 
                     src="https://i.postimg.cc/kG6y8qBj/500-rs-6-colour-lights-panda-light-lamp.png"
                     alt="Panda Hero Icon"
@@ -53,7 +49,7 @@ export default function Home() {
                     className="object-cover scale-125"
                    />
                 </div>
-              </motion.span>
+              </span>
               in <br />
               <span className="text-muted-foreground/60 italic font-serif">Detail</span>
             </h1>
