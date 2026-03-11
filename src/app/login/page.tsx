@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -16,7 +16,7 @@ import { useAuth, useUser } from '@/firebase';
 import { initiateEmailSignIn, initiateEmailSignUp } from '@/firebase/non-blocking-login';
 import { useToast } from '@/hooks/use-toast';
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isUserLoading } = useUser();
@@ -48,11 +48,8 @@ export default function LoginPage() {
         initiateEmailSignIn(auth, email, password);
       } else {
         initiateEmailSignUp(auth, email, password);
-        // Note: In a real app, we'd update the profile with the name here
       }
       
-      // We don't await here because our auth provider will pick up the state change
-      // But we'll give it a moment to show a loading state
       setTimeout(() => {
         setLoading(false);
       }, 2000);
@@ -196,5 +193,17 @@ export default function LoginPage() {
         </Card>
       </motion.div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-accent/5">
+        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }

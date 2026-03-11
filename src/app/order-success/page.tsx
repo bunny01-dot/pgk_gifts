@@ -1,14 +1,14 @@
-
 'use client';
 
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { CheckCircle, Package, ArrowRight, MessageSquare } from 'lucide-react';
+import { CheckCircle, ArrowRight, MessageSquare, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CONTACT_INFO } from '@/lib/data';
 
-export default function OrderSuccessPage() {
+function SuccessContent() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get('id');
 
@@ -51,5 +51,17 @@ export default function OrderSuccessPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function OrderSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-accent/5">
+        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      </div>
+    }>
+      <SuccessContent />
+    </Suspense>
   );
 }
