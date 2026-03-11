@@ -75,7 +75,7 @@ export function Navbar() {
           </div>
         </Link>
 
-        {/* Desktop Nav - High visibility text-xl links pushed to the right */}
+        {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-16 ml-auto">
           <div className="flex items-center gap-14">
             {NAV_LINKS.map((link) => (

@@ -17,7 +17,6 @@ export function Footer() {
 
   return (
     <footer className="bg-primary text-primary-foreground pt-32 pb-16 rounded-t-[5rem] mt-32 relative overflow-hidden">
-      {/* Decorative Blur for contrast */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary-foreground/5 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2" />
       
       <div className="container mx-auto px-4 relative z-10">
