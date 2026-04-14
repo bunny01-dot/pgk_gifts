@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { Eye, Star, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
-import { Product } from '@/lib/data';
+import { Product } from '@/types/product';
 import { motion } from 'framer-motion';
 import { useCart } from '@/context/CartContext';
 import { formatPrice } from '@/utils/currency';
@@ -24,7 +24,8 @@ export function ProductCard({ product }: ProductCardProps) {
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    addToCart(product);
+    if (product.stockCount !== undefined && product.stockCount <= 0) return;
+    addToCart(product as any);
   };
 
   const handleQuickView = (e: React.MouseEvent) => {
@@ -33,6 +34,8 @@ export function ProductCard({ product }: ProductCardProps) {
     setIsQuickViewOpen(true);
   };
 
+  const isSoldOut = product.stockCount !== undefined && product.stockCount <= 0;
+
   return (
     <>
       <motion.div
@@ -40,7 +43,7 @@ export function ProductCard({ product }: ProductCardProps) {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.5 }}
-        className="group h-full"
+        className={`group h-full ${isSoldOut ? 'opacity-70 grayscale-[0.2]' : ''}`}
       >
         <Card className="h-full overflow-hidden border-none shadow-premium hover:shadow-2xl transition-all duration-500 rounded-3xl bg-card flex flex-col relative border border-border/50">
           <div className="relative aspect-[4/5] overflow-hidden bg-muted group-hover:cursor-pointer">
@@ -49,22 +52,28 @@ export function ProductCard({ product }: ProductCardProps) {
                 src={product.image}
                 alt={product.name}
                 fill
-                className="object-cover transition-transform duration-700 group-hover:scale-105"
+                className={`object-cover transition-transform duration-700 ${!isSoldOut && 'group-hover:scale-105'}`}
               />
             </Link>
             
             {/* Action Buttons Overlay - Simplified and themed */}
-            <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <Button 
-                onClick={handleQuickView}
-                variant="outline" 
-                className="rounded-full h-16 w-16 p-0 shadow-2xl bg-background/90 backdrop-blur-md border-2 border-primary/20 hover:scale-110 transition-transform"
-              >
-                <Eye className="w-8 h-8 text-primary" />
-              </Button>
-            </div>
+            {!isSoldOut && (
+              <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Button 
+                  onClick={handleQuickView}
+                  variant="outline" 
+                  className="rounded-full h-16 w-16 p-0 shadow-2xl bg-background/90 backdrop-blur-md border-2 border-primary/20 hover:scale-110 transition-transform"
+                >
+                  <Eye className="w-8 h-8 text-primary" />
+                </Button>
+              </div>
+            )}
 
-            {product.featured && (
+            {isSoldOut ? (
+              <Badge className="absolute top-4 left-4 bg-destructive text-destructive-foreground font-bold tracking-widest text-[10px] uppercase h-6 px-3">
+                Sold Out
+              </Badge>
+            ) : product.featured && (
               <Badge className="absolute top-4 left-4 bg-primary text-primary-foreground font-bold tracking-widest text-[10px] uppercase h-6 px-3">
                 Featured
               </Badge>
@@ -88,14 +97,19 @@ export function ProductCard({ product }: ProductCardProps) {
               <h3 className="font-headline text-xl font-bold line-clamp-1 group-hover:text-primary transition-colors">{product.name}</h3>
             </Link>
             
-            <p className="font-headline text-2xl font-bold text-primary">
+            <p className="font-headline text-2xl font-bold text-primary font-sans">
               {formatPrice(product.price)}
             </p>
           </CardContent>
 
           <CardFooter className="px-6 pb-6 pt-0">
-             <Button onClick={handleAddToCart} variant="outline" className="w-full rounded-full h-12 font-bold border-2 group-hover:bg-primary group-hover:text-primary-foreground transition-all">
-                Add to Bag
+             <Button 
+               onClick={handleAddToCart} 
+               disabled={isSoldOut}
+               variant={isSoldOut ? "secondary" : "outline"}
+               className={`w-full rounded-full h-12 font-bold border-2 ${!isSoldOut && 'group-hover:bg-primary group-hover:text-primary-foreground'} transition-all`}
+             >
+                {isSoldOut ? 'Out of Stock' : 'Add to Bag'}
              </Button>
           </CardFooter>
         </Card>

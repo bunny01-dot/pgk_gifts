@@ -40,8 +40,11 @@ function SuccessContent() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button asChild size="lg" className="rounded-full px-8 h-14">
-            <Link href="/shop">Continue Shopping <ArrowRight className="ml-2 w-5 h-5" /></Link>
+          <Button asChild size="lg" className="rounded-full px-8 h-14 shadow-xl shadow-primary/20">
+            <Link href={`/track`}>Track Order <ArrowRight className="ml-2 w-5 h-5" /></Link>
+          </Button>
+          <Button asChild variant="outline" size="lg" className="rounded-full px-8 h-14 border-2">
+            <Link href="/shop">Continue Shopping</Link>
           </Button>
           <Button asChild variant="outline" size="lg" className="rounded-full px-8 h-14 border-2">
             <a href={CONTACT_INFO.whatsapp} target="_blank" rel="noopener noreferrer">

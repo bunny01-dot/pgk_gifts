@@ -72,14 +72,43 @@ export class ProductsService {
 
   async updateProduct(id: string, data: Partial<Product>) {
     const docRef = doc(this.db, 'products', id);
-    // Non-blocking update
-    updateDoc(docRef, { ...data, updatedAt: serverTimestamp() })
+    return updateDoc(docRef, { ...data, updatedAt: serverTimestamp() })
       .catch((e: any) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({
           path: `products/${id}`,
           operation: 'update',
           requestResourceData: data
         }));
+        throw e;
       });
+  }
+
+  async createProduct(data: Omit<Product, 'id'>) {
+    const { addDoc, collection } = await import('firebase/firestore');
+    const productsRef = collection(this.db, 'products');
+    return addDoc(productsRef, {
+      ...data,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    }).catch((e: any) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: 'products',
+        operation: 'create',
+        requestResourceData: data
+      }));
+      throw e;
+    });
+  }
+
+  async deleteProduct(id: string) {
+    const { deleteDoc, doc } = await import('firebase/firestore');
+    const docRef = doc(this.db, 'products', id);
+    return deleteDoc(docRef).catch((e: any) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: `products/${id}`,
+        operation: 'delete'
+      }));
+      throw e;
+    });
   }
 }

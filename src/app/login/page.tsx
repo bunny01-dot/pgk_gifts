@@ -102,8 +102,8 @@ function LoginContent() {
           <CardContent className="p-12">
             <Tabs defaultValue="login" onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2 rounded-2xl h-16 bg-secondary p-1.5 mb-10">
-                <TabsTrigger value="login" className="rounded-xl font-bold uppercase tracking-[0.2em] text-[10px] data-[state=active]:bg-white data-[state=active]:shadow-lg">Sign In</TabsTrigger>
-                <TabsTrigger value="signup" className="rounded-xl font-bold uppercase tracking-[0.2em] text-[10px] data-[state=active]:bg-white data-[state=active]:shadow-lg">Join Us</TabsTrigger>
+                <TabsTrigger value="login" className="rounded-xl font-bold uppercase tracking-[0.2em] text-[10px] data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-lg">Sign In</TabsTrigger>
+                <TabsTrigger value="signup" className="rounded-xl font-bold uppercase tracking-[0.2em] text-[10px] data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-lg">Join Us</TabsTrigger>
               </TabsList>
 
               <AnimatePresence mode="wait">

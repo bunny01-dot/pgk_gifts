@@ -112,7 +112,7 @@ export default function OrderTrackingPage() {
                     <motion.div 
                       animate={isCurrent ? { scale: [1, 1.15, 1] } : { scale: 1 }}
                       transition={{ duration: 2, repeat: Infinity }}
-                      className={`w-24 h-24 rounded-[2rem] flex items-center justify-center border-4 transition-all duration-500 ${isActive ? 'bg-primary border-primary text-white shadow-2xl' : 'bg-accent/10 border-accent/20 text-muted-foreground'}`}
+                      className={`w-24 h-24 rounded-[2rem] flex items-center justify-center border-4 transition-all duration-500 ${isActive ? 'bg-primary border-primary text-primary-foreground shadow-2xl' : 'bg-accent/10 border-accent/20 text-muted-foreground'}`}
                     >
                       <Icon className="w-12 h-12" />
                     </motion.div>

@@ -51,6 +51,30 @@ export class OrdersService {
     }
   }
 
+  async getOrderByTrackingId(trackingId: string): Promise<Order | null> {
+    const ordersRef = collection(this.db, 'orders');
+    const q1 = query(ordersRef, orderBy('createdAt', 'desc'));
+    
+    // Fallback manual query since we might not have a specific index on orderId
+    // and Firebase requires composite indexes. A simple getDocs + find is acceptable 
+    // for small dataset, but typically we'd use where('orderId', '==', trackingId)
+    try {
+      const snapshot = await getDocs(query(ordersRef));
+      const match = snapshot.docs.find(d => 
+         d.id === trackingId || 
+         d.data().orderId === trackingId || 
+         d.data().razorpayOrderId === trackingId
+      );
+      
+      if (match) {
+        return { id: match.id, ...match.data() } as Order;
+      }
+      return null;
+    } catch (e: any) {
+      return null;
+    }
+  }
+
   async updateOrderStatus(orderId: string, status: OrderStatus) {
     const orderRef = doc(this.db, 'orders', orderId);
     // Non-blocking write

@@ -1,11 +1,11 @@
-
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PRODUCTS, Category } from '@/lib/data';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Button } from '@/components/ui/button';
+import { useFirestore } from '@/firebase';
 import { Grid, Sparkles, Heart, Gift, Search, SlidersHorizontal, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -20,8 +20,31 @@ const CATEGORIES: { name: string; value: Category | 'All'; icon: any }[] = [
 export default function ShopPage() {
   const [activeCategory, setActiveCategory] = useState<Category | 'All'>('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [dbProducts, setDbProducts] = useState<any[]>(PRODUCTS); // Fallback to static until fetch
+  const [loading, setLoading] = useState(true);
+  
+  const { firestore } = useFirestore() || {};
 
-  const filteredProducts = PRODUCTS.filter(p => {
+  useEffect(() => {
+    if (!firestore) return;
+    const fetchProducts = async () => {
+      try {
+        const { ProductsService } = await import('@/services/products.service');
+        const svc = new ProductsService(firestore);
+        const dynamic = await svc.getAllProducts();
+        if (dynamic && dynamic.length > 0) {
+          setDbProducts(dynamic);
+        }
+      } catch (e) {
+        console.error("Failed to load dynamic products", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProducts();
+  }, [firestore]);
+
+  const filteredProducts = dbProducts.filter(p => {
     const matchesCategory = activeCategory === 'All' || p.category === activeCategory;
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;

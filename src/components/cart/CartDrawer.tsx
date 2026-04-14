@@ -37,34 +37,92 @@ export function CartDrawer() {
             <div className="space-y-6">
               {cart.map((item) => (
                 <div key={item.id} className="flex gap-4">
-                  <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-muted flex-shrink-0">
+                  <div className="relative w-24 h-24 rounded-2xl overflow-hidden bg-secondary/50 flex-shrink-0 border border-border/50">
                     <Image src={item.image} alt={item.name} fill className="object-cover" />
                   </div>
-                  <div className="flex-1 min-w-0 flex flex-col justify-between">
+                  <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
                     <div>
                       <div className="flex justify-between items-start gap-2">
                         <h4 className="font-bold text-sm leading-tight truncate">{item.name}</h4>
                         <button 
                           onClick={() => removeFromCart(item.id)}
-                          className="text-muted-foreground hover:text-destructive transition-colors"
+                          className="text-muted-foreground hover:text-destructive transition-colors p-1"
                         >
-                          <X className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">{formatPrice(item.price)}</p>
+                      <p className="text-xs text-muted-foreground mt-1 mb-2 uppercase tracking-widest font-bold">{formatPrice(item.price)}</p>
                     </div>
                     
-                    <div className="flex items-center justify-between mt-2">
-                      <div className="flex items-center border rounded-full px-2 py-1 bg-accent/10">
-                        <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="p-1"><Minus className="w-3 h-3" /></button>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center border-2 border-border/50 rounded-full px-2 mt-1 bg-card shadow-sm h-8">
+                        <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="p-1 hover:text-primary"><Minus className="w-3 h-3" /></button>
                         <span className="w-8 text-center text-xs font-bold">{item.quantity}</span>
-                        <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="p-1"><Plus className="w-3 h-3" /></button>
+                        <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="p-1 hover:text-primary"><Plus className="w-3 h-3" /></button>
                       </div>
-                      <span className="font-bold text-sm">{formatPrice(item.price * item.quantity)}</span>
+                      <span className="font-bold text-sm text-primary">{formatPrice(item.price * item.quantity)}</span>
                     </div>
                   </div>
                 </div>
               ))}
+              
+              <Separator className="my-6 border-dashed opacity-50" />
+              
+              <div className="space-y-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Add to Your Masterpiece</p>
+                <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar snap-x">
+                   {/* Upsell 1: Gift Wrap */}
+                   {(() => {
+                     const inCart = cart.some(i => i.id === 'upsell_wrap');
+                     return (
+                       <div className="shrink-0 w-[160px] snap-center rounded-2xl border border-border/50 bg-secondary/20 p-3 flex flex-col gap-3 group transition-colors hover:bg-secondary/40">
+                         <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-card">
+                           <Image src="/placeholder.png" alt="Gift Wrap" fill className="object-cover opacity-80 mix-blend-multiply" />
+                         </div>
+                         <div>
+                           <p className="font-bold text-xs truncate">Premium Gift Wrap</p>
+                           <p className="font-bold text-primary font-headline text-sm mt-1">{formatPrice(199)}</p>
+                         </div>
+                         <Button 
+                           size="sm" 
+                           disabled={inCart}
+                           variant={inCart ? "secondary" : "default"}
+                           onClick={() => addToCart({ id: 'upsell_wrap', name: 'Premium Gift Wrap', price: 199, category: 'Customized Gifts', image: '/placeholder.png', description: 'Make it a surprise.', active: true, quantity: 1 } as any)}
+                           className="w-full rounded-full h-8 text-xs font-bold"
+                         >
+                           {inCart ? "Added" : "Add for ₹199"}
+                         </Button>
+                       </div>
+                     );
+                   })()}
+
+                   {/* Upsell 2: Priority Processing */}
+                   {(() => {
+                     const inCart = cart.some(i => i.id === 'upsell_priority');
+                     return (
+                       <div className="shrink-0 w-[160px] snap-center rounded-2xl border border-border/50 bg-secondary/20 p-3 flex flex-col gap-3 group transition-colors hover:bg-secondary/40">
+                         <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-card flex items-center justify-center bg-gradient-to-br from-yellow-500/20 to-orange-500/20">
+                           <span className="text-3xl">🚀</span>
+                         </div>
+                         <div>
+                           <p className="font-bold text-xs truncate">Priority Crafting</p>
+                           <p className="font-bold text-primary font-headline text-sm mt-1">{formatPrice(299)}</p>
+                         </div>
+                         <Button 
+                           size="sm" 
+                           disabled={inCart}
+                           variant={inCart ? "secondary" : "default"}
+                           onClick={() => addToCart({ id: 'upsell_priority', name: 'Priority Crafting (Skip Line)', price: 299, category: 'Customized Gifts', image: '/placeholder.png', description: 'Skip the standard crafting queue.', active: true, quantity: 1 } as any)}
+                           className="w-full rounded-full h-8 text-xs font-bold bg-yellow-500 hover:bg-yellow-600 text-yellow-950"
+                         >
+                           {inCart ? "Added" : "Add for ₹299"}
+                         </Button>
+                       </div>
+                     );
+                   })()}
+                </div>
+              </div>
+
             </div>
           )}
         </div>

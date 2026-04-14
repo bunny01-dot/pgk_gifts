@@ -3,16 +3,22 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ShoppingCart, ArrowLeft, Heart, Share2, ZoomIn, ShoppingBag, ShieldCheck, Truck, Star, Check } from 'lucide-react';
+import { ShoppingCart, ArrowLeft, Heart, Share2, ZoomIn, ShoppingBag, ShieldCheck, Truck, Star, Check, Loader2, PlayCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { PRODUCTS } from '@/lib/data';
+import { PRODUCTS, CONTACT_INFO } from '@/lib/data';
 import { useCart } from '@/context/CartContext';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { ToastAction } from '@/components/ui/toast';
 import { formatPrice } from '@/utils/currency';
+import { useFirestore } from '@/firebase';
+import { Product } from '@/types/product';
+import { Review } from '@/types/review';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
 export default function ProductDetailPage() {
   const { id } = useParams();
@@ -22,9 +28,49 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [zoomPos, setZoomPos] = useState({ x: 0, y: 0 });
   const [isZoomed, setIsZoomed] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const imageRef = useRef<HTMLDivElement>(null);
 
-  const product = PRODUCTS.find((p) => p.id === id);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [newReview, setNewReview] = useState({ authorName: '', rating: 5, text: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { firestore } = useFirestore() || {};
+  const [product, setProduct] = useState<Product | null>(PRODUCTS.find((p) => p.id === id) as any || null);
+  const [loading, setLoading] = useState(!product);
+
+  useEffect(() => {
+    if (!firestore || !id) return;
+    const loadProduct = async () => {
+      try {
+        const { ProductsService } = await import('@/services/products.service');
+        const svc = new ProductsService(firestore);
+        const dynamicProduct = await svc.getProductById(id as string);
+        if (dynamicProduct) setProduct(dynamicProduct as Product);
+
+        const { ReviewsService } = await import('@/services/reviews.service');
+        const revSvc = new ReviewsService(firestore);
+        const fetchedReviews = await revSvc.getReviewsForProduct(id as string);
+        setReviews(fetchedReviews);
+      } catch (err) {
+        console.error("Failed to load live product data", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadProduct();
+  }, [firestore, id]);
+
+  const allImages = product?.images?.length ? product.images : (product?.image ? [product.image] : []);
+  const displayImage = allImages[currentImageIndex] || '/placeholder.png';
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -71,6 +117,31 @@ export default function ProductDetailPage() {
     setZoomPos({ x, y });
   };
 
+  const handleRemoveReview = (index: number) => {
+     // Optional future functionality
+  };
+
+  const submitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!firestore || !newReview.authorName || !newReview.text) return;
+    setIsSubmitting(true);
+    try {
+      const { ReviewsService } = await import('@/services/reviews.service');
+      const revSvc = new ReviewsService(firestore);
+      const newId = await revSvc.addReview({
+        productId: id as string,
+        ...newReview
+      });
+      setReviews([{ id: newId, productId: id as string, createdAt: new Date().toISOString(), ...newReview }, ...reviews]);
+      setNewReview({ authorName: '', rating: 5, text: '' });
+      toast({ title: 'Review Posted', description: 'Thank you for sharing your experience!' });
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not post review.' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen pt-40 pb-40 bg-background">
       <div className="container mx-auto px-4">
@@ -97,7 +168,7 @@ export default function ProductDetailPage() {
               onMouseMove={handleMouseMove}
             >
               <Image
-                src={product.image}
+                src={displayImage}
                 alt={product.name}
                 fill
                 className={`object-cover transition-transform duration-200 ${isZoomed ? 'scale-150' : 'scale-100'}`}
@@ -105,11 +176,33 @@ export default function ProductDetailPage() {
                 priority
               />
               {!isZoomed && (
-                <div className="absolute bottom-10 right-10 bg-white/95 backdrop-blur-md p-5 rounded-3xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity">
-                  <ZoomIn className="w-8 h-8 text-primary" />
+                <div className="absolute bottom-10 right-10 flex gap-4">
+                  {product.videoUrl && (
+                    <a href={product.videoUrl} target="_blank" rel="noreferrer" className="bg-primary/90 text-primary-foreground backdrop-blur-md p-5 rounded-3xl shadow-2xl hover:bg-primary transition-colors flex items-center gap-3 font-bold">
+                       <PlayCircle className="w-8 h-8" /> Watch Demo
+                    </a>
+                  )}
+                  <div className="bg-card/95 backdrop-blur-md p-5 rounded-3xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity">
+                    <ZoomIn className="w-8 h-8 text-primary" />
+                  </div>
                 </div>
               )}
             </div>
+
+            {/* Thumbnail Carousel */}
+            {allImages.length > 1 && (
+              <div className="flex gap-4 overflow-x-auto pb-4 pt-2 px-2 snap-x hide-scrollbar">
+                 {allImages.map((img, i) => (
+                   <button 
+                     key={i} 
+                     onClick={() => setCurrentImageIndex(i)}
+                     className={`relative w-24 h-24 rounded-2xl overflow-hidden shrink-0 snap-center focus:outline-none transition-all duration-300 ${currentImageIndex === i ? 'ring-4 ring-primary shadow-xl scale-105' : 'opacity-60 hover:opacity-100'}`}
+                   >
+                     <Image src={img} alt={`Thumbnail ${i}`} fill className="object-cover" />
+                   </button>
+                 ))}
+              </div>
+            )}
           </motion.div>
 
           {/* Details */}
@@ -177,7 +270,7 @@ export default function ProductDetailPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-4">
                 <Button onClick={() => handleAddToCart()} variant="outline" className="h-24 rounded-full text-3xl font-headline font-bold border-2">
                   <ShoppingBag className="mr-4 w-8 h-8" /> Add to Bag
                 </Button>
@@ -185,9 +278,105 @@ export default function ProductDetailPage() {
                   Buy Now
                 </Button>
               </div>
+
+              {/* WhatsApp Fast Customization Contact */}
+              <div className="bg-green-500/10 border border-green-500/20 rounded-[2rem] p-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+                <div className="text-center sm:text-left">
+                  <h4 className="font-bold text-xl text-green-700 dark:text-green-400 mb-1">Have a custom design in mind?</h4>
+                  <p className="text-sm font-medium text-muted-foreground">Our artists are online to check your photos instantly.</p>
+                </div>
+                <Button asChild className="h-14 rounded-full bg-green-600 hover:bg-green-700 text-white font-bold px-8 shadow-xl shadow-green-600/20 shrink-0 border-none">
+                  <a href={`${CONTACT_INFO.whatsapp}?text=${encodeURIComponent(`Hi PGK Gifts! I have a question about customizing the ${product.name}.`)}`} target="_blank" rel="noopener noreferrer">
+                     Chat on WhatsApp
+                  </a>
+                </Button>
+              </div>
             </div>
           </motion.div>
         </div>
+
+        {/* Customer Reviews Section */}
+        <div className="mt-32 max-w-4xl mx-auto">
+          <div className="flex items-center justify-between border-b pb-6 mb-12">
+             <h2 className="text-4xl font-headline font-bold">Customer Reviews</h2>
+             <div className="flex items-center gap-2">
+                <Star className="w-8 h-8 text-yellow-500 fill-current" />
+                <span className="text-2xl font-bold font-headline">{reviews.length > 0 ? (reviews.reduce((a, b) => a + b.rating, 0) / reviews.length).toFixed(1) : "5.0"}</span>
+                <span className="text-muted-foreground">({reviews.length} reviews)</span>
+             </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
+            <div className="space-y-8">
+              {reviews.length === 0 ? (
+                <p className="text-muted-foreground italic">No reviews yet. Be the first to share your experience!</p>
+              ) : (
+                reviews.map(review => (
+                  <div key={review.id} className="bg-secondary/20 p-8 rounded-[2rem] border border-border/50">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <p className="font-bold text-lg">{review.authorName}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(review.createdAt).toLocaleDateString()}</p>
+                      </div>
+                      <div className="flex gap-1 text-yellow-500">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                           <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'fill-current' : 'opacity-30'}`} />
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-muted-foreground leading-relaxed">"{review.text}"</p>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="bg-card p-10 rounded-[3rem] shadow-2xl border border-white/5 h-fit sticky top-32">
+              <h3 className="text-2xl font-headline font-bold mb-8">Share Your Thoughts</h3>
+              <form onSubmit={submitReview} className="space-y-6">
+                <div>
+                  <Label>Overall Rating</Label>
+                  <div className="flex gap-2 mt-2">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <button 
+                        key={i} 
+                        type="button" 
+                        onClick={() => setNewReview({...newReview, rating: i + 1})}
+                        className={`transition-transform hover:scale-110 ${i < newReview.rating ? 'text-yellow-500' : 'text-muted-foreground/30'}`}
+                      >
+                        <Star className={`w-8 h-8 ${i < newReview.rating ? 'fill-current' : ''}`} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <Label>Your Name</Label>
+                  <Input 
+                    required 
+                    value={newReview.authorName}
+                    onChange={e => setNewReview({...newReview, authorName: e.target.value})}
+                    placeholder="Verified Buyer" 
+                    className="h-12 mt-2 bg-secondary/50 rounded-xl border-none focus-visible:ring-primary"
+                  />
+                </div>
+                <div>
+                  <Label>Review</Label>
+                  <Textarea 
+                    required 
+                    value={newReview.text}
+                    onChange={e => setNewReview({...newReview, text: e.target.value})}
+                    placeholder="How does it look in your space?" 
+                    className="mt-2 bg-secondary/50 rounded-xl border-none focus-visible:ring-primary resize-none"
+                    rows={4}
+                  />
+                </div>
+                <Button disabled={isSubmitting} type="submit" className="w-full h-14 rounded-full text-lg font-bold shadow-xl shadow-primary/20">
+                  {isSubmitting ? <Loader2 className="w-6 h-6 animate-spin" /> : "Post Review"}
+                </Button>
+              </form>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       {/* Sticky Mobile Checkout Bar - Higher Visibility */}

@@ -92,7 +92,7 @@ export function Footer() {
                 <p className="text-2xl font-headline font-bold text-primary-foreground mb-1">{CONTACT_INFO.phone}</p>
                 <p className="text-sm text-primary-foreground/40 font-bold">{CONTACT_INFO.email}</p>
               </div>
-              <Button asChild variant="outline" size="lg" className="rounded-full border-primary-foreground/20 hover:bg-primary-foreground hover:text-primary font-bold px-10 h-14 transition-all">
+              <Button asChild variant="outline" size="lg" className="rounded-full bg-transparent text-primary-foreground border-primary-foreground/20 hover:bg-primary-foreground hover:text-primary font-bold px-10 h-14 transition-all">
                 <a href={CONTACT_INFO.googleMap} target="_blank" rel="noopener noreferrer">Get Directions</a>
               </Button>
             </div>

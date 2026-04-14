@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
-import { Menu, X, ShoppingBag, Grid, ImageIcon, Phone, User, Camera, LogOut, LayoutDashboard } from 'lucide-react';
+import { Menu, X, ShoppingBag, Grid, ImageIcon, Phone, User, Camera, LogOut, LayoutDashboard, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { CONTACT_INFO } from '@/lib/data';
@@ -26,6 +26,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 const NAV_LINKS = [
   { name: 'Home', href: '/', icon: Grid },
   { name: 'Shop', href: '/shop', icon: ShoppingBag },
+  { name: 'Track', href: '/track', icon: Truck },
   { name: 'Photography', href: '/photography', icon: Camera },
   { name: 'Gallery', href: '/gallery', icon: ImageIcon },
   { name: 'Contact', href: '/contact', icon: Phone },

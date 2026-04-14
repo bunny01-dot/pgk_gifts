@@ -14,6 +14,7 @@ import Image from 'next/image';
 import { formatPrice } from '@/utils/currency';
 import { useCart } from '@/context/CartContext';
 import { motion } from 'framer-motion';
+import { CONTACT_INFO } from '@/lib/data';
 
 export default function CheckoutPage() {
   const { cart, cartTotal, clearCart } = useCart();
@@ -235,6 +236,17 @@ export default function CheckoutPage() {
               <div className="mt-10 flex items-center justify-center gap-3 text-muted-foreground opacity-40">
                 <Lock className="w-4 h-4" />
                 <span className="text-[10px] font-black uppercase tracking-[0.4em]">Secure SSL Encryption</span>
+              </div>
+              
+              {/* WhatsApp Checkout Rescue */}
+              <div className="mt-12 pt-10 border-t border-dashed border-border/50 text-center">
+                <p className="font-bold text-lg mb-2">Need help with your order?</p>
+                <p className="text-sm text-muted-foreground mb-6">Our team is available 24/7 to help you process payment or customize your items.</p>
+                <Button asChild variant="outline" className="w-full h-14 rounded-full border-2 border-green-500/20 bg-green-500/5 text-green-700 hover:bg-green-500 hover:text-white transition-colors dark:text-green-400">
+                  <a href={`${CONTACT_INFO.whatsapp}?text=${encodeURIComponent(`Hi, I'm trying to checkout but I have a question!`)}`} target="_blank" rel="noopener noreferrer">
+                    Chat with Support
+                  </a>
+                </Button>
               </div>
             </Card>
           </div>

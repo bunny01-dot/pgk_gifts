@@ -69,7 +69,7 @@ export default function PhotographyPage() {
                       data-ai-hint={img?.imageHint || "photography"}
                     />
                     <div className="absolute bottom-6 left-6 right-6">
-                      <div className="bg-white/90 backdrop-blur-md p-6 rounded-xl shadow-lg border border-white/20">
+                      <div className="bg-card/90 backdrop-blur-md p-6 rounded-xl shadow-lg border border-border/50">
                         <span className="text-xs font-bold text-primary uppercase tracking-widest mb-2 block">{cat.count}</span>
                         <h3 className="text-2xl font-headline font-bold mb-2 text-foreground">{cat.title}</h3>
                         <p className="text-sm text-muted-foreground">{cat.description}</p>

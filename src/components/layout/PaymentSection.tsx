@@ -55,7 +55,7 @@ export function PaymentSection() {
             className="w-full max-w-[320px] relative"
           >
             <div className="absolute -inset-10 bg-primary/5 rounded-full blur-[80px] -z-10" />
-            <Card className="p-8 border-none shadow-2xl bg-white rounded-[3rem]">
+            <Card className="p-8 border-none shadow-2xl bg-card rounded-[3rem]">
               <CardContent className="p-0">
                 <div className="relative aspect-square mb-6 bg-accent/5 rounded-[2rem] p-4">
                   <Image

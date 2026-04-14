@@ -89,7 +89,7 @@ export default function GiftsPage() {
                     data-ai-hint={placeholder.imageHint}
                   />
                   <div className="absolute top-4 left-4">
-                    <Badge className="bg-primary/90 text-white font-bold">{product.tag}</Badge>
+                    <Badge className="bg-primary/90 text-primary-foreground font-bold">{product.tag}</Badge>
                   </div>
                 </div>
                 <CardHeader className="pb-2">

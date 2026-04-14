@@ -71,7 +71,7 @@ export default function ContactPage() {
             <Card className="overflow-hidden border-none shadow-2xl rounded-[3rem]">
               <CardContent className="p-0 h-[500px] relative">
                 <iframe 
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15712.3023963483!2d78.7061763!3d9.8856143!2m3!1f0!2f0!3f0!3m2!1i1024!2i1026!3m4!1s0x3b0067645601972f%3A0xc6e467d302a24683!2zUEdLIFNUVURJTw!5e0!3m2!1sen!2sin!4v1709400000000!5m2!1sen!2sin" 
+                  src={`https://maps.google.com/maps?q=${encodeURIComponent('PGK Studio, Kallal')}&t=&z=15&ie=UTF8&iwloc=&output=embed`} 
                   width="100%" 
                   height="100%" 
                   style={{ border: 0 }} 
