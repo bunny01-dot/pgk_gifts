@@ -10,7 +10,7 @@ import { Grid, Sparkles, Heart, Gift } from 'lucide-react';
 
 const CATEGORIES: { name: string; value: Category | 'All'; icon: any }[] = [
   { name: 'All Products', value: 'All', icon: Grid },
-  { name: 'Light Lamps', value: 'Light Lamps', icon: Sparkles },
+  { name: 'Night Lamps', value: 'Night Lamps', icon: Sparkles },
   { name: 'Cute Toys', value: 'Cute Toys', icon: Heart },
   { name: 'Customized Gifts', value: 'Customized Gifts', icon: Gift },
 ];

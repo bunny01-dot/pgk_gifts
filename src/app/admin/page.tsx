@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { LayoutDashboard, ShoppingBag, LogOut, IndianRupee, TrendingUp, Search, ShieldAlert, Loader2, Eye, Plus, PackageOpen, DownloadCloud, X } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, LogOut, IndianRupee, TrendingUp, Search, ShieldAlert, Loader2, Eye, Plus, PackageOpen, DownloadCloud, X, Bell, BellRing, AlertCircle, MessageSquare, CloudDownload, Globe, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,8 +25,10 @@ import { formatDate } from "@/utils/date";
 import { doc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import Link from "next/link";
-import { PRODUCTS } from "@/lib/data"; // Import the static products to seed
+import { PRODUCTS, ADMIN_EMAILS } from "@/lib/data"; // Import the static products to seed
 import { useToast } from "@/hooks/use-toast";
+
+import { useNotifications } from "@/hooks/use-notifications";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -34,6 +36,7 @@ export default function AdminPage() {
   const firestore = useFirestore();
   const auth = useAuth();
   const { toast } = useToast();
+  const { requestPermission, permission } = useNotifications();
   
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -47,6 +50,7 @@ export default function AdminPage() {
   const [productForm, setProductForm] = useState<Partial<Product>>({
     name: '', price: 0, image: '', category: 'Customized Gifts', description: '', featured: false, stockCount: 10
   });
+  const [viewingOrderForReturn, setViewingOrderForReturn] = useState<Order | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -71,6 +75,16 @@ export default function AdminPage() {
 
     if (!user) {
       router.push('/login?redirect=/admin');
+      return;
+    }
+
+    if (!ADMIN_EMAILS.includes(user.email || '')) {
+      toast({
+        variant: "destructive",
+        title: "Access Denied",
+        description: "You do not have administrative privileges."
+      });
+      router.push("/");
       return;
     }
 
@@ -102,12 +116,16 @@ export default function AdminPage() {
     let count = 0;
     try {
       for (const item of PRODUCTS) {
+        // Check if product already exists to avoid duplicates
+        const existing = products.find(p => p.name === item.name);
+        if (existing) continue;
+
         // @ts-ignore
         const { id, ...rest } = item; 
         await svc.createProduct(rest as any);
         count++;
       }
-      toast({ title: "Success", description: `Added ${count} base products to the database.` });
+      toast({ title: "Success", description: `Synced ${count} new products to the database.` });
       fetchProducts();
     } catch (e: any) {
       toast({ variant: "destructive", title: "Error", description: e.message });
@@ -127,20 +145,65 @@ export default function AdminPage() {
   };
 
   const handleSaveProduct = async () => {
-    if (!firestore) return;
+    if (!firestore || !productForm.name) return;
     const svc = new ProductsService(firestore);
     try {
+      toast({ title: "Securing Assets...", description: "Verifying image hosting..." });
+      
+      // Elite: Automatic migration of external URLs
+      let finalImageUrl = productForm.image;
+      if (finalImageUrl && !finalImageUrl.includes('firebasestorage') && finalImageUrl.startsWith('http')) {
+        try {
+          const ext = finalImageUrl.split('.').pop()?.split('?')[0] || 'png';
+          finalImageUrl = await svc.downloadAndUpload(finalImageUrl, `products/${Date.now()}-${ext}`);
+        } catch (e) {
+          console.warn("Auto-migration failed", e);
+        }
+      }
+
+      const cleanData = { ...productForm, image: finalImageUrl };
+
       if (editingProduct) {
-        await svc.updateProduct(editingProduct.id, productForm);
-        toast({ title: "Updated", description: "Product updated successfully." });
+        await svc.updateProduct(editingProduct.id, cleanData);
+        toast({ title: "Updated", description: "Boutique collection updated." });
       } else {
-        await svc.createProduct(productForm as any);
-        toast({ title: "Created", description: "Product added successfully." });
+        await svc.createProduct(cleanData as any);
+        toast({ title: "Created", description: "New masterpiece added to catalog." });
       }
       setIsProductModalOpen(false);
       fetchProducts();
     } catch (e: any) {
       toast({ variant: "destructive", title: "Error", description: e.message });
+    }
+  };
+
+  const handleRunMigration = async () => {
+    if (!firestore) return;
+    const svc = new ProductsService(firestore);
+    try {
+      toast({ title: "Migration Started", description: "Scanning for external assets..." });
+      const count = await svc.migrateAllToFirebase((msg) => {
+        toast({ title: "Migrating", description: msg });
+      });
+      toast({ title: "Migration Complete", description: `Secured ${count} images in Firebase Storage!` });
+      fetchProducts();
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Migration Failed", description: "Check console for CORS errors. Some hosts block direct downloads." });
+    }
+  };
+
+  const handleSyncData = async () => {
+    if (!firestore) return;
+    const svc = new ProductsService(firestore);
+    try {
+      toast({ title: "Sync Started", description: "Connecting static library..." });
+      const count = await svc.syncStaticProducts((msg) => {
+        toast({ title: "Syncing", description: msg });
+      });
+      toast({ title: "Sync Complete", description: `Uploaded ${count} new items to Firestore!` });
+      fetchProducts();
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Sync Failed", description: e.message });
     }
   };
 
@@ -245,9 +308,23 @@ export default function AdminPage() {
               <p className="text-[10px] text-muted-foreground uppercase tracking-[0.4em] font-bold mt-2">Authenticated: {user?.email}</p>
             </div>
           </div>
-          <Button variant="outline" size="lg" className="rounded-full border-2 h-16 px-10 font-bold" onClick={handleLogout}>
-            <LogOut className="w-5 h-5 mr-3" /> Logout
-          </Button>
+          <div className="flex gap-4">
+            <Button 
+              variant={permission === 'granted' ? "default" : "outline"} 
+              size="lg" 
+              className={`rounded-full border-2 h-16 px-8 font-bold transition-all ${permission === 'granted' ? 'bg-green-600 hover:bg-green-700 border-green-600 text-white' : ''}`}
+              onClick={() => requestPermission()}
+            >
+              {permission === 'granted' ? (
+                <><BellRing className="w-5 h-5 mr-3 animate-pulse" /> Alerts Active</>
+              ) : (
+                <><Bell className="w-5 h-5 mr-3" /> Enable Alerts</>
+              )}
+            </Button>
+            <Button variant="outline" size="lg" className="rounded-full border-2 h-16 px-10 font-bold" onClick={handleLogout}>
+              <LogOut className="w-5 h-5 mr-3" /> Logout
+            </Button>
+          </div>
         </div>
 
         {/* Stats Grid */}
@@ -265,6 +342,9 @@ export default function AdminPage() {
               </TabsTrigger>
               <TabsTrigger value="orders" className="rounded-xl px-6 h-full font-bold uppercase tracking-widest text-[10px] border-2 border-transparent data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all">
                 Live Orders
+              </TabsTrigger>
+              <TabsTrigger value="cloud" className="rounded-xl px-6 h-full font-bold uppercase tracking-widest text-[10px] border-2 border-transparent data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all">
+                Cloud Ops
               </TabsTrigger>
             </TabsList>
             
@@ -287,12 +367,10 @@ export default function AdminPage() {
                   <CardDescription className="text-lg mt-2">Manage your storefront items directly</CardDescription>
                 </div>
                 <div className="flex gap-4">
-                  {products.length === 0 && (
-                    <Button variant="secondary" onClick={handleSeedProducts} disabled={seeding} className="h-14 px-8 rounded-full font-bold">
-                       {seeding ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <DownloadCloud className="w-5 h-5 mr-2" />}
-                       Seed Base Products
-                    </Button>
-                  )}
+                  <Button variant="secondary" onClick={handleSeedProducts} disabled={seeding} className="h-14 px-8 rounded-full font-bold">
+                     {seeding ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <DownloadCloud className="w-5 h-5 mr-2" />}
+                     {products.length === 0 ? "Seed Base Products" : "Sync Local Catalog"}
+                  </Button>
                   <Button onClick={() => handleOpenProductModal()} className="h-14 px-8 rounded-full font-bold shadow-xl shadow-primary/20">
                     <Plus className="w-5 h-5 mr-2" /> Add Product
                   </Button>
@@ -411,10 +489,13 @@ export default function AdminPage() {
                           <SelectValue placeholder="Select Category" />
                         </SelectTrigger>
                         <SelectContent className="rounded-[1.5rem] p-2 shadow-xl border-none bg-card">
-                          <SelectItem value="Customized Gifts" className="rounded-lg h-10 px-4">Customized Gifts</SelectItem>
-                          <SelectItem value="Light Lamps" className="rounded-lg h-10 px-4">Light Lamps</SelectItem>
-                          <SelectItem value="Cute Toys" className="rounded-lg h-10 px-4">Cute Toys</SelectItem>
-                          <SelectItem value="Photography" className="rounded-lg h-10 px-4">Photography</SelectItem>
+                          <SelectItem value="Night Lamps" className="rounded-lg h-10 px-4">Night Lamps</SelectItem>
+                          <SelectItem value="Mdf Frames" className="rounded-lg h-10 px-4">Mdf Frames</SelectItem>
+                          <SelectItem value="Wall Decor Photo Frames" className="rounded-lg h-10 px-4">Wall Decor Photo Frames</SelectItem>
+                          <SelectItem value="Personalized Gifts" className="rounded-lg h-10 px-4">Personalized Gifts</SelectItem>
+                          <SelectItem value="Unique Gifts" className="rounded-lg h-10 px-4">Unique Gifts</SelectItem>
+                          <SelectItem value="Car Dashboard Accessories" className="rounded-lg h-10 px-4">Car Dashboard Accessories</SelectItem>
+                          <SelectItem value="Hamper Boxes" className="rounded-lg h-10 px-4">Hamper Boxes</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -540,6 +621,9 @@ export default function AdminPage() {
                               <TableCell>
                                 <div className="font-bold text-lg text-foreground">{order.customerName}</div>
                                 <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{order.phone}</div>
+                                {order.returnRequest && (
+                                  <Badge variant="destructive" className="mt-2 h-6 px-2 text-[8px] animate-pulse">ISSUE REPORTED</Badge>
+                                )}
                               </TableCell>
                               <TableCell>
                                 <div className="text-xs max-w-[250px] truncate font-medium text-muted-foreground">
@@ -557,6 +641,11 @@ export default function AdminPage() {
                               </TableCell>
                               <TableCell className="pr-10 text-right">
                                 <div className="flex items-center justify-end gap-3">
+                                  {order.returnRequest && (
+                                    <Button onClick={() => setViewingOrderForReturn(order)} variant="outline" size="icon" className="rounded-full border-destructive/30 text-destructive hover:bg-destructive hover:text-white">
+                                      <AlertCircle className="w-5 h-5" />
+                                    </Button>
+                                  )}
                                   <Button asChild variant="ghost" size="icon" className="rounded-full hover:bg-primary/10">
                                     <Link href={`/order/${order.id}`}>
                                       <Eye className="w-5 h-5 text-primary" />
@@ -585,8 +674,103 @@ export default function AdminPage() {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+            </TabsContent>
+
+            <TabsContent value="cloud">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
+                  <Card className="rounded-[4rem] border-none shadow-premium overflow-hidden bg-card">
+                    <div className="p-16 space-y-8">
+                      <div className="w-20 h-20 bg-blue-500/10 text-blue-600 rounded-[2rem] flex items-center justify-center shadow-inner">
+                        <CloudDownload className="w-10 h-10" />
+                      </div>
+                      <div className="space-y-4">
+                        <h3 className="text-4xl font-headline font-bold">Image Migration Hub</h3>
+                        <p className="text-xl text-muted-foreground leading-relaxed">
+                          Scan your entire collection and automatically download images from external sources (PostImage) into your private <strong>Firebase Storage</strong>.
+                        </p>
+                      </div>
+                      <Button onClick={handleRunMigration} className="w-full h-20 rounded-full font-black text-xl bg-blue-600 hover:bg-blue-700 shadow-2xl shadow-blue-600/30 transition-all active:scale-95">
+                        Start Asset Migration
+                      </Button>
+                      <p className="text-center text-[10px] uppercase font-black tracking-widest text-muted-foreground opacity-50">Recommended every 30 days</p>
+                    </div>
+                  </Card>
+
+                  <Card className="rounded-[4rem] border-none shadow-premium overflow-hidden bg-card">
+                    <div className="p-16 space-y-8">
+                      <div className="w-20 h-20 bg-purple-500/10 text-purple-600 rounded-[2rem] flex items-center justify-center shadow-inner">
+                        <Globe className="w-10 h-10" />
+                      </div>
+                      <div className="space-y-4">
+                        <h3 className="text-4xl font-headline font-bold">Master Data Sync</h3>
+                        <p className="text-xl text-muted-foreground leading-relaxed">
+                          Synchronize your local <code>data.ts</code> library with the live <strong>Firestore Database</strong>. Safely adds new products without overwriting.
+                        </p>
+                      </div>
+                      <Button onClick={handleSyncData} className="w-full h-20 rounded-full font-black text-xl bg-purple-600 hover:bg-purple-700 shadow-2xl shadow-purple-600/30 transition-all active:scale-95">
+                        Push Local Library
+                      </Button>
+                      <p className="text-center text-[10px] uppercase font-black tracking-widest text-muted-foreground opacity-50">Safely syncs current catalog</p>
+                    </div>
+                  </Card>
+               </div>
+            </TabsContent>
+          </Tabs>
+
+        {/* Return Request View Dialog */}
+        <Dialog open={!!viewingOrderForReturn} onOpenChange={(open) => !open && setViewingOrderForReturn(null)}>
+          <DialogContent className="max-w-3xl rounded-[3rem] p-10 border-none shadow-premium bg-card overflow-y-auto max-h-[90vh]">
+            <DialogHeader className="mb-8">
+              <DialogTitle className="text-4xl font-headline font-bold text-destructive">Maintenance Report</DialogTitle>
+              <DialogDescription className="text-lg">
+                Customer: <span className="font-bold text-foreground">{viewingOrderForReturn?.customerName}</span> | 
+                Order ID: <span className="font-bold text-primary">#{viewingOrderForReturn?.orderId}</span>
+              </DialogDescription>
+            </DialogHeader>
+
+            {viewingOrderForReturn?.returnRequest && (
+              <div className="space-y-8">
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="bg-secondary/30 p-6 rounded-3xl">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Issue Type</p>
+                    <p className="font-bold text-xl uppercase text-destructive">{viewingOrderForReturn.returnRequest.reason.replace('_', ' ')}</p>
+                  </div>
+                  <div className="bg-secondary/30 p-6 rounded-3xl">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Reported On</p>
+                    <p className="font-bold text-xl">{new Date(viewingOrderForReturn.returnRequest.createdAt).toLocaleDateString()}</p>
+                  </div>
+                </div>
+
+                <div className="bg-secondary/30 p-8 rounded-[2rem]">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">Customer's Account</p>
+                  <p className="text-lg leading-relaxed">{viewingOrderForReturn.returnRequest.description}</p>
+                </div>
+
+                <div className="space-y-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Photo Evidence</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {viewingOrderForReturn.returnRequest.images.map((url, i) => (
+                      <div key={i} className="relative aspect-square rounded-2xl overflow-hidden border border-border shadow-soft group cursor-zoom-in">
+                        <img src={url} className="w-full h-full object-cover transition-transform group-hover:scale-110" onClick={() => window.open(url, '_blank')} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-8 border-t border-dashed flex justify-between items-center">
+                   <div className="flex gap-4">
+                      {/* You could add Approve/Reject buttons here to update the status */}
+                   </div>
+                   <Button variant="outline" className="h-14 px-8 rounded-full font-bold border-2" asChild>
+                      <a href={`https://wa.me/${viewingOrderForReturn.phone}?text=${encodeURIComponent(`Hi ${viewingOrderForReturn.customerName}, I saw your report about order #${viewingOrderForReturn.orderId}. I'm here to help!`)}`} target="_blank">
+                        <MessageSquare className="w-5 h-5 mr-3" /> Resolve via WhatsApp
+                      </a>
+                   </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

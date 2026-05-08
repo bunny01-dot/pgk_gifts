@@ -7,6 +7,7 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 import { CartProvider } from '@/context/CartContext';
 import { FirebaseClientProvider } from '@/firebase';
 import { CartDrawer } from '@/components/cart/CartDrawer';
+import { FloatingWhatsApp } from '@/components/FloatingWhatsApp';
 import Script from 'next/script';
 
 export const metadata: Metadata = {
@@ -41,6 +42,7 @@ export default function RootLayout({
                 {children}
               </main>
               <CartDrawer />
+              <FloatingWhatsApp />
               <Footer />
               <Toaster />
             </CartProvider>

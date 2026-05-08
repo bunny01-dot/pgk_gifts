@@ -35,7 +35,7 @@ export default function ProductDetailPage() {
   const [newReview, setNewReview] = useState({ authorName: '', rating: 5, text: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { firestore } = useFirestore() || {};
+  const firestore = useFirestore();
   const [product, setProduct] = useState<Product | null>(PRODUCTS.find((p) => p.id === id) as any || null);
   const [loading, setLoading] = useState(!product);
 

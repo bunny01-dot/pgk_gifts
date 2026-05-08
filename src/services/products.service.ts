@@ -111,4 +111,55 @@ export class ProductsService {
       throw e;
     });
   }
+
+  async downloadAndUpload(url: string, path: string): Promise<string> {
+    const { getStorage, ref, uploadBytes, getDownloadURL } = await import('firebase/storage');
+    const storage = getStorage();
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const storageRef = ref(storage, path);
+    await uploadBytes(storageRef, blob);
+    return getDownloadURL(storageRef);
+  }
+
+  async migrateAllToFirebase(onStep?: (msg: string) => void) {
+    const products = await this.getAllProducts();
+    let count = 0;
+    for (const p of products) {
+      if (p.image && !p.image.includes('firebasestorage') && p.image.startsWith('http')) {
+        onStep?.(`Migrating: ${p.name}`);
+        try {
+          const ext = p.image.split('.').pop()?.split('?')[0] || 'png';
+          const newUrl = await this.downloadAndUpload(p.image, `products/${p.id}-${Date.now()}.${ext}`);
+          await this.updateProduct(p.id, { image: newUrl });
+          count++;
+        } catch (e) {
+          console.error(`Skipped ${p.name}`, e);
+        }
+      }
+    }
+    return count;
+  }
+
+  async syncStaticProducts(onStep?: (msg: string) => void) {
+    const { PRODUCTS } = await import('@/lib/data');
+    const { setDoc, doc, getDoc } = await import('firebase/firestore');
+    let count = 0;
+    
+    for (const p of PRODUCTS) {
+      const docRef = doc(this.db, 'products', p.id);
+      const snap = await getDoc(docRef);
+      if (!snap.exists()) {
+        onStep?.(`Syncing: ${p.name}`);
+        const { id, ...data } = p;
+        await setDoc(docRef, {
+          ...data,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+        count++;
+      }
+    }
+    return count;
+  }
 }

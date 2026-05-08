@@ -25,12 +25,21 @@ export class PaymentService {
    * via a secure backend function to prevent client-side tampering.
    */
   async createRazorpayOrder(amount: number): Promise<RazorpayOrderResponse> {
-    // Simulation of a backend order creation
-    return {
-      id: `order_${Math.random().toString(36).substring(7)}`,
-      amount: amount * 100, // Razorpay expects paise
-      currency: "INR"
-    };
+    const response = await fetch('/api/razorpay', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ amount }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to create payment order');
+    }
+
+    return data;
   }
 
   /**
@@ -39,7 +48,7 @@ export class PaymentService {
    */
   async verifyAndSaveOrder(
     paymentData: PaymentVerificationData, 
-    customerDetails: { name: string; phone: string; address: string; city: string; pincode: string }, 
+    customerDetails: { name: string; phone: string; address: string; city: string; pincode: string; email?: string }, 
     cartItems: CartItem[], 
     total: number
   ): Promise<string> {
@@ -56,6 +65,7 @@ export class PaymentService {
       paymentId: paymentData.razorpay_payment_id,
       customerName: customerDetails.name,
       phone: customerDetails.phone,
+      customerEmail: customerDetails.email,
       address: customerDetails.address,
       city: customerDetails.city,
       pincode: customerDetails.pincode,

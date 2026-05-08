@@ -1,4 +1,11 @@
-export type Category = "Light Lamps" | "Cute Toys" | "Customized Gifts";
+export type Category = 
+  | "Night Lamps" 
+  | "Wall Decor Photo Frames" 
+  | "Personalized Gifts" 
+  | "Mdf Frames" 
+  | "Unique Gifts" 
+  | "Car Dashboard Accessories" 
+  | "Hamper Boxes";
 
 export interface Product {
   id: string;
@@ -12,5 +19,6 @@ export interface Product {
   active: boolean;
   featured?: boolean;
   stockCount?: number;
+  tags?: string[];
   createdAt?: any;
 }

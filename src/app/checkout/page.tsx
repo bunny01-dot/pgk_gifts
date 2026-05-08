@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -8,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import { PaymentService } from '@/services/payment.service';
 import Image from 'next/image';
 import { formatPrice } from '@/utils/currency';
@@ -18,6 +19,7 @@ import { CONTACT_INFO } from '@/lib/data';
 
 export default function CheckoutPage() {
   const { cart, cartTotal, clearCart } = useCart();
+  const { user } = useUser();
   const router = useRouter();
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -36,6 +38,16 @@ export default function CheckoutPage() {
     return null;
   }
 
+  const loadScript = (src: string) => {
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = src;
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -50,32 +62,56 @@ export default function CheckoutPage() {
     setLoading(true);
 
     try {
+      // 1. Load Razorpay Script
+      const isLoaded = await loadScript('https://checkout.razorpay.com/v1/checkout.js');
+      if (!isLoaded) {
+        throw new Error('Razorpay SDK failed to load. Are you online?');
+      }
+
+      // 2. Create Order via Service
       const paymentService = new PaymentService(firestore);
       const rpOrder = await paymentService.createRazorpayOrder(cartTotal);
 
-      // Simulation of Razorpay interaction
-      setTimeout(async () => {
-        const mockResponse = {
-          razorpay_order_id: rpOrder.id,
-          razorpay_payment_id: "pay_" + Math.random().toString(36).substring(7),
-          razorpay_signature: "sig_" + Math.random().toString(36).substring(7)
-        };
+      // 3. Launch Razorpay UI
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: rpOrder.amount,
+        currency: rpOrder.currency,
+        name: "PGK GIFTS",
+        description: `Order for ${cart.length} handcrafted items`,
+        order_id: rpOrder.id,
+        handler: async (response: any) => {
+          try {
+            // 4. Verify and Save to Firebase
+            const firebaseOrderId = await paymentService.verifyAndSaveOrder(
+              response,
+              { ...formData, email: user?.email || undefined },
+              cart,
+              cartTotal
+            );
+            clearCart();
+            router.push(`/order-success?id=${firebaseOrderId}`);
+          } catch (err: any) {
+            toast({ variant: "destructive", title: "Record Failure", description: err.message });
+            setLoading(false);
+          }
+        },
+        prefill: {
+          name: formData.name,
+          contact: formData.phone,
+        },
+        theme: {
+          color: "#c026d3",
+        },
+      };
 
-        const firebaseOrderId = await paymentService.verifyAndSaveOrder(
-          mockResponse,
-          formData,
-          cart,
-          cartTotal
-        );
-
-        clearCart();
-        router.push(`/order-success?id=${firebaseOrderId}`);
-      }, 1500);
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
 
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Order Failed",
+        title: "Payment Error",
         description: error.message || "Something went wrong.",
       });
       setLoading(false);
@@ -227,7 +263,7 @@ export default function CheckoutPage() {
                 className="w-full rounded-full h-20 text-2xl font-headline font-bold mt-12 shadow-2xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95"
               >
                 {loading ? (
-                  <><Loader2 className="mr-3 h-8 w-8 animate-spin" /> Confirming...</>
+                  <><Loader2 className="mr-3 h-8 w-8 animate-spin" /> Launching...</>
                 ) : (
                   <>Complete Purchase</>
                 )}

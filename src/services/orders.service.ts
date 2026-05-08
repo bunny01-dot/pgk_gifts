@@ -12,7 +12,7 @@ import {
   Firestore,
   onSnapshot
 } from 'firebase/firestore';
-import { Order, OrderStatus } from '@/types/order';
+import { Order, OrderStatus, ReturnRequest } from '@/types/order';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -105,5 +105,30 @@ export class OrdersService {
         }));
       }
     );
+  }
+
+  async submitReturnRequest(orderId: string, request: Omit<ReturnRequest, 'createdAt'>) {
+    const orderRef = doc(this.db, 'orders', orderId);
+    return updateDoc(orderRef, {
+      returnRequest: {
+        ...request,
+        createdAt: new Date().toISOString()
+      }
+    });
+  }
+
+  async getOrdersByUserEmail(email: string): Promise<Order[]> {
+    const ordersRef = collection(this.db, 'orders');
+    try {
+      const q = query(ordersRef, orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(q);
+      // Filtering manually to avoid indexing complexities for now, 
+      // though typically where('customerEmail', '==', email) is preferred.
+      return snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() } as Order))
+        .filter(order => order.customerEmail === email);
+    } catch (e: any) {
+      return [];
+    }
   }
 }

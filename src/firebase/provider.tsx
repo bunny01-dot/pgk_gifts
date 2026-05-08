@@ -11,6 +11,7 @@ interface FirebaseProviderProps {
   firebaseApp: FirebaseApp;
   firestore: Firestore;
   auth: Auth;
+  messaging: () => Promise<any>;
 }
 
 // Internal state for user authentication
@@ -30,6 +31,7 @@ export interface FirebaseContextState {
   user: User | null;
   isUserLoading: boolean; // True during initial auth check
   userError: Error | null; // Error from auth listener
+  messaging: () => Promise<any>;
 }
 
 // Return type for useFirebase()
@@ -40,6 +42,7 @@ export interface FirebaseServicesAndUser {
   user: User | null;
   isUserLoading: boolean;
   userError: Error | null;
+  messaging: () => Promise<any>;
 }
 
 // Return type for useUser() - specific to user auth state
@@ -60,6 +63,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   firebaseApp,
   firestore,
   auth,
+  messaging
 }) => {
   const [userAuthState, setUserAuthState] = useState<UserAuthState>({
     user: null,
@@ -100,8 +104,9 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       user: userAuthState.user,
       isUserLoading: userAuthState.isUserLoading,
       userError: userAuthState.userError,
+      messaging: messaging
     };
-  }, [firebaseApp, firestore, auth, userAuthState]);
+  }, [firebaseApp, firestore, auth, userAuthState, messaging]);
 
   return (
     <FirebaseContext.Provider value={contextValue}>
@@ -133,6 +138,7 @@ export const useFirebase = (): FirebaseServicesAndUser => {
     user: context.user,
     isUserLoading: context.isUserLoading,
     userError: context.userError,
+    messaging: context.messaging
   };
 };
 

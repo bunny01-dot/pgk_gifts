@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Package, Truck, CheckCircle2, Clock, MapPin, ArrowLeft, Loader2, MessageSquare, CreditCard, ShoppingBag } from 'lucide-react';
+import { Package, Truck, CheckCircle2, Clock, MapPin, ArrowLeft, Loader2, MessageSquare, CreditCard, ShoppingBag, Download, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +15,7 @@ import { CONTACT_INFO } from '@/lib/data';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { ReturnReportModal } from '@/components/order/ReturnReportModal';
 
 export default function OrderTrackingPage() {
   const { orderId } = useParams();
@@ -182,13 +183,45 @@ export default function OrderTrackingPage() {
                     <p className="font-bold text-2xl flex items-center justify-end gap-3 text-green-600">
                        SUCCESS <CheckCircle2 className="w-6 h-6" />
                     </p>
-                  </div>
                 </div>
               </div>
-            </Card>
+            </div>
+          </Card>
           </div>
 
+          {/* Issue Reporting Section */}
+          {order.status === 'delivered' && (
+            <div className="flex flex-col items-center gap-6 mt-8">
+              {!order.returnRequest ? (
+                <div className="text-center space-y-4">
+                  <p className="text-muted-foreground font-medium">Something not right with your order?</p>
+                  <ReturnReportModal orderId={order.id} onSuccess={() => window.location.reload()} />
+                </div>
+              ) : (
+                <Card className="w-full rounded-[3rem] border-none shadow-premium p-10 bg-primary/5 flex flex-col md:flex-row items-center justify-between gap-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                  <div className="flex items-center gap-6">
+                    <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                      <AlertCircle className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h4 className="text-2xl font-headline font-bold">Issue Report Submitted</h4>
+                      <p className="text-muted-foreground">Our studio team is reviewing your report.</p>
+                    </div>
+                  </div>
+                  <Badge variant="secondary" className="h-12 px-8 rounded-full font-bold bg-background shadow-sm border-primary/20 text-primary">
+                    STATUS: {order.returnRequest.status.toUpperCase()}
+                  </Badge>
+                </Card>
+              )}
+            </div>
+          )}
+
           <div className="flex flex-col sm:flex-row gap-8 justify-center mt-12">
+            <Button variant="outline" size="lg" className="rounded-full h-24 px-16 border-2 font-bold text-2xl group transition-all" asChild>
+              <Link href={`/order/${orderId}/invoice`}>
+                 <Download className="mr-4 w-8 h-8 group-hover:translate-y-1 transition-transform" /> Get Invoice
+              </Link>
+            </Button>
             <Button variant="outline" size="lg" className="rounded-full h-24 px-16 border-2 font-bold text-2xl group transition-all" asChild>
               <a href={CONTACT_INFO.whatsapp} target="_blank" rel="noopener noreferrer">
                 <MessageSquare className="mr-4 w-8 h-8 group-hover:scale-110 transition-transform" /> WhatsApp Help

@@ -33,13 +33,23 @@ export function initializeFirebase() {
 }
 
 import { getStorage } from 'firebase/storage';
+import { getMessaging, isSupported } from 'firebase/messaging';
 
 export function getSdks(firebaseApp: FirebaseApp) {
+  // Use a getter for messaging since it might not be supported or available in all environments
+  const messaging = async () => {
+    if (typeof window !== 'undefined' && await isSupported()) {
+      return getMessaging(firebaseApp);
+    }
+    return null;
+  };
+
   return {
     firebaseApp,
     auth: getAuth(firebaseApp),
     firestore: getFirestore(firebaseApp),
-    storage: getStorage(firebaseApp)
+    storage: getStorage(firebaseApp),
+    messaging
   };
 }
 

@@ -11,7 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { formatPrice } from '@/utils/currency';
 
 export function CartDrawer() {
-  const { cart, removeFromCart, updateQuantity, cartTotal, isCartOpen, setIsCartOpen } = useCart();
+  const { cart, addToCart, removeFromCart, updateQuantity, cartTotal, isCartOpen, setIsCartOpen } = useCart();
 
   return (
     <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>

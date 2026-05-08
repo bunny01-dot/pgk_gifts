@@ -20,7 +20,7 @@ const STATUS_STEPS = [
 ];
 
 export default function OrderTrackingPage() {
-  const { firestore } = useFirestore() || {};
+  const firestore = useFirestore();
   const [trackingId, setTrackingId] = useState('');
   const [loading, setLoading] = useState(false);
   const [order, setOrder] = useState<Order | null>(null);

@@ -2,6 +2,14 @@ import { CartItem } from "./cart";
 
 export type OrderStatus = "pending" | "processing" | "shipped" | "delivered" | "cancelled";
 
+export interface ReturnRequest {
+  reason: "damaged" | "wrong_item" | "missing_parts" | "other";
+  description: string;
+  images: string[];
+  status: "pending" | "approved" | "rejected";
+  createdAt: any;
+}
+
 export interface Order {
   id: string;
   orderId: string; // Internal readable ID
@@ -9,6 +17,7 @@ export interface Order {
   paymentId: string;
   customerName: string;
   phone: string;
+  customerEmail?: string;
   address: string;
   city: string;
   pincode: string;
@@ -17,4 +26,5 @@ export interface Order {
   paymentStatus: "paid" | "failed" | "pending";
   status: OrderStatus;
   createdAt: any;
+  returnRequest?: ReturnRequest;
 }

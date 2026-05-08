@@ -62,9 +62,9 @@ export function ProductCard({ product }: ProductCardProps) {
                 <Button 
                   onClick={handleQuickView}
                   variant="outline" 
-                  className="rounded-full h-16 w-16 p-0 shadow-2xl bg-background/90 backdrop-blur-md border-2 border-primary/20 hover:scale-110 transition-transform"
+                  className="rounded-full h-12 w-12 p-0 shadow-2xl bg-background/90 backdrop-blur-md border border-primary/20 hover:scale-110 transition-transform"
                 >
-                  <Eye className="w-8 h-8 text-primary" />
+                  <Eye className="w-6 h-6 text-primary" />
                 </Button>
               </div>
             )}
@@ -84,7 +84,7 @@ export function ProductCard({ product }: ProductCardProps) {
             </button>
           </div>
 
-          <CardContent className="p-6 flex-1 flex flex-col gap-2">
+          <CardContent className="p-4 flex-1 flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{product.category}</span>
               <div className="flex items-center gap-1 text-yellow-500">
@@ -94,20 +94,20 @@ export function ProductCard({ product }: ProductCardProps) {
             </div>
             
             <Link href={`/products/${product.id}`}>
-              <h3 className="font-headline text-xl font-bold line-clamp-1 group-hover:text-primary transition-colors">{product.name}</h3>
+              <h3 className="font-headline text-lg font-bold line-clamp-1 group-hover:text-primary transition-colors">{product.name}</h3>
             </Link>
             
-            <p className="font-headline text-2xl font-bold text-primary font-sans">
+            <p className="font-headline text-xl font-bold text-primary font-sans">
               {formatPrice(product.price)}
             </p>
           </CardContent>
 
-          <CardFooter className="px-6 pb-6 pt-0">
+          <CardFooter className="px-4 pb-4 pt-0">
              <Button 
                onClick={handleAddToCart} 
                disabled={isSoldOut}
                variant={isSoldOut ? "secondary" : "outline"}
-               className={`w-full rounded-full h-12 font-bold border-2 ${!isSoldOut && 'group-hover:bg-primary group-hover:text-primary-foreground'} transition-all`}
+               className={`w-full rounded-full h-10 text-sm font-bold border ${!isSoldOut && 'group-hover:bg-primary group-hover:text-primary-foreground'} transition-all`}
              >
                 {isSoldOut ? 'Out of Stock' : 'Add to Bag'}
              </Button>

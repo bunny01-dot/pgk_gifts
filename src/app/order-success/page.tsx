@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { CheckCircle, ArrowRight, MessageSquare, Loader2 } from 'lucide-react';
+import { CheckCircle, ArrowRight, MessageSquare, Loader2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CONTACT_INFO } from '@/lib/data';
 
@@ -42,6 +42,11 @@ function SuccessContent() {
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Button asChild size="lg" className="rounded-full px-8 h-14 shadow-xl shadow-primary/20">
             <Link href={`/track`}>Track Order <ArrowRight className="ml-2 w-5 h-5" /></Link>
+          </Button>
+          <Button asChild variant="outline" size="lg" className="rounded-full px-8 h-14 border-2">
+             <Link href={orderId ? `/order/${orderId}/invoice` : '#'}>
+                Download Invoice <Download className="ml-2 w-5 h-5" />
+             </Link>
           </Button>
           <Button asChild variant="outline" size="lg" className="rounded-full px-8 h-14 border-2">
             <Link href="/shop">Continue Shopping</Link>
