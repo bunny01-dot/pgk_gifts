@@ -1,11 +1,17 @@
+import { DatabaseDate } from "./common";
+
 export type Category = 
   | "Night Lamps" 
-  | "Wall Decor Photo Frames" 
+  | "Cute Toys"
+  | "Customized Gifts"
+  | "Wall Decor and Photo Frames" 
   | "Personalized Gifts" 
-  | "Mdf Frames" 
+  | "MDF Wall Frames" 
   | "Unique Gifts" 
   | "Car Dashboard Accessories" 
-  | "Hamper Boxes";
+  | "Hamper Boxes"
+  | "Keychains"
+  | (string & {});
 
 export interface Product {
   id: string;
@@ -13,12 +19,18 @@ export interface Product {
   price: number;
   category: Category;
   image: string; // Maintain primary image for compatibility
-  images?: string[]; // Array of additional images
-  videoUrl?: string; // Optional embedded video link
+  images?: string[] | undefined; // Array of additional images
+  videoUrl?: string | undefined; // Optional embedded video link
   description: string;
+  dimensions?: string | undefined;
   active: boolean;
-  featured?: boolean;
-  stockCount?: number;
-  tags?: string[];
-  createdAt?: any;
+  featured?: boolean | undefined;
+  stockCount?: number | undefined;
+  tags?: string[] | undefined;
+  createdAt?: DatabaseDate | undefined;
+  sizes?: { name: string; price: number }[] | undefined;
+  requiredPhotoSlots?: number | null | undefined;
+  needsMainImage?: boolean | undefined;
+  deliveryCharge?: 'complimentary' | 'regular' | undefined;
+  weight?: number | null | undefined;
 }

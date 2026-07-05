@@ -3,16 +3,20 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
-import { Menu, X, ShoppingBag, Grid, ImageIcon, Phone, User, Camera, LogOut, LayoutDashboard, Truck, Package, Settings } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import { Menu, X, ShoppingBag, Grid, ImageIcon, Phone, User, Camera, LogOut, LayoutDashboard, Truck, Package, Bell, BellRing, Star, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { CONTACT_INFO, ADMIN_EMAILS } from '@/lib/data';
 import { useCart } from '@/context/CartContext';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
+import { doc } from 'firebase/firestore';
+import { formatPrice } from '@/utils/currency';
+import { toDate, formatDate } from '@/utils/date';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,8 +42,125 @@ export function Navbar() {
   const { itemCount, setIsCartOpen } = useCart();
   const { user } = useUser();
   const auth = useAuth();
+  const firestore = useFirestore();
   
-  const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email);
+  const adminDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'roles_admin', user.uid);
+  }, [firestore, user]);
+  const { data: adminRole } = useDoc(adminDocRef);
+  const isSuperAdmin = user?.uid === '30S6HkIJXKWWSrmlLD8c8GBskst1';
+  const isAdmin = Boolean(
+    adminRole ||
+    isSuperAdmin ||
+    (user?.email && ADMIN_EMAILS.includes(user.email))
+  );
+
+  const router = useRouter();
+  const [orders, setOrders] = useState<any[]>([]);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [readNotificationIds, setReadNotificationIds] = useState<string[]>([]);
+
+  // Load and save read notification IDs
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('admin_read_notifications');
+      if (saved) {
+        try {
+          setReadNotificationIds(JSON.parse(saved));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!firestore || !isAdmin) return;
+    
+    let unsubscribe: () => void;
+    
+    const initSub = async () => {
+      const { OrdersService } = await import('@/services/orders.service');
+      const ordersService = new OrdersService(firestore);
+      unsubscribe = ordersService.subscribeToOrders((data) => {
+        setOrders(data);
+      });
+    };
+    
+    initSub();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [firestore, isAdmin]);
+
+  const markAsRead = (id: string) => {
+    setReadNotificationIds(prev => {
+      if (prev.includes(id)) return prev;
+      const updated = [...prev, id];
+      localStorage.setItem('admin_read_notifications', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const notifications = useMemo(() => {
+    const list: any[] = [];
+    orders.forEach(order => {
+      const orderIdShort = order.orderId || order.id.slice(0, 6);
+      const orderDate = toDate(order.createdAt);
+      
+      list.push({
+        id: `new_order_${order.id}`,
+        type: 'new_order',
+        title: 'New Order Placed',
+        description: `Order #${orderIdShort} placed by ${order.customerName} for ${formatPrice(order.total)}.`,
+        timestamp: orderDate,
+        orderId: order.id,
+        order: order,
+        read: readNotificationIds.includes(`new_order_${order.id}`)
+      });
+
+      if (order.feedback) {
+        const feedbackDate = new Date(order.feedback.createdAt);
+        list.push({
+          id: `feedback_${order.id}`,
+          type: 'feedback',
+          title: 'New Feedback Received',
+          description: `${order.feedback.rating} ★ review by ${order.customerName} on #${orderIdShort}: "${order.feedback.comment.slice(0, 40)}${order.feedback.comment.length > 40 ? '...' : ''}"`,
+          timestamp: feedbackDate,
+          orderId: order.id,
+          order: order,
+          read: readNotificationIds.includes(`feedback_${order.id}`)
+        });
+      }
+
+      if (order.returnRequest) {
+        const returnDate = toDate(order.returnRequest.createdAt);
+        list.push({
+          id: `return_${order.id}`,
+          type: 'return_request',
+          title: 'Return Request Submitted',
+          description: `Return (${order.returnRequest.status}) requested by ${order.customerName} for #${orderIdShort}.`,
+          timestamp: returnDate,
+          orderId: order.id,
+          order: order,
+          read: readNotificationIds.includes(`return_${order.id}`)
+        });
+      }
+    });
+
+    return list.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  }, [orders, readNotificationIds]);
+
+  const unreadCount = useMemo(() => {
+    return notifications.filter(n => !n.read).length;
+  }, [notifications]);
+
+  const markAllAsRead = () => {
+    const allIds = notifications.map(n => n.id);
+    setReadNotificationIds(allIds);
+    localStorage.setItem('admin_read_notifications', JSON.stringify(allIds));
+  };
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);
@@ -75,8 +196,8 @@ export function Navbar() {
         </Link>
 
         {/* Desktop Nav */}
-        <div className="hidden lg:flex items-center gap-12">
-          <div className="flex items-center gap-10">
+        <div className="hidden lg:flex items-center gap-8">
+          <div className="flex items-center gap-7">
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.name}
@@ -91,7 +212,7 @@ export function Navbar() {
 
           <div className="h-8 w-px bg-border/50" />
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
             <button
               onClick={() => setIsCartOpen(true)}
               className="relative p-3 hover:bg-secondary rounded-2xl transition-all group"
@@ -114,6 +235,83 @@ export function Navbar() {
             </button>
 
             <ThemeToggle />
+
+            {isAdmin && (
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-2xl h-12 w-12 hover:bg-secondary border border-border/50 shadow-sm relative flex items-center justify-center"
+                  onClick={() => setIsNotifOpen(!isNotifOpen)}
+                >
+                  {unreadCount > 0 ? (
+                    <BellRing className="w-5 h-5 text-primary animate-bounce" />
+                  ) : (
+                    <Bell className="w-5 h-5 text-muted-foreground" />
+                  )}
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full shadow-lg" />
+                  )}
+                </Button>
+
+                {isNotifOpen && (
+                  <div className="absolute right-0 mt-4 w-80 md:w-96 bg-card border border-border rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="p-4 border-b border-border/40 flex justify-between items-center bg-secondary/20">
+                      <h3 className="font-headline font-bold text-xs md:text-sm text-foreground flex items-center gap-2">
+                        <Bell className="w-4 h-4 text-primary" /> Activity Center
+                      </h3>
+                      {unreadCount > 0 && (
+                        <button 
+                          onClick={markAllAsRead}
+                          className="text-xs font-bold text-primary hover:underline"
+                        >
+                          Mark all read
+                        </button>
+                      )}
+                    </div>
+                    <div className="max-h-[350px] overflow-y-auto divide-y divide-border/30 custom-scrollbar">
+                      {notifications.length === 0 ? (
+                        <div className="p-8 text-center text-muted-foreground text-xs">
+                          No activity notifications.
+                        </div>
+                      ) : (
+                        notifications.map(notif => (
+                          <div 
+                            key={notif.id} 
+                            onClick={() => {
+                              markAsRead(notif.id);
+                              setIsNotifOpen(false);
+                              router.push(`/admin?viewOrder=${notif.orderId}`);
+                            }}
+                            className="p-4 hover:bg-secondary/40 cursor-pointer transition-colors flex gap-3 items-start text-left bg-card"
+                          >
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                              notif.type === 'new_order' ? 'bg-green-500/10 text-green-600' :
+                              notif.type === 'feedback' ? 'bg-amber-500/10 text-amber-600' :
+                              'bg-blue-500/10 text-blue-600'
+                            }`}>
+                              {notif.type === 'new_order' ? <ShoppingBag className="w-4 h-4" /> :
+                               notif.type === 'feedback' ? <Star className="w-4 h-4 fill-amber-500 text-amber-500" /> :
+                               <AlertCircle className="w-4 h-4" />}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex justify-between items-start gap-1">
+                                <p className="text-xs font-bold text-foreground truncate">{notif.title}</p>
+                                {!notif.read && <span className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5" />}
+                              </div>
+                              <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug break-words">{notif.description}</p>
+                              <span className="text-[9px] text-muted-foreground/60 block mt-1">
+                                {formatDate(notif.timestamp)}
+                              </span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {user ? (
               <DropdownMenu>
@@ -142,14 +340,6 @@ export function Navbar() {
                     </Link>
                   </DropdownMenuItem>
 
-                  <DropdownMenuItem asChild className="cursor-pointer rounded-xl h-11 transition-colors hover:bg-secondary">
-                    <Link href="/contact" className="flex items-center w-full">
-                      <Settings className="mr-3 h-4 w-4 opacity-70" /> Studio Settings
-                    </Link>
-                  </DropdownMenuItem>
-
-                  <DropdownMenuSeparator className="opacity-50 my-1" />
-
                   {isAdmin && (
                     <DropdownMenuItem asChild className="cursor-pointer rounded-xl h-12 mt-1 bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
                       <Link href="/admin" className="flex items-center w-full">
@@ -176,6 +366,127 @@ export function Navbar() {
         {/* Mobile Toggle & Actions */}
         <div className="lg:hidden flex items-center gap-1 md:gap-4">
           <ThemeToggle />
+
+          {isAdmin && (
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-xl h-10 w-10 hover:bg-secondary border border-border/50 shadow-sm relative flex items-center justify-center"
+                onClick={() => setIsNotifOpen(!isNotifOpen)}
+              >
+                {unreadCount > 0 ? (
+                  <BellRing className="w-5 h-5 text-primary animate-bounce" />
+                ) : (
+                  <Bell className="w-5 h-5 text-muted-foreground" />
+                )}
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full shadow-lg" />
+                )}
+              </Button>
+
+              {isNotifOpen && (
+                <div className="absolute right-0 mt-3 w-80 bg-card border border-border rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="p-3 border-b border-border/40 flex justify-between items-center bg-secondary/20">
+                    <h3 className="font-headline font-bold text-xs text-foreground flex items-center gap-2">
+                      <Bell className="w-4 h-4 text-primary" /> Activity Center
+                    </h3>
+                    {unreadCount > 0 && (
+                      <button 
+                        onClick={markAllAsRead}
+                        className="text-[10px] font-bold text-primary hover:underline"
+                      >
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-[280px] overflow-y-auto divide-y divide-border/30 custom-scrollbar">
+                    {notifications.length === 0 ? (
+                      <div className="p-6 text-center text-muted-foreground text-xs">
+                        No activity notifications.
+                      </div>
+                    ) : (
+                      notifications.map(notif => (
+                        <div 
+                          key={notif.id} 
+                          onClick={() => {
+                            markAsRead(notif.id);
+                            setIsNotifOpen(false);
+                            router.push(`/admin?viewOrder=${notif.orderId}`);
+                          }}
+                          className="p-3 hover:bg-secondary/40 cursor-pointer transition-colors flex gap-2.5 items-start text-left bg-card"
+                        >
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                            notif.type === 'new_order' ? 'bg-green-500/10 text-green-600' :
+                            notif.type === 'feedback' ? 'bg-amber-500/10 text-amber-600' :
+                            'bg-blue-500/10 text-blue-600'
+                          }`}>
+                            {notif.type === 'new_order' ? <ShoppingBag className="w-3.5 h-3.5" /> :
+                             notif.type === 'feedback' ? <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" /> :
+                             <AlertCircle className="w-3.5 h-3.5" />}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex justify-between items-start gap-1">
+                              <p className="text-xs font-bold text-foreground truncate">{notif.title}</p>
+                              {!notif.read && <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-1.5" />}
+                            </div>
+                            <p className="text-[10px] text-muted-foreground mt-0.5 leading-snug break-words">{notif.description}</p>
+                            <span className="text-[8px] text-muted-foreground/60 block mt-1">
+                              {formatDate(notif.timestamp)}
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-10 w-10 rounded-xl p-0 hover:bg-secondary border border-border/50">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.photoURL || ''} alt={user.displayName || ''} />
+                    <AvatarFallback className="bg-primary text-primary-foreground font-bold text-xs">
+                      {user.email?.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-60 mt-3 rounded-2xl p-3 shadow-2xl border-border/50 bg-card" align="end">
+                <DropdownMenuLabel className="font-normal px-2 pb-2">
+                  <div className="flex flex-col space-y-1.5">
+                    <p className="text-sm font-bold leading-none">{user.displayName || 'Member'}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest truncate">{user.email}</p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="opacity-50" />
+                <DropdownMenuItem asChild className="cursor-pointer rounded-xl h-10">
+                  <Link href="/track" className="flex items-center w-full">
+                    <Package className="mr-3 h-4 w-4 opacity-70" /> My Orders
+                  </Link>
+                </DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem asChild className="cursor-pointer rounded-xl h-10 bg-primary/10 text-primary">
+                    <Link href="/admin" className="flex items-center w-full">
+                      <LayoutDashboard className="mr-3 h-4 w-4" /> Management
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator className="opacity-50 my-1" />
+                <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer rounded-xl h-10 hover:bg-destructive/10">
+                  <LogOut className="mr-3 h-4 w-4" /> Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button asChild variant="ghost" size="icon" className="rounded-xl h-10 w-10 hover:bg-secondary">
+              <Link href="/login"><User className="w-5 h-5" /></Link>
+            </Button>
+          )}
           <button onClick={() => setIsCartOpen(true)} className="relative p-2 md:p-3 hover:bg-secondary rounded-xl transition-all">
             <ShoppingBag className="w-6 h-6" />
             {itemCount > 0 && (
@@ -197,23 +508,23 @@ export function Navbar() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden absolute top-full left-0 w-full bg-card border-b p-8 flex flex-col gap-6 shadow-2xl overflow-hidden backdrop-blur-3xl"
+            className="lg:hidden absolute top-full left-0 w-full bg-card border-b px-5 py-5 flex flex-col gap-3 shadow-2xl overflow-hidden backdrop-blur-3xl"
           >
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.name}
                 href={link.href}
-                className="flex items-center gap-5 text-2xl font-headline font-bold py-2 group border-b border-border/30 pb-4 last:border-0"
+                className="flex items-center gap-4 text-xl font-headline font-bold py-2 group border-b border-border/30 pb-3 last:border-0"
                 onClick={() => setIsOpen(false)}
               >
-                <div className="p-3 rounded-2xl bg-primary/5 text-primary group-hover:bg-primary group-hover:text-white transition-all">
-                   <link.icon className="w-6 h-6" />
+                <div className="p-2.5 rounded-xl bg-primary/5 text-primary group-hover:bg-primary group-hover:text-white transition-all">
+                   <link.icon className="w-5 h-5" />
                 </div>
                 {link.name}
               </Link>
             ))}
             {!user && (
-               <Button asChild className="w-full h-14 rounded-2xl text-lg font-bold mt-4">
+               <Button asChild className="w-full h-12 rounded-xl text-base font-bold mt-2">
                  <Link href="/login" onClick={() => setIsOpen(false)}>Sign In</Link>
                </Button>
             )}

@@ -27,7 +27,7 @@ export class SearchService<T extends Record<string, any>> {
     });
   }
 
-  search(query: string, limit: number = 24): SearchResult<T>[] {
+  search(query: string, limit: number = 100): SearchResult<T>[] {
     if (!query || query.trim() === '') {
       // Elite: Sort by stock and featured status for the "Full Collection" view
       return this.items

@@ -1,47 +1,397 @@
-
 import { NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
-import shortid from 'shortid';
+import { FieldValue } from 'firebase-admin/firestore';
+import { getAdminAuth, getAdminDb } from '@/firebase/admin';
+import { isRateLimited, verifyCsrf, verifyAppCheck } from '@/utils/security';
+import { logger } from '@/utils/logger';
+import { PRODUCTS } from '@/lib/data';
+
+export const runtime = 'nodejs';
+
+type CheckoutItemInput = {
+  productId: string;
+  quantity: number;
+  selectedSize?: string | undefined;
+  customPhotos?: {
+    imageUrl: string;
+    fileName: string;
+    contentType: string;
+    fileSize: number;
+    uploadedAt: string;
+  }[] | undefined;
+  customText?: string | undefined;
+};
+
+type ShippingInput = {
+  name: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+};
+
+type ProductData = {
+  name?: string;
+  price?: number;
+  image?: string;
+  category?: string;
+  active?: boolean;
+  sizes?: { name: string; price: number }[];
+  deliveryCharge?: 'complimentary' | 'regular';
+  weight?: number;
+};
+
+const CURRENCY = 'INR';
+const SHIPPING_FEE = 0;
+const MAX_QUANTITY_PER_LINE = 25;
+const MAX_LINE_ITEMS = 50;
+
+function getRazorpayClient() {
+  const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+
+  if (!keyId || !keySecret) {
+    throw new Error('Razorpay keys are not configured.');
+  }
+
+  return new Razorpay({
+    key_id: keyId,
+    key_secret: keySecret,
+  });
+}
+
+function cleanString(value: unknown, maxLength: number) {
+  if (typeof value !== 'string') return '';
+  return value.trim().slice(0, maxLength);
+}
+
+function parseShipping(value: unknown): ShippingInput {
+  const shipping = value as Partial<ShippingInput>;
+  const parsed = {
+    name: cleanString(shipping?.name, 100),
+    phone: cleanString(shipping?.phone, 20),
+    address: cleanString(shipping?.address, 300),
+    city: cleanString(shipping?.city, 100),
+    state: cleanString(shipping?.state, 100),
+    pincode: cleanString(shipping?.pincode, 20),
+  };
+
+  if (!parsed.name || !parsed.phone || !parsed.address || !parsed.city || !parsed.state || !parsed.pincode) {
+    throw new Error('Shipping details are incomplete.');
+  }
+
+  return parsed;
+}
+
+function parseItems(value: unknown): CheckoutItemInput[] {
+  if (!Array.isArray(value) || value.length === 0 || value.length > MAX_LINE_ITEMS) {
+    throw new Error('Cart is empty or invalid.');
+  }
+
+  return value.map((item) => {
+    const candidate = item as Partial<CheckoutItemInput>;
+    const productId = cleanString(candidate.productId, 150);
+    const quantity = Number(candidate.quantity);
+
+    if (!productId || !Number.isInteger(quantity) || quantity < 1 || quantity > MAX_QUANTITY_PER_LINE) {
+      throw new Error('Cart contains an invalid item.');
+    }
+
+    const selectedSize = cleanString(candidate.selectedSize, 100) || undefined;
+    const customPhotos = Array.isArray(candidate.customPhotos)
+      ? candidate.customPhotos
+          .map((photo: any) => {
+            if (!photo || typeof photo !== 'object') return null;
+            return {
+              imageUrl: cleanString(photo.imageUrl, 2000),
+              fileName: cleanString(photo.fileName, 500),
+              contentType: cleanString(photo.contentType, 100),
+              fileSize: Number(photo.fileSize) || 0,
+              uploadedAt: cleanString(photo.uploadedAt, 100),
+            };
+          })
+          .filter((photo): photo is NonNullable<typeof photo> => !!photo && !!photo.imageUrl)
+          .slice(0, 50)
+      : undefined;
+    const customText = cleanString(candidate.customText, 500) || undefined;
+
+    return { productId, quantity, selectedSize, customPhotos, customText };
+  });
+}
+
+async function getCreatedBy(request: Request) {
+  const authHeader = request.headers.get('authorization');
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice('Bearer '.length) : null;
+
+  if (!token) {
+    return { uid: 'guest', email: undefined };
+  }
+
+  try {
+    const decoded = await getAdminAuth().verifyIdToken(token, true);
+    return { uid: decoded.uid, email: decoded.email };
+  } catch (error) {
+    logger.warn('Token verification failed or session revoked', { error });
+    throw new Error('Invalid authentication token.');
+  }
+}
+
+function getUnitPrice(product: ProductData, selectedSize?: string) {
+  if (selectedSize) {
+    const size = product.sizes?.find((candidate) => candidate.name === selectedSize);
+    if (!size || typeof size.price !== 'number' || size.price < 0) {
+      throw new Error(`Selected size is not available for ${product.name || 'product'}.`);
+    }
+    return size.price;
+  }
+
+  if (typeof product.price !== 'number' || product.price < 0) {
+    throw new Error(`Product price is invalid for ${product.name || 'product'}.`);
+  }
+
+  return product.price;
+}
+
+async function buildServerCalculatedOrder(items: CheckoutItemInput[], state: string) {
+  const adminDb = getAdminDb();
+  const lineItems = [];
+  let subtotal = 0;
+  let hasRegularShipping = false;
+  let totalWeight = 0;
+
+  for (const item of items) {
+    let product: ProductData | undefined;
+
+    if (item.productId === 'upsell_wrap') {
+      let giftWrapPrice = 50;
+      try {
+        const settingsSnap = await adminDb.collection('settings').doc('global').get();
+        if (settingsSnap.exists) {
+          const data = settingsSnap.data();
+          if (typeof data?.giftWrapPrice === 'number') {
+            giftWrapPrice = data.giftWrapPrice;
+          }
+        }
+      } catch (err) {
+        logger.error('Error fetching global settings for gift wrap price', err);
+      }
+      product = {
+        name: 'Premium Gift Wrap',
+        price: giftWrapPrice,
+        image: '/assets/premium_gift_wrap.png',
+        category: 'Customized Gifts',
+        active: true,
+        deliveryCharge: 'complimentary'
+      };
+    } else {
+      let productSnap = await adminDb.collection('products').doc(item.productId).get();
+
+      if (productSnap.exists) {
+        product = productSnap.data() as ProductData;
+      } else {
+        // Fallback: Check if item.productId is a static product slug
+        const staticProduct = PRODUCTS.find((p) => p.id === item.productId);
+        if (staticProduct) {
+          // Query by name to see if it is seeded under a different auto-generated Firestore ID
+          const querySnap = await adminDb
+            .collection('products')
+            .where('name', '==', staticProduct.name)
+            .limit(1)
+            .get();
+
+          const firstDoc = querySnap.docs[0];
+          if (firstDoc) {
+            product = firstDoc.data() as ProductData;
+          } else {
+            // If not in database, fallback to static product representation
+            product = staticProduct as any as ProductData;
+          }
+        }
+      }
+    }
+
+    if (!product) {
+      throw new Error('One or more products are no longer available.');
+    }
+
+    if (product.active === false) {
+      throw new Error(`${product.name || 'A product'} is not available for purchase.`);
+    }
+
+    if (product.deliveryCharge !== 'complimentary') {
+      hasRegularShipping = true;
+      const itemWeight = product.weight && product.weight > 0 ? product.weight : 1;
+      totalWeight += itemWeight * item.quantity;
+    }
+
+    const unitPrice = getUnitPrice(product, item.selectedSize);
+    const lineTotal = unitPrice * item.quantity;
+    subtotal += lineTotal;
+
+    lineItems.push({
+      id: `${item.productId}:${item.selectedSize || 'default'}:${lineItems.length}`,
+      productId: item.productId,
+      name: product.name || 'Product',
+      price: unitPrice,
+      quantity: item.quantity,
+      image: product.image || '',
+      category: product.category,
+      selectedSize: item.selectedSize,
+      customPhotos: item.customPhotos || [],
+      customText: item.customText || undefined,
+    });
+  }
+
+  const weightCeil = Math.max(1, Math.ceil(totalWeight));
+  const multiplier = state.trim().toLowerCase() === 'tamil nadu' ? 50 : 100;
+  const shippingFee = hasRegularShipping ? (weightCeil * multiplier) : 0;
+  const total = subtotal + shippingFee;
+  if (!Number.isFinite(total) || total <= 0) {
+    throw new Error('Order total is invalid.');
+  }
+
+  return {
+    items: lineItems,
+    subtotal,
+    shippingFee,
+    total,
+    amountPaise: Math.round(total * 100),
+  };
+}
 
 export async function POST(request: Request) {
   try {
-    const { amount, currency = 'INR' } = await request.json();
-
-    const key_id = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
-    const key_secret = process.env.RAZORPAY_KEY_SECRET;
-
-    // DEBUG (Check your terminal)
-    console.log('--- Razorpay Auth Check ---');
-    console.log('Key ID exists:', !!key_id, key_id?.substring(0, 8));
-    console.log('Key Secret exists:', !!key_secret, key_secret?.substring(0, 4));
-
-    if (!key_id || !key_secret || key_id === 'your_key_id_here') {
-      return NextResponse.json({ error: 'Razorpay keys are invalid or missing in .env' }, { status: 500 });
+    // 1. CSRF Protection
+    if (!verifyCsrf(request)) {
+      return NextResponse.json({ error: 'CSRF verification failed.' }, { status: 403 });
     }
 
-    const razorpay = new Razorpay({
-      key_id: key_id,
-      key_secret: key_secret,
+    // 2. API Rate Limiting
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1';
+    if (isRateLimited(ip, 10, 60000)) { // 10 requests per minute
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
+
+    // 3. Firebase App Check Protection
+    const isAppCheckValid = await verifyAppCheck(request);
+    if (!isAppCheckValid) {
+      return NextResponse.json({ error: 'Unauthorized application environment.' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const adminDb = getAdminDb();
+    const inputItems = parseItems(body.items);
+    const shipping = parseShipping(body.shipping);
+    const createdBy = await getCreatedBy(request);
+    const couponCode = cleanString(body.couponCode, 50).toUpperCase();
+    const calculated = await buildServerCalculatedOrder(inputItems, shipping.state);
+    
+    // Validate coupon and calculate discount
+    let discountAmount = 0;
+    let appliedCoupon = null;
+
+    if (couponCode) {
+      const couponSnap = await adminDb.collection('coupons').doc(couponCode).get();
+      if (couponSnap.exists) {
+        const couponData = couponSnap.data();
+        const subtotal = calculated.subtotal;
+        
+        const isCouponActive = couponData?.active === true;
+        const isExpiryValid = !couponData?.expiresAt || new Date(couponData.expiresAt).getTime() > Date.now();
+        const isLimitValid = couponData?.usageLimit === undefined || couponData?.usageLimit === null || (couponData.usageCount || 0) < couponData.usageLimit;
+        const isMinAmountValid = !couponData?.minOrderAmount || subtotal >= Number(couponData.minOrderAmount);
+
+        if (isCouponActive && isExpiryValid && isLimitValid && isMinAmountValid) {
+          const val = Number(couponData.value || 0);
+          if (couponData.type === 'percentage') {
+            discountAmount = Math.round((subtotal * val) / 100);
+          } else {
+            discountAmount = val;
+          }
+          // Cap discount at subtotal
+          discountAmount = Math.min(discountAmount, subtotal);
+          appliedCoupon = {
+            code: couponCode,
+            type: couponData.type,
+            value: val,
+            discount: discountAmount
+          };
+        }
+      }
+    }
+
+    const finalTotal = Math.max(0, calculated.total - discountAmount);
+    const amountPaise = Math.round(finalTotal * 100);
+
+    const razorpay = getRazorpayClient();
+    const receipt = `PGK-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`.slice(0, 40);
+
+    const order = await razorpay.orders.create({
+      amount: amountPaise,
+      currency: CURRENCY,
+      receipt,
+      notes: {
+        createdBy: createdBy.uid,
+      },
     });
 
-    const options = {
-      amount: Math.round(amount * 100),
-      currency,
-      receipt: `receipt_${shortid.generate()}`,
-    };
+    await adminDb.collection('razorpayOrders').doc(order.id).set(sanitizeObject({
+      razorpayOrderId: order.id,
+      receipt,
+      currency: CURRENCY,
+      amount: amountPaise,
+      serverCalculatedTotal: finalTotal,
+      subtotal: calculated.subtotal,
+      shippingFee: calculated.shippingFee,
+      discount: discountAmount,
+      couponCode: couponCode || null,
+      appliedCoupon,
+      items: calculated.items,
+      shipping,
+      createdBy: createdBy.uid,
+      customerEmail: createdBy.email,
+      status: 'created',
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    }));
 
-    const order = await razorpay.orders.create(options);
-    
+    logger.info('Razorpay order created successfully', { orderId: order.id, uid: createdBy.uid });
+
     return NextResponse.json({
       id: order.id,
-      currency: order.currency,
-      amount: order.amount,
+      amount: amountPaise,
+      currency: CURRENCY,
+      keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
     });
   } catch (error: any) {
-    console.error('Razorpay Order Error:', error);
-    return NextResponse.json(
-      { error: error?.message || 'Failed to create order' }, 
-      { status: 500 }
-    );
+    let message = 'Failed to create Razorpay order.';
+    if (error instanceof Error) {
+      message = error.message;
+    } else if (error && typeof error === 'object') {
+      message = error.message || error.description || JSON.stringify(error);
+    } else if (typeof error === 'string') {
+      message = error;
+    }
+    const status = message.includes('Invalid authentication') ? 401 : 400;
+    logger.error('Error in razorpay order creation endpoint', error, { status });
+    return NextResponse.json({ error: message }, { status });
   }
+}
+
+function sanitizeObject(obj: any): any {
+  if (obj === null || obj === undefined) return null;
+  if (typeof obj !== 'object') return obj;
+  if (obj instanceof FieldValue) return obj;
+  if (Array.isArray(obj)) {
+    return obj.map(sanitizeObject);
+  }
+  const sanitized: any = {};
+  for (const key of Object.keys(obj)) {
+    const val = obj[key];
+    if (val !== undefined) {
+      sanitized[key] = sanitizeObject(val);
+    }
+  }
+  return sanitized;
 }

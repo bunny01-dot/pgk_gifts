@@ -31,7 +31,7 @@ interface SecurityRuleRequest {
   path: string;
   resource?: {
     data: any;
-  };
+  } | undefined;
 }
 
 /**

@@ -1,88 +1,93 @@
 'use client';
 
-import { Firestore, collection, addDoc, serverTimestamp, FieldValue } from 'firebase/firestore';
-import { Order } from '@/types/order';
 import { CartItem } from '@/types/cart';
 
-interface RazorpayOrderResponse {
+export type CheckoutShippingDetails = {
+  name: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+};
+
+export type RazorpayOrderResponse = {
   id: string;
   amount: number;
   currency: string;
-}
+  keyId: string;
+};
 
-interface PaymentVerificationData {
+export type PaymentVerificationData = {
   razorpay_order_id: string;
   razorpay_payment_id: string;
   razorpay_signature: string;
-}
+};
+
+export type VerifiedPaymentResponse = {
+  orderId: string;
+  duplicate: boolean;
+};
 
 export class PaymentService {
-  constructor(private db: Firestore) {}
+  constructor(private getIdToken?: () => Promise<string | null>) {}
 
-  /**
-   * Secure Payment Flow:
-   * Razorpay order creation. In a production environment, this should be done 
-   * via a secure backend function to prevent client-side tampering.
-   */
-  async createRazorpayOrder(amount: number): Promise<RazorpayOrderResponse> {
+  private async requestHeaders(): Promise<HeadersInit> {
+    const token = await this.getIdToken?.();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    return headers;
+  }
+
+  async createRazorpayOrder(
+    cartItems: CartItem[],
+    shipping: CheckoutShippingDetails,
+    couponCode?: string
+  ): Promise<RazorpayOrderResponse> {
     const response = await fetch('/api/razorpay', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ amount }),
+      headers: await this.requestHeaders(),
+      body: JSON.stringify({
+        items: cartItems.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          selectedSize: item.selectedSize,
+          customPhotos: item.customPhotos,
+          customText: item.customText,
+        })),
+        shipping,
+        couponCode,
+      }),
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error || 'Failed to create payment order');
+      throw new Error(data.error || 'Failed to create payment order.');
     }
 
     return data;
   }
 
-  /**
-   * Verified Order Persistence:
-   * Only stores the order in Firestore after payment verification.
-   */
-  async verifyAndSaveOrder(
-    paymentData: PaymentVerificationData, 
-    customerDetails: { name: string; phone: string; address: string; city: string; pincode: string; email?: string }, 
-    cartItems: CartItem[], 
-    total: number
-  ): Promise<string> {
-    // SECURITY: In production, HMAC Signature verification must be performed on the server.
-    const isVerified = !!paymentData.razorpay_payment_id;
+  async verifyPayment(paymentData: PaymentVerificationData): Promise<VerifiedPaymentResponse> {
+    const response = await fetch('/api/payment/verify', {
+      method: 'POST',
+      headers: await this.requestHeaders(),
+      body: JSON.stringify(paymentData),
+    });
 
-    if (!isVerified) {
-      throw new Error("Secure payment verification failed. Operation denied.");
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Payment verification failed.');
     }
 
-    const orderData: Omit<Order, 'id'> = {
-      orderId: `PGK-${Date.now().toString().slice(-6)}`,
-      razorpayOrderId: paymentData.razorpay_order_id,
-      paymentId: paymentData.razorpay_payment_id,
-      customerName: customerDetails.name,
-      phone: customerDetails.phone,
-      customerEmail: customerDetails.email,
-      address: customerDetails.address,
-      city: customerDetails.city,
-      pincode: customerDetails.pincode,
-      items: cartItems,
-      total: total,
-      paymentStatus: 'paid',
-      status: 'pending',
-      createdAt: serverTimestamp() as any, // Cast for compatibility with Order type
-    };
-
-    // Use a try-catch block for the database write to handle potential Firestore errors
-    try {
-      const docRef = await addDoc(collection(this.db, 'orders'), orderData);
-      return docRef.id;
-    } catch (error) {
-      console.error("Failed to save order to Firestore:", error);
-      throw new Error("Payment successful, but order recording failed. Please contact support.");
-    }
+    return data;
   }
 }

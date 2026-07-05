@@ -46,10 +46,20 @@ export function ReturnReportModal({ orderId, onSuccess }: ReturnReportModalProps
       
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
+        if (!file) continue;
         const storageRef = ref(storage, `returns/${orderId}_${Date.now()}_${file.name}`);
-        const snapshot = await uploadBytes(storageRef, file);
-        const url = await getDownloadURL(snapshot.ref);
-        newUrls.push(url);
+        try {
+          const snapshot = await uploadBytes(storageRef, file);
+          const url = await getDownloadURL(snapshot.ref);
+          newUrls.push(url);
+        } catch (uploadErr: any) {
+          if (process.env.NODE_ENV !== 'production' && uploadErr.code === 'storage/quota-exceeded') {
+            console.warn('Firebase Storage quota exceeded. Falling back to local URL for return report.');
+            newUrls.push(URL.createObjectURL(file));
+          } else {
+            throw uploadErr;
+          }
+        }
       }
       
       setImages(prev => [...prev, ...newUrls]);
@@ -98,11 +108,11 @@ export function ReturnReportModal({ orderId, onSuccess }: ReturnReportModalProps
           <AlertCircle className="w-5 h-5 mr-3" /> Report Damage / Return
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl rounded-[3rem] p-10 border-none shadow-premium bg-card">
+      <DialogContent className="max-w-2xl rounded-2xl md:rounded-[3rem] p-5 md:p-10 border-none shadow-premium bg-card">
         <DialogHeader className="mb-8">
           <DialogTitle className="text-4xl font-headline font-bold">Report an Issue</DialogTitle>
           <DialogDescription className="text-lg mt-2">
-            We are sorry your gift didn't arrive perfectly. Please provide details and photos for our review.
+            We are sorry your gift didn&apos;t arrive perfectly. Please provide details and photos for our review.
           </DialogDescription>
         </DialogHeader>
 

@@ -71,7 +71,7 @@ export function PortfolioGrid({ items, onItemClick }: PortfolioGridProps) {
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-center py-40 bg-secondary/20 rounded-[3rem] border-2 border-dashed border-border/50"
+          className="text-center py-16 md:py-40 bg-secondary/20 rounded-2xl md:rounded-[3rem] border-2 border-dashed border-border/50"
         >
           <p className="text-xl font-headline font-bold text-muted-foreground">
             No masterpieces in this collection yet

@@ -1,4 +1,5 @@
 import { CartItem } from "./cart";
+import { DatabaseDate } from "./common";
 
 export type OrderStatus = "pending" | "processing" | "shipped" | "delivered" | "cancelled";
 
@@ -7,7 +8,13 @@ export interface ReturnRequest {
   description: string;
   images: string[];
   status: "pending" | "approved" | "rejected";
-  createdAt: any;
+  createdAt: DatabaseDate;
+}
+
+export interface OrderFeedback {
+  rating: number;
+  comment: string;
+  createdAt: string;
 }
 
 export interface Order {
@@ -20,11 +27,27 @@ export interface Order {
   customerEmail?: string;
   address: string;
   city: string;
+  state: string;
   pincode: string;
   items: CartItem[];
   total: number;
+  subtotal?: number;
+  shippingFee?: number;
   paymentStatus: "paid" | "failed" | "pending";
   status: OrderStatus;
-  createdAt: any;
+  createdAt: DatabaseDate;
   returnRequest?: ReturnRequest;
+  feedback?: OrderFeedback;
+  courierName?: string;
+  trackingNumber?: string;
+  trackingUrl?: string;
+  discount?: number;
+  couponCode?: string | null;
+  appliedCoupon?: {
+    code: string;
+    type: 'percentage' | 'flat';
+    value: number;
+    discount: number;
+  } | null;
 }
+

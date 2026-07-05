@@ -23,22 +23,22 @@ export default function GalleryPage() {
   return (
     <div className="min-h-screen pt-20">
       {/* 1. CINEMATIC HERO */}
-      <section className="relative h-[80vh] flex items-center justify-center overflow-hidden bg-background">
+      <section className="relative min-h-[68vh] md:h-[80vh] flex items-center justify-center overflow-hidden bg-background">
         <div className="absolute inset-0 z-0">
           <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-background" />
         </div>
         
-        <div className="container mx-auto px-6 relative z-10 text-center space-y-8">
+        <div className="container mx-auto px-6 relative z-10 text-center space-y-6 md:space-y-8">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             className="space-y-4"
           >
             <p className="text-xs font-black uppercase tracking-[0.5em] text-primary">The Art of Gifting</p>
-            <h1 className="text-6xl md:text-9xl font-headline font-bold tracking-tighter leading-tight italic">
+            <h1 className="text-4xl md:text-9xl font-headline font-bold tracking-tight md:tracking-tighter leading-tight italic">
               Portfolio <span className="text-primary not-italic">Showcase</span>
             </h1>
-            <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto font-light leading-relaxed">
+            <p className="text-base md:text-2xl text-muted-foreground max-w-2xl mx-auto font-light leading-relaxed">
               Crafting Memories Into Beautiful Personalized Gifts. Explore our collection of custom masterpieces.
             </p>
           </motion.div>
@@ -47,12 +47,12 @@ export default function GalleryPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
-            className="flex flex-wrap items-center justify-center gap-6 pt-8"
+            className="flex flex-wrap items-center justify-center gap-3 md:gap-6 pt-2 md:pt-8"
           >
-            <Button size="lg" className="rounded-full px-12 h-16 text-lg font-bold shadow-2xl shadow-primary/20" onClick={() => window.scrollTo({ top: window.innerHeight * 0.8, behavior: 'smooth' })}>
+            <Button size="lg" className="rounded-full px-5 md:px-12 h-10 md:h-16 text-sm md:text-lg font-bold shadow-xl md:shadow-2xl shadow-primary/20" onClick={() => window.scrollTo({ top: window.innerHeight * 0.8, behavior: 'smooth' })}>
               Explore Our Work
             </Button>
-            <Button variant="ghost" size="lg" className="rounded-full px-8 h-16 text-lg font-bold" asChild>
+            <Button variant="ghost" size="lg" className="rounded-full px-5 md:px-8 h-10 md:h-16 text-sm md:text-lg font-bold" asChild>
               <a href="https://wa.me/message/VXHAM4LMXFOSB1" target="_blank" rel="noopener noreferrer">
                 <MessageCircle className="w-6 h-6 mr-2" /> Chat with us
               </a>
@@ -62,7 +62,7 @@ export default function GalleryPage() {
       </section>
 
       {/* 2. THE PORTFOLIO ENGINE */}
-      <section className="py-32 bg-background">
+      <section className="py-12 md:py-32 bg-background">
         <div className="container mx-auto px-6">
           <PortfolioGrid 
             items={PORTFOLIO_ITEMS} 
@@ -72,16 +72,16 @@ export default function GalleryPage() {
       </section>
 
       {/* 3. HOW IT WORKS - REDUCING FRICTION */}
-      <section className="py-40 bg-secondary/30 relative">
+      <section className="py-16 md:py-40 bg-secondary/30 relative">
         <div className="container mx-auto px-6">
-          <div className="text-center space-y-6 mb-24">
-            <h2 className="text-4xl md:text-6xl font-headline font-bold">How We Create Magic</h2>
-            <p className="text-xl text-muted-foreground/80 max-w-2xl mx-auto italic">
+          <div className="text-center space-y-3 md:space-y-6 mb-10 md:mb-24">
+            <h2 className="text-3xl md:text-6xl font-headline font-bold">How We Create Magic</h2>
+            <p className="text-base md:text-xl text-muted-foreground/80 max-w-2xl mx-auto italic">
               Simple steps to turn your moments into lasting masterpieces.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12">
             {steps.map((step, i) => (
               <motion.div
                 key={i}
@@ -89,10 +89,10 @@ export default function GalleryPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="relative space-y-6 text-center"
+                className="relative space-y-4 md:space-y-6 text-center"
               >
-                <div className="w-24 h-24 rounded-[2rem] bg-background shadow-xl flex items-center justify-center mx-auto border-2 border-primary/10 text-primary group-hover:scale-110 transition-transform">
-                  <step.icon className="w-10 h-10" />
+                <div className="w-16 h-16 md:w-24 md:h-24 rounded-2xl md:rounded-[2rem] bg-background shadow-xl flex items-center justify-center mx-auto border-2 border-primary/10 text-primary group-hover:scale-110 transition-transform">
+                  <step.icon className="w-7 h-7 md:w-10 md:h-10" />
                 </div>
                 <div className="space-y-2">
                   <h3 className="text-xl font-headline font-bold">{step.title}</h3>
@@ -110,28 +110,28 @@ export default function GalleryPage() {
       </section>
 
       {/* 4. FINAL CLOSING CTA */}
-      <section className="py-40 bg-primary/5">
+      <section className="py-16 md:py-40 bg-primary/5">
         <div className="container mx-auto px-6">
-          <div className="max-w-5xl mx-auto rounded-[4rem] bg-primary p-12 md:p-24 text-center space-y-12 shadow-2xl shadow-primary/40 relative overflow-hidden">
+          <div className="max-w-5xl mx-auto rounded-3xl md:rounded-[4rem] bg-primary p-6 md:p-24 text-center space-y-6 md:space-y-12 shadow-2xl shadow-primary/40 relative overflow-hidden">
              {/* Decorative Background Accents */}
              <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
              <div className="absolute bottom-0 left-0 w-96 h-96 bg-black/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl" />
              
-             <div className="relative z-10 space-y-6">
-                <h2 className="text-5xl md:text-8xl font-headline font-bold text-white tracking-tighter">
+             <div className="relative z-10 space-y-4 md:space-y-6">
+                <h2 className="text-3xl md:text-8xl font-headline font-bold text-white tracking-tight md:tracking-tighter">
                   Ready to Start Your <br />
                   <span className="italic opacity-80">Custom Gift Today?</span>
                 </h2>
-                <p className="text-xl md:text-2xl text-white/80 max-w-2xl mx-auto font-light">
+                <p className="text-base md:text-2xl text-white/80 max-w-2xl mx-auto font-light">
                   Join thousands of satisfied customers who trust PGK GIFTS with their most precious memories.
                 </p>
              </div>
 
-             <div className="relative z-10 flex flex-wrap justify-center gap-6 pt-6">
-                <Button asChild size="lg" className="bg-white text-primary hover:bg-secondary h-20 px-12 rounded-full text-xl font-bold transition-all shadow-xl hover:scale-105 active:scale-95">
-                  <Link href="/shop">Browse Catalog <ArrowRight className="ml-3 w-6 h-6" /></Link>
+             <div className="relative z-10 flex flex-wrap justify-center gap-3 md:gap-6 pt-2 md:pt-6">
+                <Button asChild size="lg" className="bg-white text-primary hover:bg-secondary h-10 md:h-20 px-5 md:px-12 rounded-full text-sm md:text-xl font-bold transition-all shadow-xl hover:scale-105 active:scale-95">
+                  <Link href="/shop">Browse Catalog <ArrowRight className="ml-2 md:ml-3 w-4 h-4 md:w-6 md:h-6" /></Link>
                 </Button>
-                <Button asChild variant="outline" size="lg" className="border-2 border-white/50 bg-white/10 backdrop-blur-md text-white hover:bg-white h-20 px-12 rounded-full text-xl font-bold transition-all">
+                <Button asChild variant="outline" size="lg" className="border border-white/50 md:border-2 bg-white/10 backdrop-blur-md text-white hover:bg-white h-10 md:h-20 px-5 md:px-12 rounded-full text-sm md:text-xl font-bold transition-all">
                   <a href="https://wa.me/message/VXHAM4LMXFOSB1" target="_blank" rel="noopener noreferrer">
                     <MessageCircle className="mr-3 w-6 h-6" /> WhatsApp Support
                   </a>

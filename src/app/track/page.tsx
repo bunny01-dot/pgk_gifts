@@ -1,30 +1,48 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Search, Package, Navigation, CheckCircle2, MapPin, Truck, AlertCircle, Loader2 } from 'lucide-react';
-import { Order, OrderStatus } from '@/types/order';
+import { Search, Package, ArrowRight, AlertCircle, Loader2, Sparkles } from 'lucide-react';
+import { Order } from '@/types/order';
 import { formatPrice } from '@/utils/currency';
 import { formatDate } from '@/utils/date';
 import { Badge } from '@/components/ui/badge';
 
-const STATUS_STEPS = [
-  { id: 'pending', label: 'Order Placed', description: 'We have received your order.' },
-  { id: 'processing', label: 'Crafting', description: 'Your custom masterpiece is being created.' },
-  { id: 'shipped', label: 'Shipped', description: 'Handed over to our delivery partners.' },
-  { id: 'delivered', label: 'Delivered', description: 'Enjoy your masterpiece!' }
-];
-
-export default function OrderTrackingPage() {
+export default function TrackOrderPortal() {
+  const router = useRouter();
   const firestore = useFirestore();
+  const { user } = useUser();
+  
   const [trackingId, setTrackingId] = useState('');
   const [loading, setLoading] = useState(false);
-  const [order, setOrder] = useState<Order | null>(null);
   const [error, setError] = useState('');
+  const [myOrders, setMyOrders] = useState<Order[]>([]);
+  const [loadingMyOrders, setLoadingMyOrders] = useState(false);
+
+  useEffect(() => {
+    const fetchMyOrders = async () => {
+      if (!firestore || !user) {
+        setMyOrders([]);
+        return;
+      }
+      setLoadingMyOrders(true);
+      try {
+        const { OrdersService } = await import('@/services/orders.service');
+        const svc = new OrdersService(firestore);
+        const list = await svc.getMyOrders(user.uid, user.email || undefined);
+        setMyOrders(list);
+      } catch (err) {
+        console.error("Error fetching my orders:", err);
+      } finally {
+        setLoadingMyOrders(false);
+      }
+    };
+    fetchMyOrders();
+  }, [user, firestore]);
 
   const handleTrack = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,54 +57,52 @@ export default function OrderTrackingPage() {
       const result = await svc.getOrderByTrackingId(trackingId.trim());
       
       if (result) {
-        setOrder(result);
+        router.push(`/order/${result.id}`);
       } else {
-        setOrder(null);
-        setError("We couldn't find an order matching that Tracking ID. Please double check the ID provided in your SMS or email.");
+        setError("We couldn't find an order matching that Order ID. Please double check the code provided on your invoice or tracking email.");
       }
     } catch (err) {
       console.error(err);
-      setError("An error occurred while tracking. Please try again.");
+      setError("An error occurred while retrieving tracking details. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  const currentStepIndex = order 
-    ? STATUS_STEPS.findIndex(s => s.id === order.status) 
-    : -1;
-
   return (
-    <div className="min-h-screen pt-40 pb-40 bg-background flex flex-col items-center">
-      <div className="container max-w-4xl mx-auto px-6">
+    <div className="min-h-screen pt-28 md:pt-40 pb-20 md:pb-40 bg-accent/5 flex flex-col items-center">
+      <div className="container max-w-3xl mx-auto px-6">
         
-        <div className="text-center space-y-6 mb-16">
+        {/* Header */}
+        <div className="text-center space-y-4 mb-10 md:mb-16">
           <Badge variant="secondary" className="bg-primary/10 text-primary font-bold uppercase tracking-widest px-4 py-1.5 border-none">
-            Live Tracking
+            Live Tracking Portal
           </Badge>
-          <h1 className="text-5xl md:text-7xl font-headline font-bold text-foreground">Track Masterpiece</h1>
-          <p className="text-xl text-muted-foreground font-medium max-w-2xl mx-auto">
-            Enter your Tracking ID or Razorpay Order ID to see live updates on your custom gift.
+          <h1 className="text-4xl md:text-7xl font-headline font-bold text-foreground tracking-tight">Track Your Gift</h1>
+          <p className="text-base md:text-xl text-muted-foreground font-medium max-w-xl mx-auto leading-relaxed">
+            Enter your order reference ID below to view fabrication updates, shipping details, and access post-delivery options.
           </p>
         </div>
 
-        <Card className="rounded-[3rem] shadow-2xl p-8 md:p-12 border-white/5 bg-card/60 backdrop-blur-xl mb-12">
-          <form onSubmit={handleTrack} className="flex flex-col md:flex-row gap-4">
+        {/* Search Box */}
+        <Card className="rounded-3xl md:rounded-[3rem] shadow-premium p-5 md:p-10 border-none bg-card overflow-hidden relative">
+          <div className="absolute top-0 left-0 w-2 h-full bg-primary/20" />
+          <form onSubmit={handleTrack} className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 text-muted-foreground" />
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
                 value={trackingId}
                 onChange={(e) => setTrackingId(e.target.value)}
-                placeholder="Tracking ID (e.g., order_XYZ123)"
-                className="w-full pl-16 h-20 rounded-full bg-secondary/50 border-none text-xl font-bold font-mono placeholder:font-sans focus-visible:ring-primary shadow-inner"
+                placeholder="e.g. PGK-123456"
+                className="w-full pl-14 h-16 rounded-full bg-secondary/40 border-none text-base md:text-lg font-bold font-mono placeholder:font-sans focus-visible:ring-primary shadow-inner"
               />
             </div>
             <Button 
               type="submit" 
               disabled={loading || !trackingId.trim()} 
-              className="h-20 px-12 rounded-full text-xl font-bold shadow-xl shadow-primary/20"
+              className="h-16 px-10 rounded-full text-base font-bold shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] shrink-0"
             >
-              {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : "Track Order"}
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Track Order"}
             </Button>
           </form>
           
@@ -96,110 +112,92 @@ export default function OrderTrackingPage() {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="mt-6 flex items-center gap-3 text-destructive font-bold bg-destructive/10 p-5 rounded-2xl"
+                className="mt-6 flex items-start gap-3.5 text-destructive font-semibold bg-destructive/10 p-5 rounded-2xl border border-destructive/15 text-sm md:text-base"
               >
-                <AlertCircle className="w-6 h-6 shrink-0" />
-                <p>{error}</p>
+                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                <p className="leading-relaxed">{error}</p>
               </motion.div>
             )}
           </AnimatePresence>
         </Card>
 
-        <AnimatePresence>
-          {order && (
-            <motion.div 
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-12"
-            >
-              {order.status === 'cancelled' ? (
-                <Card className="rounded-[2rem] border-none bg-destructive/10 p-10 text-center">
-                  <AlertCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
-                  <h2 className="text-3xl font-headline font-bold text-destructive mb-2">Order Cancelled</h2>
-                  <p className="text-destructive/80 font-medium">This order has been cancelled. If you believe this is a mistake, please WhatsApp us.</p>
-                </Card>
-              ) : (
-                <Card className="rounded-[3rem] border-none bg-card shadow-2xl p-10 md:p-16 overflow-hidden relative">
-                  <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
-                    <Navigation className="w-64 h-64" />
-                  </div>
-                  
-                  <div className="flex flex-col md:flex-row justify-between md:items-end gap-6 mb-16 relative z-10">
-                    <div>
-                      <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-2">Order Details</p>
-                      <h2 className="text-4xl font-headline font-bold text-foreground break-all">#{order.orderId || order.id.slice(0, 8)}</h2>
-                      <p className="text-lg font-medium text-muted-foreground mt-2">Placed on {formatDate(order.createdAt)}</p>
-                    </div>
-                    <div className="bg-primary/10 px-6 py-3 rounded-2xl border border-primary/20">
-                      <p className="text-xs font-bold uppercase tracking-widest text-primary mb-1">Status</p>
-                      <p className="text-2xl font-bold text-primary">{order.status.toUpperCase()}</p>
-                    </div>
-                  </div>
-
-                  {/* Stepper */}
-                  <div className="relative z-10 py-8">
-                    <div className="absolute left-8 md:left-0 top-[40px] md:top-1/2 w-0.5 md:w-full h-full md:h-0.5 bg-secondary/50 -z-10" />
-                    
-                    <div className="flex flex-col md:flex-row justify-between gap-12 md:gap-4 relative">
-                      {STATUS_STEPS.map((step, index) => {
-                        const isCompleted = currentStepIndex >= index;
-                        const isCurrent = currentStepIndex === index;
-                        
-                        return (
-                          <div key={step.id} className="flex md:flex-col items-center md:items-center gap-6 md:gap-4 flex-1">
-                            <div className={`w-16 h-16 rounded-full flex items-center justify-center border-4 z-10 transition-all duration-500
-                              ${isCompleted ? 'bg-primary border-primary shadow-[0_0_30px_rgba(var(--primary),0.5)]' : 'bg-card border-secondary text-muted-foreground'}
-                              ${isCurrent ? 'scale-125' : 'scale-100'}
-                            `}>
-                              {isCompleted ? <CheckCircle2 className="w-8 h-8 text-primary-foreground" /> : <div className="w-3 h-3 rounded-full bg-muted-foreground/30" />}
-                            </div>
-                            <div className="md:text-center">
-                              <h3 className={`text-xl font-bold mb-1 ${isCompleted ? 'text-foreground' : 'text-muted-foreground'}`}>{step.label}</h3>
-                              <p className="text-sm font-medium text-muted-foreground">{step.description}</p>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  
-                  {/* Shipping Info */}
-                  <div className="mt-16 pt-12 border-t flex flex-col md:flex-row gap-12 relative z-10">
-                    <div className="flex-1 space-y-4 text-center md:text-left">
-                      <MapPin className="w-8 h-8 text-primary mx-auto md:mx-0 opacity-50" />
+        {/* User's Order History */}
+        {user && (
+          <div className="mt-16 md:mt-24 space-y-8">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <h3 className="text-2xl md:text-3xl font-headline font-bold text-foreground">Your Order History</h3>
+            </div>
+            
+            {loadingMyOrders ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : myOrders.length === 0 ? (
+              <Card className="rounded-[2.5rem] p-10 text-center border-none bg-card shadow-soft">
+                <Package className="w-12 h-12 mx-auto text-muted-foreground opacity-40 mb-4" />
+                <p className="text-muted-foreground font-medium text-lg">No orders associated with this account yet.</p>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 gap-4">
+                {myOrders.map((myOrder) => (
+                  <Card 
+                    key={myOrder.id} 
+                    onClick={() => router.push(`/order/${myOrder.id}`)}
+                    className="rounded-[2rem] p-6 border-none bg-card hover:bg-card/90 cursor-pointer transition-all duration-300 shadow-soft hover:shadow-premium group"
+                  >
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                       <div>
-                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Delivery Address</p>
-                        <p className="text-lg font-bold">{order.customerName}</p>
-                        <p className="text-muted-foreground font-medium">{order.address}</p>
-                        <p className="text-muted-foreground font-medium">{order.city}, {order.pincode}</p>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <span className="font-bold text-lg text-foreground font-mono">#{myOrder.orderId || myOrder.id.slice(0, 8)}</span>
+                          <Badge className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 border-none rounded-full ${
+                            myOrder.status === 'delivered' ? 'bg-green-500/10 text-green-700 dark:text-green-400' :
+                            myOrder.status === 'shipped' ? 'bg-blue-500/10 text-blue-700 dark:text-blue-400' :
+                            myOrder.status === 'cancelled' ? 'bg-red-500/10 text-red-700 dark:text-red-400' :
+                            'bg-amber-500/10 text-amber-700 dark:text-amber-400'
+                          }`}>
+                            {myOrder.status}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2 font-medium">Placed on {formatDate(myOrder.createdAt)}</p>
+                      </div>
+                      
+                      <div className="flex items-center justify-between md:justify-end gap-8 border-t md:border-t-0 pt-4 md:pt-0 border-border/40">
+                        <div className="text-left md:text-right">
+                          <p className="text-xs text-muted-foreground">Items: {myOrder.items?.reduce((acc, curr) => acc + curr.quantity, 0) || 0}</p>
+                          <p className="font-bold text-lg text-primary mt-0.5">{formatPrice(myOrder.total)}</p>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="rounded-full font-bold h-10 px-4 group-hover:bg-primary group-hover:text-primary-foreground transition-all flex items-center gap-2"
+                        >
+                          Details <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="w-px bg-border hidden md:block" />
-                    <div className="flex-1 space-y-4 text-center md:text-left">
-                       <Package className="w-8 h-8 text-primary mx-auto md:mx-0 opacity-50" />
-                       <div>
-                         <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-4">Items Ordered</p>
-                         <div className="space-y-3">
-                           {order.items?.map((item, i) => (
-                             <div key={i} className="flex items-center justify-between">
-                               <p className="font-bold text-lg"><span className="text-primary mr-2">{item.quantity}x</span> {item.name}</p>
-                             </div>
-                           ))}
-                         </div>
-                       </div>
-                    </div>
-                  </div>
-                </Card>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 // Temporary layout shell component needed for Card since we didn't import it at the top
-function Card({ className, children }: { className?: string, children: React.ReactNode }) {
-  return <div className={`bg-card text-card-foreground border rounded-lg ${className}`}>{children}</div>;
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+  children: React.ReactNode;
+}
+
+function Card({ className, children, ...props }: CardProps) {
+  return (
+    <div className={`bg-card text-card-foreground border rounded-lg ${className}`} {...props}>
+      {children}
+    </div>
+  );
 }

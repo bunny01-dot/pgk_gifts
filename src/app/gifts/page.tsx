@@ -60,18 +60,18 @@ const PRODUCTS = [
 
 export default function GiftsPage() {
   return (
-    <div className="bg-background py-20">
+    <div className="bg-background py-12 md:py-20">
       <div className="container mx-auto px-4">
-        <header className="text-center max-w-3xl mx-auto mb-16">
+        <header className="text-center max-w-3xl mx-auto mb-8 md:mb-16">
           <Badge variant="secondary" className="mb-4 rounded-full px-4 py-1 uppercase tracking-wider font-bold">Store</Badge>
-          <h1 className="text-5xl font-headline font-bold mb-6">Personalized Gifts</h1>
-          <p className="text-xl text-muted-foreground">
+          <h1 className="text-3xl md:text-5xl font-headline font-bold mb-3 md:mb-6">Personalized Gifts</h1>
+          <p className="text-base md:text-xl text-muted-foreground">
             Transform your cherished photos into unique, one-of-a-kind treasures. 
             Choose from our premium catalog and let us help you create the perfect memory.
           </p>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-8">
           {PRODUCTS.map((product) => {
             const placeholder = PlaceHolderImages.find(img => img.id === product.id) || {
               imageUrl: `https://picsum.photos/seed/${product.id}/600/600`,
@@ -118,16 +118,16 @@ export default function GiftsPage() {
         </div>
 
         {/* Call to Action */}
-        <div className="mt-24 bg-primary text-primary-foreground rounded-[2rem] p-12 text-center relative overflow-hidden">
+        <div className="mt-12 md:mt-24 bg-primary text-primary-foreground rounded-2xl md:rounded-[2rem] p-6 md:p-12 text-center relative overflow-hidden">
           <div className="absolute top-0 right-0 p-8 opacity-10">
             <Gift className="w-64 h-64 rotate-12" />
           </div>
           <div className="relative z-10 max-w-2xl mx-auto">
-            <h2 className="text-4xl font-headline font-bold mb-6">Need a Custom Quote for Bulk Orders?</h2>
-            <p className="text-lg opacity-90 mb-8">
+            <h2 className="text-2xl md:text-4xl font-headline font-bold mb-4 md:mb-6">Need a Custom Quote for Bulk Orders?</h2>
+            <p className="text-base md:text-lg opacity-90 mb-5 md:mb-8">
               Planning an event or looking for corporate branding gifts? We offer special pricing for large orders.
             </p>
-            <Button asChild size="lg" variant="secondary" className="rounded-full px-12 text-lg font-bold">
+            <Button asChild size="lg" variant="secondary" className="rounded-full h-10 md:h-12 px-5 md:px-12 text-sm md:text-lg font-bold">
               <Link href="/contact">Inquire Now</Link>
             </Button>
           </div>

@@ -138,13 +138,13 @@ export const PORTFOLIO_ITEMS: PortfolioItem[] = [
     createdAt: new Date()
   },
   {
-    id: "portfolio-caticorn-lamp",
-    title: "Magical Caticorn Magic Lamp",
+    id: "portfolio-unicorn-lamp",
+    title: "Magical Unicorn Lamp",
     category: "Light & Lamp Gifts",
     subcategory: "Imagination Collection",
     image: "https://i.postimg.cc/mgmvJGMQ/Unicorn-cat-shaped-light.png",
     images: ["https://i.postimg.cc/mgmvJGMQ/Unicorn-cat-shaped-light.png"],
-    description: "A whimsical fusion of a feline and a unicorn. This lamp uses high-fidelity LED diffusion to create a soft, eye-friendly magical glow.",
+    description: "A glowing, magical unicorn silicone lamp. This lamp uses high-fidelity LED diffusion to create a soft, eye-friendly magical glow.",
     tags: ["Fantasy", "Safe LED", "Whimsical"],
     featured: true,
     createdAt: new Date()

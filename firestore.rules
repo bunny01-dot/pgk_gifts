@@ -1,58 +1,197 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    /**
-     * PGK GIFTS PRODUCTION SECURITY RULES
-     * 
-     * Principles:
-     * 1. Public can read products and categories.
-     * 2. Only admins can write products/categories.
-     * 3. Orders are private: Only admins can read/list them.
-     * 4. Orders are created via backend verification logic.
-     */
 
     function isSignedIn() {
       return request.auth != null;
     }
 
     function isAdmin() {
-      return isSignedIn() && (
-        exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)) ||
-        request.auth.uid == '30S6HkIJXKWWSrmlLD8c8GBskst1'
-      );
+      return isSignedIn()
+        && (
+          exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid))
+          || request.auth.uid == '30S6HkIJXKWWSrmlLD8c8GBskst1'
+          || (request.auth.token.email != null && (
+               request.auth.token.email == 'admin@pgk.com'
+               || request.auth.token.email == 'kalab320@gmail.com'
+             ))
+        );
     }
 
-    // Role-based access control
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function hasOnlyKeys(keys) {
+      return request.resource.data.keys().hasOnly(keys);
+    }
+
+    function hasAllKeys(keys) {
+      return request.resource.data.keys().hasAll(keys);
+    }
+
+    function validString(field, min, max) {
+      return field is string
+        && field.size() >= min
+        && field.size() <= max;
+    }
+
+    function validOptionalString(field, max) {
+      return field == null || (field is string && field.size() <= max);
+    }
+
+    function validProductRef(productId) {
+      return productId is string
+        && productId.size() > 0
+        && productId.size() <= 150
+        && exists(/databases/$(database)/documents/products/$(productId));
+    }
+
+    function validCart() {
+      return hasOnlyKeys(['userId', 'items', 'updatedAt'])
+        && hasAllKeys(['userId', 'items', 'updatedAt'])
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.items is list
+        && request.resource.data.items.size() <= 50
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    function validReviewCreate(reviewId) {
+      return isSignedIn()
+        && hasOnlyKeys(['id', 'productId', 'authorUid', 'authorName', 'rating', 'text', 'photoUrl', 'createdAt'])
+        && hasAllKeys(['id', 'productId', 'authorUid', 'authorName', 'rating', 'text', 'createdAt'])
+        && request.resource.data.id == reviewId
+        && request.resource.data.authorUid == request.auth.uid
+        && reviewId == request.auth.uid + '_' + request.resource.data.productId
+        && validProductRef(request.resource.data.productId)
+        && validString(request.resource.data.authorName, 1, 80)
+        && request.resource.data.rating is number
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && validString(request.resource.data.text, 5, 1000)
+        && validOptionalString(request.resource.data.photoUrl, 1000)
+        && request.resource.data.createdAt == request.time;
+    }
+
+    function validUserProfile(userId) {
+      return hasOnlyKeys([
+          'uid',
+          'displayName',
+          'email',
+          'phone',
+          'photoURL',
+          'address',
+          'city',
+          'pincode',
+          'updatedAt',
+          'createdAt'
+        ])
+        && request.resource.data.uid == userId
+        && validOptionalString(request.resource.data.displayName, 100)
+        && validOptionalString(request.resource.data.email, 254)
+        && validOptionalString(request.resource.data.phone, 20)
+        && validOptionalString(request.resource.data.photoURL, 1000)
+        && validOptionalString(request.resource.data.address, 300)
+        && validOptionalString(request.resource.data.city, 100)
+        && validOptionalString(request.resource.data.pincode, 20)
+        && request.resource.data.updatedAt == request.time
+        && (
+          !('createdAt' in request.resource.data)
+          || request.resource.data.createdAt == request.time
+          || (
+            resource != null
+            && resource.data.createdAt == request.resource.data.createdAt
+          )
+        );
+    }
+
+    function validNotificationToken(userId) {
+      return hasOnlyKeys(['token', 'email', 'userId', 'updatedAt', 'platform'])
+        && hasAllKeys(['token', 'userId', 'updatedAt', 'platform'])
+        && request.resource.data.userId == userId
+        && request.resource.data.userId == request.auth.uid
+        && validString(request.resource.data.token, 10, 4096)
+        && validOptionalString(request.resource.data.email, 254)
+        && request.resource.data.platform in ['web']
+        && request.resource.data.updatedAt == request.time;
+    }
+
     match /roles_admin/{adminUid} {
-      allow get: if isSignedIn();
-      allow list, write: if false;
+      allow get: if isOwner(adminUid) || isAdmin();
+      allow list: if isAdmin();
+      allow create, update, delete: if isAdmin();
     }
 
-    // Product catalog: Publicly readable
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId) && validUserProfile(userId);
+      allow update: if isOwner(userId)
+        && validUserProfile(userId)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['uid', 'email', 'createdAt']);
+      allow delete: if isAdmin();
+    }
+
     match /products/{productId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow create, update, delete: if isAdmin();
     }
 
     match /categories/{categoryId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow create, update, delete: if isAdmin();
     }
 
-    // Orders: Locked down for privacy
     match /orders/{orderId} {
-      allow read: if isAdmin();
-      // In a real prod environment, we allow create only if verified by functions
-      // For this prototype, we allow create but list/read is restricted to admin
-      allow create: if true; 
+      allow get: if true;
+      allow list: if isAdmin()
+        || (isSignedIn() && (resource.data.createdBy == request.auth.uid || resource.data.customerEmail == request.auth.token.email));
+      allow create: if false;
       allow update, delete: if isAdmin();
     }
 
-    // Studio content
+    match /carts/{userId} {
+      allow get, list: if isAdmin() || isOwner(userId);
+      allow create, update: if isOwner(userId) && validCart();
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if validReviewCreate(reviewId);
+      allow update, delete: if isAdmin();
+    }
+
+    match /notification_tokens/{userId} {
+      allow get, list: if isAdmin() || isOwner(userId);
+      allow create, update: if isOwner(userId) && validNotificationToken(userId);
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
     match /websiteContent/{contentId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /razorpayOrders/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /processedPayments/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /auditLogs/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /internalOrders/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

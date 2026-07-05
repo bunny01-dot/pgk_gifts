@@ -118,8 +118,16 @@ export class ProductsService {
     const response = await fetch(url);
     const blob = await response.blob();
     const storageRef = ref(storage, path);
-    await uploadBytes(storageRef, blob);
-    return getDownloadURL(storageRef);
+    try {
+      await uploadBytes(storageRef, blob);
+      return getDownloadURL(storageRef);
+    } catch (uploadErr: any) {
+      if (process.env.NODE_ENV !== 'production' && uploadErr.code === 'storage/quota-exceeded') {
+        console.warn('Firebase Storage quota exceeded during migration. Using original URL fallback.');
+        return url;
+      }
+      throw uploadErr;
+    }
   }
 
   async migrateAllToFirebase(onStep?: (msg: string) => void) {
@@ -149,14 +157,21 @@ export class ProductsService {
     for (const p of PRODUCTS) {
       const docRef = doc(this.db, 'products', p.id);
       const snap = await getDoc(docRef);
+      const { id, ...data } = p;
       if (!snap.exists()) {
         onStep?.(`Syncing: ${p.name}`);
-        const { id, ...data } = p;
         await setDoc(docRef, {
           ...data,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         });
+        count++;
+      } else {
+        onStep?.(`Updating: ${p.name}`);
+        await setDoc(docRef, {
+          ...data,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
         count++;
       }
     }

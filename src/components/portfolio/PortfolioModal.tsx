@@ -31,9 +31,10 @@ export function PortfolioModal({ item, onClose }: PortfolioModalProps) {
         {/* Modal Container */}
         <motion.div
           layoutId={item.id}
-          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          initial={{ opacity: 0, scale: 0.95, y: 60 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.9, y: 20 }}
+          exit={{ opacity: 0, scale: 0.95, y: 60 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           className="relative w-full max-w-6xl h-full md:h-auto max-h-[90vh] bg-card border border-border/50 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row"
         >
           {/* Close Button */}
@@ -84,7 +85,7 @@ export function PortfolioModal({ item, onClose }: PortfolioModalProps) {
               <div className="space-y-6">
                 <div>
                   <h4 className="text-xs font-black uppercase tracking-widest text-primary mb-3">Project Overview</h4>
-                  <p className="text-lg text-muted-foreground/80 leading-relaxed font-light">
+                  <p className="text-lg text-muted-foreground leading-relaxed font-light">
                     {item.description}
                   </p>
                 </div>

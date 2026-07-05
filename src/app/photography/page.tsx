@@ -30,18 +30,18 @@ export default function PhotographyPage() {
   return (
     <div className="bg-background">
       {/* Portfolio Hero */}
-      <section className="relative py-32 flex items-center justify-center bg-accent/30 overflow-hidden">
+      <section className="relative py-16 md:py-32 flex items-center justify-center bg-accent/30 overflow-hidden">
         <div className="container mx-auto px-4 relative z-10 text-center max-w-3xl">
           <Badge variant="outline" className="mb-6 border-primary text-primary px-4 py-1 rounded-full uppercase font-bold tracking-widest">
             The Lens of PGK
           </Badge>
-          <h1 className="text-5xl md:text-7xl font-headline font-bold mb-8 text-foreground">
+          <h1 className="text-3xl md:text-7xl font-headline font-bold mb-4 md:mb-8 text-foreground">
             Capturing Stories, Not Just Pictures
           </h1>
-          <p className="text-xl text-muted-foreground mb-10 leading-relaxed">
+          <p className="text-base md:text-xl text-muted-foreground mb-6 md:mb-10 leading-relaxed">
             Our photography service is dedicated to the art of storytelling through light, composition, and authentic human emotion.
           </p>
-          <Button asChild size="lg" className="rounded-full px-8">
+          <Button asChild size="lg" className="rounded-full h-10 md:h-12 px-5 md:px-8 text-sm md:text-base">
             <Link href="/contact">Book a Session <Calendar className="ml-2 w-5 h-5" /></Link>
           </Button>
         </div>
@@ -51,16 +51,16 @@ export default function PhotographyPage() {
       </section>
 
       {/* Categories Grid */}
-      <section className="py-24">
+      <section className="py-12 md:py-24">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-12">
             {CATEGORIES.map((cat) => {
               const img = PlaceHolderImages.find(i => i.id === cat.id);
               const categorySrc = img?.imageUrl || `https://picsum.photos/seed/${cat.id}/800/1000`;
               
               return (
-                <div key={cat.id} className="flex flex-col gap-6 group">
-                  <div className="relative aspect-[3/4] rounded-2xl overflow-hidden shadow-xl">
+                <div key={cat.id} className="flex flex-col gap-4 md:gap-6 group">
+                  <div className="relative aspect-square rounded-2xl overflow-hidden shadow-xl">
                     <Image
                       src={categorySrc}
                       alt={cat.title}
@@ -68,13 +68,11 @@ export default function PhotographyPage() {
                       className="object-cover transition-transform duration-700 group-hover:scale-105"
                       data-ai-hint={img?.imageHint || "photography"}
                     />
-                    <div className="absolute bottom-6 left-6 right-6">
-                      <div className="bg-card/90 backdrop-blur-md p-6 rounded-xl shadow-lg border border-border/50">
-                        <span className="text-xs font-bold text-primary uppercase tracking-widest mb-2 block">{cat.count}</span>
-                        <h3 className="text-2xl font-headline font-bold mb-2 text-foreground">{cat.title}</h3>
-                        <p className="text-sm text-muted-foreground">{cat.description}</p>
-                      </div>
-                    </div>
+                  </div>
+                  <div className="text-center px-2">
+                    <span className="text-xs font-bold text-primary uppercase tracking-widest mb-2 block">{cat.count}</span>
+                    <h3 className="text-2xl font-body font-bold mb-2 text-foreground">{cat.title}</h3>
+                    <p className="text-sm text-muted-foreground">{cat.description}</p>
                   </div>
                 </div>
               );
@@ -84,10 +82,10 @@ export default function PhotographyPage() {
       </section>
 
       {/* Featured Gallery */}
-      <section className="py-24 bg-primary text-primary-foreground">
+      <section className="py-14 md:py-24 bg-primary text-primary-foreground">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-headline font-bold mb-4">Our Gallery</h2>
+          <div className="text-center mb-8 md:mb-16">
+            <h2 className="text-3xl md:text-4xl font-headline font-bold mb-4">Our Gallery</h2>
             <p className="text-primary-foreground/70 max-w-xl mx-auto">Explore some of our most memorable work across various styles and environments.</p>
           </div>
           
@@ -108,8 +106,8 @@ export default function PhotographyPage() {
             ))}
           </div>
           
-          <div className="text-center mt-16">
-            <Button variant="secondary" size="lg" className="rounded-full px-12 text-primary font-bold">
+          <div className="text-center mt-8 md:mt-16">
+            <Button variant="secondary" size="lg" className="rounded-full h-10 md:h-12 px-5 md:px-12 text-sm md:text-base text-primary font-bold">
               Check Instagram Feed <ArrowRight className="ml-2 w-4 h-4" />
             </Button>
           </div>
@@ -117,9 +115,9 @@ export default function PhotographyPage() {
       </section>
 
       {/* Process Section */}
-      <section className="py-24 bg-background">
+      <section className="py-14 md:py-24 bg-background">
         <div className="container mx-auto px-4">
-          <h2 className="text-4xl font-headline font-bold mb-16 text-center">The PGK Photography Experience</h2>
+          <h2 className="text-3xl md:text-4xl font-headline font-bold mb-8 md:mb-16 text-center">The PGK Photography Experience</h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             {[
               { title: "Consultation", text: "We discuss your vision, location, and stylistic preferences." },

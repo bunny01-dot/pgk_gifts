@@ -3,7 +3,8 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { PRODUCTS, Category } from '@/lib/data';
+import { PRODUCTS } from '@/lib/data';
+import type { Category } from '@/types/product';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Grid, Sparkles, Heart, Gift } from 'lucide-react';
@@ -12,7 +13,7 @@ const CATEGORIES: { name: string; value: Category | 'All'; icon: any }[] = [
   { name: 'All Products', value: 'All', icon: Grid },
   { name: 'Night Lamps', value: 'Night Lamps', icon: Sparkles },
   { name: 'Cute Toys', value: 'Cute Toys', icon: Heart },
-  { name: 'Customized Gifts', value: 'Customized Gifts', icon: Gift },
+  { name: 'Personalized Gifts', value: 'Personalized Gifts', icon: Gift },
 ];
 
 export default function ProductsPage() {
@@ -23,25 +24,25 @@ export default function ProductsPage() {
     : PRODUCTS.filter(p => p.category === activeCategory);
 
   return (
-    <div className="min-h-screen pt-32">
+    <div className="min-h-screen pt-24 md:pt-32">
       <div className="container mx-auto px-4">
-        <header className="text-center max-w-3xl mx-auto mb-20 space-y-6">
-          <h1 className="text-5xl md:text-7xl font-headline font-bold">Our Catalog</h1>
-          <p className="text-xl text-muted-foreground">
+        <header className="text-center max-w-3xl mx-auto mb-8 md:mb-20 space-y-3 md:space-y-6">
+          <h1 className="text-3xl md:text-7xl font-headline font-bold">Our Catalog</h1>
+          <p className="text-base md:text-xl text-muted-foreground">
             Browse our wide range of personalized gifts, artistic frames, and unique light lamps designed to make every occasion special.
           </p>
         </header>
 
         {/* Filter Bar */}
-        <div className="flex flex-wrap justify-center gap-3 mb-16">
+        <div className="flex flex-wrap justify-center gap-2 md:gap-3 mb-8 md:mb-16">
           {CATEGORIES.map((cat) => (
             <Button
               key={cat.value}
               onClick={() => setActiveCategory(cat.value)}
               variant={activeCategory === cat.value ? 'default' : 'outline'}
-              className={`rounded-full px-8 py-6 h-14 text-lg font-bold transition-all ${activeCategory === cat.value ? 'shadow-xl' : ''}`}
+              className={`rounded-full px-4 md:px-8 py-2 md:py-6 h-9 md:h-14 text-xs md:text-lg font-bold transition-all ${activeCategory === cat.value ? 'shadow-xl' : ''}`}
             >
-              <cat.icon className="mr-2 w-5 h-5" /> {cat.name}
+              <cat.icon className="mr-2 w-4 h-4 md:w-5 md:h-5" /> {cat.name}
             </Button>
           ))}
         </div>
@@ -49,7 +50,7 @@ export default function ProductsPage() {
         {/* Products Grid */}
         <motion.div 
           layout
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
+          className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8"
         >
           {filteredProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
@@ -57,7 +58,7 @@ export default function ProductsPage() {
         </motion.div>
 
         {filteredProducts.length === 0 && (
-          <div className="text-center py-20 bg-accent/20 rounded-[3rem]">
+          <div className="text-center py-10 md:py-20 bg-accent/20 rounded-2xl md:rounded-[3rem]">
             <h3 className="text-2xl font-headline font-bold mb-4">No products found</h3>
             <p className="text-muted-foreground">Try selecting a different category.</p>
           </div>

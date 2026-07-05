@@ -1,0 +1,5 @@
+# Ignore uncompressed raw source assets (since they are optimized and copied into /public/assets)
+/assets
+
+# Ignore utility scratch scripts and files
+/scratch

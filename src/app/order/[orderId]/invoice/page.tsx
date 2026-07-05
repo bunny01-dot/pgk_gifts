@@ -51,10 +51,18 @@ export default function InvoicePage() {
     );
   }
 
+  const handleBack = () => {
+    if (typeof window !== 'undefined' && (document.referrer === '' || !document.referrer.includes(window.location.host))) {
+      router.push(`/order/${orderId}`);
+    } else {
+      router.back();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-accent/5 py-20 px-4">
       <div className="max-w-4xl mx-auto mb-8 flex justify-between items-center no-print">
-        <Button variant="ghost" onClick={() => router.back()} className="rounded-full">
+        <Button variant="ghost" onClick={handleBack} className="rounded-full">
           <ArrowLeft className="mr-2 w-4 h-4" /> Back to Order
         </Button>
         <div className="flex gap-4">

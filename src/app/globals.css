@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  scroll-behavior: smooth;
+}
+
 @layer base {
   :root {
     /* #FAFCFB converted to HSL: 150 20% 98% */
@@ -19,7 +23,7 @@
     --secondary: 303 10% 92%;
     --secondary-foreground: 303 62% 14%;
     --muted: 303 10% 90%;
-    --muted-foreground: 303 20% 40%;
+    --muted-foreground: 303 20% 30%; /* Darker for better contrast in light mode */
     --accent: 303 10% 90%;
     --accent-foreground: 303 62% 14%;
     
@@ -48,7 +52,7 @@
     --secondary: 303 40% 18%;
     --secondary-foreground: 150 20% 98%;
     --muted: 303 40% 20%;
-    --muted-foreground: 150 20% 85%; /* High contrast text */
+    --muted-foreground: 150 20% 90%; /* Brighter for better contrast in dark mode */
     --accent: 303 40% 22%;
     --accent-foreground: 150 20% 98%;
     
