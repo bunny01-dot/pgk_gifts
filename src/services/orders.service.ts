@@ -10,7 +10,8 @@ import {
   orderBy,
   updateDoc,
   Firestore,
-  onSnapshot
+  onSnapshot,
+  where
 } from 'firebase/firestore';
 import { Order, OrderStatus, ReturnRequest } from '@/types/order';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -169,5 +170,59 @@ export class OrdersService {
       console.error("Error fetching my orders:", e);
       return [];
     }
+  }
+
+  subscribeToMyOrders(userId: string, email: string | undefined, callback: (orders: Order[]) => void) {
+    const ordersRef = collection(this.db, 'orders');
+    const q = query(ordersRef, where('createdBy', '==', userId));
+
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+        
+        // Also support fetching by email if provided
+        if (email) {
+          const qEmail = query(ordersRef, where('customerEmail', '==', email));
+          getDocs(qEmail).then(emailSnap => {
+            emailSnap.docs.forEach(doc => {
+              if (!list.some(item => item.id === doc.id)) {
+                list.push({ id: doc.id, ...doc.data() } as Order);
+              }
+            });
+            // Sort
+            list.sort((a, b) => {
+              const parseDate = (d: any) => {
+                if (!d) return 0;
+                if (typeof d === 'string') return new Date(d).getTime();
+                if (typeof d.toDate === 'function') return d.toDate().getTime();
+                if (typeof d.seconds === 'number') return d.seconds * 1000;
+                return new Date(d).getTime();
+              };
+              return parseDate(b.createdAt) - parseDate(a.createdAt);
+            });
+            callback(list);
+          }).catch(err => {
+            console.error("Error fetching email orders in subscription:", err);
+            callback(list);
+          });
+        } else {
+          list.sort((a, b) => {
+            const parseDate = (d: any) => {
+              if (!d) return 0;
+              if (typeof d === 'string') return new Date(d).getTime();
+              if (typeof d.toDate === 'function') return d.toDate().getTime();
+              if (typeof d.seconds === 'number') return d.seconds * 1000;
+              return new Date(d).getTime();
+            };
+            return parseDate(b.createdAt) - parseDate(a.createdAt);
+          });
+          callback(list);
+        }
+      },
+      (error) => {
+        console.error("Error subscribing to my orders:", error);
+      }
+    );
   }
 }

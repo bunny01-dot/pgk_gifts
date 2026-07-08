@@ -5,6 +5,7 @@ import { getAdminAuth, getAdminDb } from '@/firebase/admin';
 import { isRateLimited, verifyCsrf, verifyAppCheck } from '@/utils/security';
 import { logger } from '@/utils/logger';
 import { PRODUCTS } from '@/lib/data';
+import { getItemDeliveryCharge } from '@/utils/customization';
 
 export const runtime = 'nodejs';
 
@@ -36,9 +37,10 @@ type ProductData = {
   price?: number;
   image?: string;
   category?: string;
+  dimensions?: string;
   active?: boolean;
   sizes?: { name: string; price: number }[];
-  deliveryCharge?: 'complimentary' | 'regular';
+  deliveryCharge?: 'complimentary' | 'regular' | number;
   weight?: number;
 };
 
@@ -138,44 +140,55 @@ async function getCreatedBy(request: Request) {
 }
 
 function getUnitPrice(product: ProductData, selectedSize?: string) {
+  let basePrice = product.price;
   if (selectedSize) {
     const size = product.sizes?.find((candidate) => candidate.name === selectedSize);
     if (!size || typeof size.price !== 'number' || size.price < 0) {
       throw new Error(`Selected size is not available for ${product.name || 'product'}.`);
     }
-    return size.price;
+    basePrice = size.price;
   }
 
-  if (typeof product.price !== 'number' || product.price < 0) {
+  if (typeof basePrice !== 'number' || basePrice < 0) {
     throw new Error(`Product price is invalid for ${product.name || 'product'}.`);
   }
 
-  return product.price;
+  return Math.round(basePrice * 1.03);
 }
 
 async function buildServerCalculatedOrder(items: CheckoutItemInput[], state: string) {
   const adminDb = getAdminDb();
+
+  // Load global settings
+  let giftWrapPrice = 50;
+  let deliverySettings: any = null;
+  try {
+    const settingsSnap = await adminDb.collection('settings').doc('global').get();
+    if (settingsSnap.exists) {
+      const data = settingsSnap.data();
+      if (typeof data?.giftWrapPrice === 'number') {
+        giftWrapPrice = data.giftWrapPrice;
+      }
+      deliverySettings = {
+        lampDeliveryCharge: data?.lampDeliveryCharge,
+        mdfDeliveryCharge: data?.mdfDeliveryCharge,
+        largeFrameDeliveryCharge: data?.largeFrameDeliveryCharge,
+        tnDeliveryMultiplier: data?.tnDeliveryMultiplier,
+        otherDeliveryMultiplier: data?.otherDeliveryMultiplier,
+      };
+    }
+  } catch (err) {
+    logger.error('Error fetching global settings for checkout verification', err);
+  }
+
   const lineItems = [];
   let subtotal = 0;
-  let hasRegularShipping = false;
-  let totalWeight = 0;
+  let shippingFee = 0;
 
   for (const item of items) {
     let product: ProductData | undefined;
 
     if (item.productId === 'upsell_wrap') {
-      let giftWrapPrice = 50;
-      try {
-        const settingsSnap = await adminDb.collection('settings').doc('global').get();
-        if (settingsSnap.exists) {
-          const data = settingsSnap.data();
-          if (typeof data?.giftWrapPrice === 'number') {
-            giftWrapPrice = data.giftWrapPrice;
-          }
-        }
-      } catch (err) {
-        logger.error('Error fetching global settings for gift wrap price', err);
-      }
       product = {
         name: 'Premium Gift Wrap',
         price: giftWrapPrice,
@@ -200,11 +213,9 @@ async function buildServerCalculatedOrder(items: CheckoutItemInput[], state: str
             .limit(1)
             .get();
 
-          const firstDoc = querySnap.docs[0];
-          if (firstDoc) {
-            product = firstDoc.data() as ProductData;
+          if (!querySnap.empty) {
+            product = querySnap.docs[0]?.data() as ProductData;
           } else {
-            // If not in database, fallback to static product representation
             product = staticProduct as any as ProductData;
           }
         }
@@ -219,11 +230,14 @@ async function buildServerCalculatedOrder(items: CheckoutItemInput[], state: str
       throw new Error(`${product.name || 'A product'} is not available for purchase.`);
     }
 
-    if (product.deliveryCharge !== 'complimentary') {
-      hasRegularShipping = true;
-      const itemWeight = product.weight && product.weight > 0 ? product.weight : 1;
-      totalWeight += itemWeight * item.quantity;
-    }
+    const itemDeliveryCharge = getItemDeliveryCharge({
+      name: product.name || '',
+      category: product.category || '',
+      dimensions: product.dimensions || '',
+      deliveryCharge: product.deliveryCharge,
+      weight: product.weight
+    }, state, deliverySettings || undefined);
+    shippingFee += itemDeliveryCharge * item.quantity;
 
     const unitPrice = getUnitPrice(product, item.selectedSize);
     const lineTotal = unitPrice * item.quantity;
@@ -243,9 +257,6 @@ async function buildServerCalculatedOrder(items: CheckoutItemInput[], state: str
     });
   }
 
-  const weightCeil = Math.max(1, Math.ceil(totalWeight));
-  const multiplier = state.trim().toLowerCase() === 'tamil nadu' ? 50 : 100;
-  const shippingFee = hasRegularShipping ? (weightCeil * multiplier) : 0;
   const total = subtotal + shippingFee;
   if (!Number.isFinite(total) || total <= 0) {
     throw new Error('Order total is invalid.');
@@ -321,7 +332,9 @@ export async function POST(request: Request) {
       }
     }
 
-    const finalTotal = Math.max(0, calculated.total - discountAmount);
+    const baseTotal = Math.max(0, calculated.total - discountAmount);
+    const gatewayFee = 0; // gatewayFee absorbed in the 3% product markups
+    const finalTotal = baseTotal;
     const amountPaise = Math.round(finalTotal * 100);
 
     const razorpay = getRazorpayClient();
@@ -345,6 +358,7 @@ export async function POST(request: Request) {
       subtotal: calculated.subtotal,
       shippingFee: calculated.shippingFee,
       discount: discountAmount,
+      gatewayFee,
       couponCode: couponCode || null,
       appliedCoupon,
       items: calculated.items,
@@ -356,7 +370,7 @@ export async function POST(request: Request) {
       updatedAt: FieldValue.serverTimestamp(),
     }));
 
-    logger.info('Razorpay order created successfully', { orderId: order.id, uid: createdBy.uid });
+    logger.info('Razorpay order created successfully with gateway fee', { orderId: order.id, uid: createdBy.uid, gatewayFee });
 
     return NextResponse.json({
       id: order.id,

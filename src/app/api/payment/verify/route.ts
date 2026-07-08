@@ -187,6 +187,7 @@ export async function POST(request: Request) {
         subtotal: razorpayOrder.subtotal,
         shippingFee: razorpayOrder.shippingFee,
         discount: Number(razorpayOrder.discount || 0),
+        gatewayFee: Number(razorpayOrder.gatewayFee || 0),
         couponCode: razorpayOrder.couponCode || null,
         appliedCoupon: razorpayOrder.appliedCoupon || null,
         paymentStatus: 'paid',

@@ -10,10 +10,13 @@ import { Button } from '@/components/ui/button';
 import { CategoryShowcase } from '@/components/home/CategoryShowcase';
 import { ProductCard } from '@/components/product/ProductCard';
 import { PRODUCTS, CONTACT_INFO } from '@/lib/data';
+import { adjustProductPrice } from '@/utils/currency';
+const ADJUSTED_PRODUCTS = PRODUCTS.map(p => adjustProductPrice(p));
+
 import type { Product } from '@/types/product';
 
 export default function Home() {
-  const firstProduct = PRODUCTS[0];
+  const firstProduct = ADJUSTED_PRODUCTS[0];
   if (!firstProduct) {
     throw new Error("No products found in catalog.");
   }
@@ -21,16 +24,16 @@ export default function Home() {
   
   // A balanced curated mix of featured products across categories, including the new MDF frames
   const featuredProducts = [
-    ...PRODUCTS.filter(p => p.category === 'MDF Wall Frames' && p.featured).slice(0, 2),
-    ...PRODUCTS.filter(p => p.category === 'Wall Decor and Photo Frames' && p.featured).slice(0, 2),
-    ...PRODUCTS.filter(p => p.category === 'Night Lamps' && p.featured).slice(0, 2),
-    ...PRODUCTS.filter(p => (p.category === 'Personalized Gifts' || p.category === 'Car Dashboard Accessories') && p.featured).slice(0, 2)
+    ...ADJUSTED_PRODUCTS.filter(p => p.category === 'MDF Wall Frames' && p.featured).slice(0, 2),
+    ...ADJUSTED_PRODUCTS.filter(p => p.category === 'Wall Decor and Photo Frames' && p.featured).slice(0, 2),
+    ...ADJUSTED_PRODUCTS.filter(p => p.category === 'Night Lamps' && p.featured).slice(0, 2),
+    ...ADJUSTED_PRODUCTS.filter(p => (p.category === 'Personalized Gifts' || p.category === 'Car Dashboard Accessories') && p.featured).slice(0, 2)
   ];
 
   useEffect(() => {
     // Pick a random product on mount to keep the experience fresh
-    const randomIndex = Math.floor(Math.random() * PRODUCTS.length);
-    const randomProduct = PRODUCTS[randomIndex];
+    const randomIndex = Math.floor(Math.random() * ADJUSTED_PRODUCTS.length);
+    const randomProduct = ADJUSTED_PRODUCTS[randomIndex];
     if (randomProduct) {
       setFeaturedProduct(randomProduct);
     }
@@ -53,7 +56,7 @@ export default function Home() {
                transition={{ repeat: Infinity, duration: 50, ease: "linear" }}
                className="flex gap-8"
             >
-               {[...PRODUCTS, ...PRODUCTS].map((p, i) => (
+               {[...ADJUSTED_PRODUCTS, ...ADJUSTED_PRODUCTS].map((p, i) => (
                  <Link 
                    key={`row1-${i}`}
                    href={p.category === 'Night Lamps' ? '/shop?category=Night Lamps' : `/products/${p.id}`}
@@ -72,7 +75,7 @@ export default function Home() {
                transition={{ repeat: Infinity, duration: 45, ease: "linear" }}
                className="flex gap-8"
             >
-               {[...PRODUCTS, ...PRODUCTS].reverse().map((p, i) => (
+               {[...ADJUSTED_PRODUCTS, ...ADJUSTED_PRODUCTS].reverse().map((p, i) => (
                  <Link 
                    key={`row2-${i}`}
                    href={p.category === 'Night Lamps' ? '/shop?category=Night Lamps' : `/products/${p.id}`}

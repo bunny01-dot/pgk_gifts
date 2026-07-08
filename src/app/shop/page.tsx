@@ -4,6 +4,9 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PRODUCTS } from '@/lib/data';
+import { adjustProductPrice } from '@/utils/currency';
+const ADJUSTED_PRODUCTS = PRODUCTS.map(p => adjustProductPrice(p));
+
 import type { Category } from '@/types/product';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Button } from '@/components/ui/button';
@@ -40,7 +43,7 @@ function ShopContent() {
 
   const [activeCategory, setActiveCategory] = useState<Category | 'All'>(initialCategory);
   const [searchQuery, setSearchQuery] = useState('');
-  const [dbProducts, setDbProducts] = useState<any[]>(PRODUCTS);
+  const [dbProducts, setDbProducts] = useState<any[]>(ADJUSTED_PRODUCTS);
   const [loading, setLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -93,7 +96,7 @@ function ShopContent() {
         // Elite Scaling: Prepare index and ensure business-ranking fields exist
         let merged = (dynamic || []).map(p => {
           // Authority Mapping: Use local PRODUCTS definition to determine the correct category
-          const localProduct = PRODUCTS.find(lp => lp.name === p.name);
+          const localProduct = ADJUSTED_PRODUCTS.find(lp => lp.name === p.name);
           let authoritativeCategory = localProduct ? localProduct.category : p.category;
 
           // Enforcement: Re-route generic Wall Decor Photo Frames string if any
@@ -110,7 +113,7 @@ function ShopContent() {
         });
         
         // Merge missing local products that might not be in Firestore yet
-        PRODUCTS.forEach(localP => {
+        ADJUSTED_PRODUCTS.forEach(localP => {
            const localImgFile = (localP.image.split('/').pop()?.split('?')[0] ?? '').toLowerCase();
            
            if (!merged.find(p => {
@@ -127,7 +130,7 @@ function ShopContent() {
 
         // Strict Authority: For the "Night Lamps" category, we override everything to match the local 17-asset catalog exactly.
         // This removes any duplicates that might exist in Firestore but not in our clean local list.
-        const cleanNightLamps = PRODUCTS
+        const cleanNightLamps = ADJUSTED_PRODUCTS
           .filter(p => p.category === 'Night Lamps')
           .map(p => ({
             ...p,
@@ -137,7 +140,7 @@ function ShopContent() {
         merged = merged.filter(p => p.category !== 'Night Lamps');
         merged = [...merged, ...cleanNightLamps];
 
-        const cleanWallDecor = PRODUCTS
+        const cleanWallDecor = ADJUSTED_PRODUCTS
           .filter(p => p.category === 'Wall Decor and Photo Frames')
           .map(p => ({
             ...p,
@@ -147,7 +150,7 @@ function ShopContent() {
         merged = merged.filter(p => p.category !== 'Wall Decor and Photo Frames' && String(p.category) !== 'Wall Decor Photo Frames');
         merged = [...merged, ...cleanWallDecor];
 
-        const cleanMdfFrames = PRODUCTS
+        const cleanMdfFrames = ADJUSTED_PRODUCTS
           .filter(p => p.category === 'MDF Wall Frames')
           .map(p => ({
             ...p,
@@ -157,7 +160,7 @@ function ShopContent() {
         merged = merged.filter(p => p.category !== 'MDF Wall Frames');
         merged = [...merged, ...cleanMdfFrames];
 
-        const cleanKeychains = PRODUCTS
+        const cleanKeychains = ADJUSTED_PRODUCTS
           .filter(p => p.category === 'Keychains')
           .map(p => ({
             ...p,
@@ -167,7 +170,7 @@ function ShopContent() {
         merged = merged.filter(p => p.category !== 'Keychains');
         merged = [...merged, ...cleanKeychains];
 
-        const cleanPersonalizedGifts = PRODUCTS
+        const cleanPersonalizedGifts = ADJUSTED_PRODUCTS
           .filter(p => p.category === 'Personalized Gifts')
           .map(p => ({
             ...p,

@@ -74,6 +74,11 @@ export default function AdminPage() {
 
   // Global settings state
   const [adminGiftWrapPrice, setAdminGiftWrapPrice] = useState(50);
+  const [adminLampDeliveryCharge, setAdminLampDeliveryCharge] = useState(50);
+  const [adminMdfDeliveryCharge, setAdminMdfDeliveryCharge] = useState(80);
+  const [adminLargeFrameDeliveryCharge, setAdminLargeFrameDeliveryCharge] = useState(100);
+  const [adminTnDeliveryMultiplier, setAdminTnDeliveryMultiplier] = useState(50);
+  const [adminOtherDeliveryMultiplier, setAdminOtherDeliveryMultiplier] = useState(100);
   const [savingSettings, setSavingSettings] = useState(false);
 
   // Notification Center state
@@ -138,6 +143,21 @@ export default function AdminPage() {
           if (typeof data.giftWrapPrice === 'number') {
             setAdminGiftWrapPrice(data.giftWrapPrice);
           }
+          if (typeof data.lampDeliveryCharge === 'number') {
+            setAdminLampDeliveryCharge(data.lampDeliveryCharge);
+          }
+          if (typeof data.mdfDeliveryCharge === 'number') {
+            setAdminMdfDeliveryCharge(data.mdfDeliveryCharge);
+          }
+          if (typeof data.largeFrameDeliveryCharge === 'number') {
+            setAdminLargeFrameDeliveryCharge(data.largeFrameDeliveryCharge);
+          }
+          if (typeof data.tnDeliveryMultiplier === 'number') {
+            setAdminTnDeliveryMultiplier(data.tnDeliveryMultiplier);
+          }
+          if (typeof data.otherDeliveryMultiplier === 'number') {
+            setAdminOtherDeliveryMultiplier(data.otherDeliveryMultiplier);
+          }
           if (Array.isArray(data.customCategories)) {
             setCustomCategories(data.customCategories);
           }
@@ -155,10 +175,17 @@ export default function AdminPage() {
     try {
       const { doc, setDoc } = await import("firebase/firestore");
       const docRef = doc(firestore, "settings", "global");
-      await setDoc(docRef, { giftWrapPrice: adminGiftWrapPrice }, { merge: true });
+      await setDoc(docRef, { 
+        giftWrapPrice: adminGiftWrapPrice,
+        lampDeliveryCharge: adminLampDeliveryCharge,
+        mdfDeliveryCharge: adminMdfDeliveryCharge,
+        largeFrameDeliveryCharge: adminLargeFrameDeliveryCharge,
+        tnDeliveryMultiplier: adminTnDeliveryMultiplier,
+        otherDeliveryMultiplier: adminOtherDeliveryMultiplier,
+      }, { merge: true });
       toast({
         title: "Settings Saved",
-        description: `Premium Gift Wrap price updated to ₹${adminGiftWrapPrice}.`
+        description: `Premium Shop and Delivery settings updated successfully.`
       });
     } catch (e: any) {
       toast({
@@ -211,6 +238,19 @@ export default function AdminPage() {
     }
   };
 
+  const adminDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'roles_admin', user.uid);
+  }, [firestore, user]);
+
+  const { data: adminRole, isLoading: isAdminCheckLoading } = useDoc(adminDocRef);
+  const isSuperAdmin = user?.uid === '30S6HkIJXKWWSrmlLD8c8GBskst1';
+  const isAdmin = Boolean(
+    adminRole ||
+    isSuperAdmin ||
+    (user?.email && ADMIN_EMAILS.includes(user.email))
+  );
+
   // Load and save read notification IDs
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -225,14 +265,54 @@ export default function AdminPage() {
     }
   }, []);
 
-  const markAsRead = (id: string) => {
+  useEffect(() => {
+    if (adminRole?.readNotificationIds && Array.isArray(adminRole.readNotificationIds)) {
+      setReadNotificationIds(prev => {
+        const merged = Array.from(new Set([...prev, ...adminRole.readNotificationIds]));
+        return merged;
+      });
+    }
+  }, [adminRole]);
+
+  const markAsRead = async (id: string) => {
     setReadNotificationIds(prev => {
       if (prev.includes(id)) return prev;
       const updated = [...prev, id];
       localStorage.setItem('admin_read_notifications', JSON.stringify(updated));
       return updated;
     });
+
+    if (firestore && user && adminDocRef) {
+      try {
+        const { setDoc } = await import('firebase/firestore');
+        const currentRead = adminRole?.readNotificationIds || [];
+        if (!currentRead.includes(id)) {
+          await setDoc(adminDocRef, {
+            readNotificationIds: [...currentRead, id]
+          }, { merge: true });
+        }
+      } catch (e) {
+        console.error('Error syncing notification read state to Firestore:', e);
+      }
+    }
   };
+
+  // Automatically mark order notifications as read when order details are viewed
+  useEffect(() => {
+    if (viewingOrderDetails && viewingOrderDetails.id) {
+      const orderId = viewingOrderDetails.id;
+      const orderNotifications = [
+        `new_order_${orderId}`,
+        `feedback_${orderId}`,
+        `return_${orderId}`
+      ];
+      orderNotifications.forEach(id => {
+        if (!readNotificationIds.includes(id)) {
+          markAsRead(id);
+        }
+      });
+    }
+  }, [viewingOrderDetails, readNotificationIds]);
 
   const notifications = useMemo(() => {
     const list: any[] = [];
@@ -287,29 +367,27 @@ export default function AdminPage() {
     return notifications.filter(n => !n.read).length;
   }, [notifications]);
 
-  const markAllAsRead = () => {
+  const markAllAsRead = async () => {
     const allIds = notifications.map(n => n.id);
     setReadNotificationIds(allIds);
     localStorage.setItem('admin_read_notifications', JSON.stringify(allIds));
+
+    if (firestore && user && adminDocRef) {
+      try {
+        const { setDoc } = await import('firebase/firestore');
+        await setDoc(adminDocRef, {
+          readNotificationIds: allIds
+        }, { merge: true });
+      } catch (e) {
+        console.error('Error syncing all notification read states to Firestore:', e);
+      }
+    }
   };
-
-  const adminDocRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return doc(firestore, 'roles_admin', user.uid);
-  }, [firestore, user]);
-
-  const { data: adminRole, isLoading: isAdminCheckLoading } = useDoc(adminDocRef);
-  const isSuperAdmin = user?.uid === '30S6HkIJXKWWSrmlLD8c8GBskst1';
-  const isAdmin = Boolean(
-    adminRole ||
-    isSuperAdmin ||
-    (user?.email && ADMIN_EMAILS.includes(user.email))
-  );
 
   const fetchProducts = async () => {
     if (!firestore) return;
     const svc = new ProductsService(firestore);
-    const data = await svc.getAllProducts();
+    const data = await svc.getAllProducts(undefined, false);
     setProducts(data);
   };
 
@@ -1475,7 +1553,7 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className={`grid grid-cols-1 ${typeof productForm.deliveryCharge === 'number' ? 'sm:grid-cols-4' : 'sm:grid-cols-3'} gap-4`}>
                     <div className="space-y-2">
                       <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">YouTube / Video URL (Optional)</Label>
                       <Input
@@ -1487,16 +1565,45 @@ export default function AdminPage() {
                     </div>
                     <div className="space-y-2">
                       <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Delivery Charge</Label>
-                      <Select value={productForm.deliveryCharge || 'regular'} onValueChange={v => setProductForm({...productForm, deliveryCharge: v as any})}>
+                      <Select 
+                        value={typeof productForm.deliveryCharge === 'number' ? 'custom' : (productForm.deliveryCharge || 'regular')} 
+                        onValueChange={v => {
+                          if (v === 'custom') {
+                            setProductForm({...productForm, deliveryCharge: 100}); // default custom price to 100 Rs
+                          } else {
+                            setProductForm({...productForm, deliveryCharge: v as any});
+                          }
+                        }}
+                      >
                         <SelectTrigger className="rounded-xl h-12 bg-secondary/50 focus-visible:ring-primary border-none font-bold shadow-none">
                           <SelectValue placeholder="Select Delivery Type" />
                         </SelectTrigger>
                         <SelectContent className="rounded-[1.5rem] p-2 shadow-xl border-none bg-card">
-                          <SelectItem value="regular" className="rounded-lg h-10 pl-8 pr-4">Regular Charges (Based on Weight)</SelectItem>
+                          <SelectItem value="regular" className="rounded-lg h-10 pl-8 pr-4">Regular Charges (Based on Weight/Rules)</SelectItem>
                           <SelectItem value="complimentary" className="rounded-lg h-10 pl-8 pr-4">Complimentary (Free)</SelectItem>
+                          <SelectItem value="custom" className="rounded-lg h-10 pl-8 pr-4">Custom Price (Rs)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
+                    {typeof productForm.deliveryCharge === 'number' && (
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Custom Charge (Rs)</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          value={productForm.deliveryCharge}
+                          onChange={e => {
+                            const val = e.target.value;
+                            setProductForm({
+                              ...productForm,
+                              deliveryCharge: val === '' ? 0 : parseInt(val, 10)
+                            });
+                          }}
+                          className="rounded-xl h-12 bg-secondary/50 focus-visible:ring-primary border-none font-bold font-sans"
+                          placeholder="100"
+                        />
+                      </div>
+                    )}
                     <div className="space-y-2">
                       <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Weight (Kg)</Label>
                       <Input
@@ -1513,7 +1620,7 @@ export default function AdminPage() {
                         }}
                         className="rounded-xl h-12 bg-secondary/50 focus-visible:ring-primary border-none font-bold font-sans"
                         placeholder="1.0"
-                        disabled={productForm.deliveryCharge === 'complimentary'}
+                        disabled={productForm.deliveryCharge === 'complimentary' || typeof productForm.deliveryCharge === 'number'}
                       />
                     </div>
                   </div>
@@ -1617,24 +1724,31 @@ export default function AdminPage() {
                             </div>
                           </div>
 
-                          <div className="mt-3 text-xs font-medium text-muted-foreground space-y-2">
+                          <div className="mt-3 text-xs font-medium text-muted-foreground space-y-3">
                             {order.items?.map((i, idx) => (
-                              <div key={idx} className="space-y-1">
-                                <span className="font-bold text-foreground">{i.name} (x{i.quantity})</span>
-                                {i.customPhotos && i.customPhotos.length > 0 && (
-                                  <div className="flex flex-wrap gap-1.5 mt-1">
-                                    {i.customPhotos.map((photo, pIdx) => (
-                                      <a key={pIdx} href={photo.imageUrl} target="_blank" rel="noopener noreferrer" className="relative block w-8 h-8 rounded-md overflow-hidden border border-border/80 hover:border-primary transition-colors bg-secondary/15" title="Click to view full image">
-                                        <img src={photo.imageUrl} alt="custom" className="w-full h-full object-cover" />
-                                      </a>
-                                    ))}
+                              <div key={idx} className="flex gap-3 items-start border-b border-border/10 pb-2 last:border-0 last:pb-0">
+                                {i.image && (
+                                  <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-secondary/50 shrink-0 border border-border/50">
+                                    <img src={i.image} alt={i.name} className="w-full h-full object-cover" />
                                   </div>
                                 )}
-                                {i.customText && (
-                                  <p className="text-[10px] text-muted-foreground font-semibold bg-accent/40 px-2 py-0.5 rounded inline-block mt-0.5">
-                                    Text: &ldquo;{i.customText}&rdquo;
-                                  </p>
-                                )}
+                                <div className="flex-1 min-w-0 space-y-1">
+                                  <div className="font-bold text-foreground leading-tight">{i.name} (x{i.quantity})</div>
+                                  {i.customPhotos && i.customPhotos.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                      {i.customPhotos.map((photo, pIdx) => (
+                                        <a key={pIdx} href={photo.imageUrl} target="_blank" rel="noopener noreferrer" className="relative block w-7 h-7 rounded overflow-hidden border border-border/80 hover:border-primary transition-colors bg-secondary/15" title="Click to view full image">
+                                          <img src={photo.imageUrl} alt="custom" className="w-full h-full object-cover" />
+                                        </a>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {i.customText && (
+                                    <p className="text-[9px] text-muted-foreground font-semibold bg-accent/40 px-1.5 py-0.5 rounded inline-block">
+                                      Text: &ldquo;{i.customText}&rdquo;
+                                    </p>
+                                  )}
+                                </div>
                               </div>
                             )) || 'No items'}
                           </div>
@@ -1706,24 +1820,31 @@ export default function AdminPage() {
                                 )}
                               </TableCell>
                               <TableCell>
-                                <div className="text-xs max-w-[250px] font-medium text-muted-foreground space-y-2">
+                                <div className="text-xs max-w-[300px] font-medium text-muted-foreground space-y-3">
                                   {order.items?.map((i, idx) => (
-                                    <div key={idx} className="space-y-1">
-                                      <span className="font-bold text-foreground">{i.name} (x{i.quantity})</span>
-                                      {i.customPhotos && i.customPhotos.length > 0 && (
-                                        <div className="flex flex-wrap gap-1.5 mt-1">
-                                          {i.customPhotos.map((photo, pIdx) => (
-                                            <a key={pIdx} href={photo.imageUrl} target="_blank" rel="noopener noreferrer" className="relative block w-8 h-8 rounded-md overflow-hidden border border-border/80 hover:border-primary transition-colors bg-secondary/15" title="Click to view/print full image">
-                                              <img src={photo.imageUrl} alt="custom" className="w-full h-full object-cover" />
-                                            </a>
-                                          ))}
+                                    <div key={idx} className="flex gap-2.5 items-start border-b border-border/10 pb-2.5 last:border-0 last:pb-0">
+                                      {i.image && (
+                                        <div className="relative w-10 h-10 rounded-md overflow-hidden bg-secondary/50 shrink-0 border border-border/50">
+                                          <img src={i.image} alt={i.name} className="w-full h-full object-cover" />
                                         </div>
                                       )}
-                                      {i.customText && (
-                                        <p className="text-[10px] text-muted-foreground font-semibold bg-accent/40 px-2 py-0.5 rounded inline-block mt-0.5">
-                                          Text: &ldquo;{i.customText}&rdquo;
-                                        </p>
-                                      )}
+                                      <div className="flex-1 min-w-0 space-y-1">
+                                        <div className="font-bold text-foreground leading-tight">{i.name} (x{i.quantity})</div>
+                                        {i.customPhotos && i.customPhotos.length > 0 && (
+                                          <div className="flex flex-wrap gap-1 mt-1">
+                                            {i.customPhotos.map((photo, pIdx) => (
+                                              <a key={pIdx} href={photo.imageUrl} target="_blank" rel="noopener noreferrer" className="relative block w-6 h-6 rounded overflow-hidden border border-border/80 hover:border-primary transition-colors bg-secondary/15" title="Click to view/print full image">
+                                                <img src={photo.imageUrl} alt="custom" className="w-full h-full object-cover" />
+                                              </a>
+                                            ))}
+                                          </div>
+                                        )}
+                                        {i.customText && (
+                                          <p className="text-[9px] text-muted-foreground font-semibold bg-accent/40 px-1.5 py-0.5 rounded inline-block">
+                                            Text: &ldquo;{i.customText}&rdquo;
+                                          </p>
+                                        )}
+                                      </div>
                                     </div>
                                   )) || 'No items'}
                                 </div>
@@ -1870,28 +1991,99 @@ export default function AdminPage() {
                       <div className="space-y-2 md:space-y-4">
                         <h3 className="text-2xl md:text-4xl font-body font-bold">Global Shop Settings</h3>
                         <p className="text-sm md:text-xl text-muted-foreground leading-relaxed">
-                          Configure shop-wide settings. Change the cost of the Premium Gift Wrap option displayed in the customer cart.
+                          Configure shop-wide options including gift wrap pricing and default category-based/weight-based delivery charges.
                         </p>
                       </div>
-                      <div className="flex flex-col sm:flex-row items-end gap-4 max-w-md">
-                        <div className="flex-1 space-y-2">
-                          <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Premium Gift Wrap Price (₹)</Label>
-                          <Input
-                            type="number"
-                            value={adminGiftWrapPrice}
-                            onChange={(e) => setAdminGiftWrapPrice(parseInt(e.target.value) || 0)}
-                            className="rounded-xl h-12 bg-secondary/50 focus-visible:ring-primary border-none font-bold font-sans"
-                            placeholder="50"
-                          />
+
+                      <div className="space-y-6 max-w-2xl">
+                        <div className="space-y-4">
+                          <h4 className="text-xs font-black uppercase tracking-[0.2em] text-primary border-b border-border pb-2">Product Extras</h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Premium Gift Wrap Price (₹)</Label>
+                              <Input
+                                type="number"
+                                value={adminGiftWrapPrice}
+                                onChange={(e) => setAdminGiftWrapPrice(parseInt(e.target.value) || 0)}
+                                className="rounded-xl h-12 bg-secondary/50 focus-visible:ring-primary border-none font-bold font-sans"
+                                placeholder="50"
+                              />
+                            </div>
+                          </div>
                         </div>
-                        <Button 
-                          onClick={handleSaveSettings} 
-                          disabled={savingSettings}
-                          className="h-12 px-8 rounded-xl font-bold bg-amber-600 hover:bg-amber-700 shadow-lg text-white"
-                        >
-                          {savingSettings ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                          Save Settings
-                        </Button>
+
+                        <div className="space-y-4">
+                          <h4 className="text-xs font-black uppercase tracking-[0.2em] text-primary border-b border-border pb-2">Base Category Shipping Charges</h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Night Lamps (₹)</Label>
+                              <Input
+                                type="number"
+                                value={adminLampDeliveryCharge}
+                                onChange={(e) => setAdminLampDeliveryCharge(parseInt(e.target.value) || 0)}
+                                className="rounded-xl h-12 bg-secondary/50 focus-visible:ring-primary border-none font-bold font-sans"
+                                placeholder="50"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">MDF Wall Frames (₹)</Label>
+                              <Input
+                                type="number"
+                                value={adminMdfDeliveryCharge}
+                                onChange={(e) => setAdminMdfDeliveryCharge(parseInt(e.target.value) || 0)}
+                                className="rounded-xl h-12 bg-secondary/50 focus-visible:ring-primary border-none font-bold font-sans"
+                                placeholder="80"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Large Frames (&gt;12x8) (₹)</Label>
+                              <Input
+                                type="number"
+                                value={adminLargeFrameDeliveryCharge}
+                                onChange={(e) => setAdminLargeFrameDeliveryCharge(parseInt(e.target.value) || 0)}
+                                className="rounded-xl h-12 bg-secondary/50 focus-visible:ring-primary border-none font-bold font-sans"
+                                placeholder="100"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <h4 className="text-xs font-black uppercase tracking-[0.2em] text-primary border-b border-border pb-2">Weight-Based Fallback Multipliers</h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Tamil Nadu (₹ per Kg)</Label>
+                              <Input
+                                type="number"
+                                value={adminTnDeliveryMultiplier}
+                                onChange={(e) => setAdminTnDeliveryMultiplier(parseInt(e.target.value) || 0)}
+                                className="rounded-xl h-12 bg-secondary/50 focus-visible:ring-primary border-none font-bold font-sans"
+                                placeholder="50"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Rest of India (₹ per Kg)</Label>
+                              <Input
+                                type="number"
+                                value={adminOtherDeliveryMultiplier}
+                                onChange={(e) => setAdminOtherDeliveryMultiplier(parseInt(e.target.value) || 0)}
+                                className="rounded-xl h-12 bg-secondary/50 focus-visible:ring-primary border-none font-bold font-sans"
+                                placeholder="100"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="pt-4">
+                          <Button 
+                            onClick={handleSaveSettings} 
+                            disabled={savingSettings}
+                            className="h-12 px-8 rounded-xl font-bold bg-amber-600 hover:bg-amber-700 shadow-lg text-white"
+                          >
+                            {savingSettings ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                            Save All Settings
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </Card>
@@ -2249,12 +2441,21 @@ export default function AdminPage() {
                   <div className="space-y-3">
                     {viewingOrderDetails.items?.map((item: any, idx: number) => (
                       <div key={idx} className="bg-secondary/20 p-4 rounded-2xl flex flex-col gap-3">
-                        <div className="flex justify-between items-start gap-4">
-                          <div>
-                            <p className="font-bold text-foreground text-sm">{item.name}</p>
-                            <p className="text-xs text-muted-foreground font-bold uppercase mt-1">{item.category}</p>
+                        <div className="flex gap-4 items-start">
+                          {item.image && (
+                            <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-secondary/50 shrink-0 border border-border/50">
+                              <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-start gap-4">
+                              <div>
+                                <p className="font-bold text-foreground text-sm">{item.name}</p>
+                                <p className="text-xs text-muted-foreground font-bold uppercase mt-1">{item.category}</p>
+                              </div>
+                              <span className="font-mono text-sm font-bold text-primary">x{item.quantity}</span>
+                            </div>
                           </div>
-                          <span className="font-mono text-sm font-bold text-primary">x{item.quantity}</span>
                         </div>
 
                         {item.customPhotos && item.customPhotos.length > 0 && (
@@ -2322,6 +2523,12 @@ export default function AdminPage() {
                     <span>Shipping Fee:</span>
                     <span>{formatPrice(viewingOrderDetails.shippingFee || 0)}</span>
                   </div>
+                  {viewingOrderDetails.gatewayFee !== undefined && viewingOrderDetails.gatewayFee > 0 && (
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Gateway Fee (2.36%):</span>
+                      <span>{formatPrice(viewingOrderDetails.gatewayFee)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-foreground text-lg border-t pt-2">
                     <span>Grand Total:</span>
                     <span className="text-primary">{formatPrice(viewingOrderDetails.total || 0)}</span>

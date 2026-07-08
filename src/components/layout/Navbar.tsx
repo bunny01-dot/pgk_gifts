@@ -76,90 +76,174 @@ export function Navbar() {
   }, []);
 
   useEffect(() => {
-    if (!firestore || !isAdmin) return;
+    if (adminRole?.readNotificationIds && Array.isArray(adminRole.readNotificationIds)) {
+      setReadNotificationIds(prev => {
+        const merged = Array.from(new Set([...prev, ...adminRole.readNotificationIds]));
+        return merged;
+      });
+    }
+  }, [adminRole]);
+
+  useEffect(() => {
+    if (!firestore) return;
     
     let unsubscribe: () => void;
     
     const initSub = async () => {
       const { OrdersService } = await import('@/services/orders.service');
       const ordersService = new OrdersService(firestore);
-      unsubscribe = ordersService.subscribeToOrders((data) => {
-        setOrders(data);
-      });
+      if (isAdmin) {
+        unsubscribe = ordersService.subscribeToOrders((data) => {
+          setOrders(data);
+        });
+      } else if (user) {
+        unsubscribe = ordersService.subscribeToMyOrders(user.uid, user.email || undefined, (data) => {
+          setOrders(data);
+        });
+      }
     };
     
     initSub();
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [firestore, isAdmin]);
+  }, [firestore, isAdmin, user]);
 
-  const markAsRead = (id: string) => {
+  const markAsRead = async (id: string) => {
     setReadNotificationIds(prev => {
       if (prev.includes(id)) return prev;
       const updated = [...prev, id];
       localStorage.setItem('admin_read_notifications', JSON.stringify(updated));
       return updated;
     });
+
+    if (firestore && user && adminDocRef) {
+      try {
+        const { setDoc } = await import('firebase/firestore');
+        const currentRead = adminRole?.readNotificationIds || [];
+        if (!currentRead.includes(id)) {
+          await setDoc(adminDocRef, {
+            readNotificationIds: [...currentRead, id]
+          }, { merge: true });
+        }
+      } catch (e) {
+        console.error('Error syncing notification read state to Firestore:', e);
+      }
+    }
   };
 
   const notifications = useMemo(() => {
     const list: any[] = [];
-    orders.forEach(order => {
-      const orderIdShort = order.orderId || order.id.slice(0, 6);
-      const orderDate = toDate(order.createdAt);
-      
-      list.push({
-        id: `new_order_${order.id}`,
-        type: 'new_order',
-        title: 'New Order Placed',
-        description: `Order #${orderIdShort} placed by ${order.customerName} for ${formatPrice(order.total)}.`,
-        timestamp: orderDate,
-        orderId: order.id,
-        order: order,
-        read: readNotificationIds.includes(`new_order_${order.id}`)
+    if (!user) return list;
+
+    if (isAdmin) {
+      orders.forEach(order => {
+        const orderIdShort = order.orderId || order.id.slice(0, 6);
+        const orderDate = toDate(order.createdAt);
+        
+        list.push({
+          id: `new_order_${order.id}`,
+          type: 'new_order',
+          title: 'New Order Placed',
+          description: `Order #${orderIdShort} placed by ${order.customerName} for ${formatPrice(order.total)}.`,
+          timestamp: orderDate,
+          orderId: order.id,
+          order: order,
+          read: readNotificationIds.includes(`new_order_${order.id}`)
+        });
+
+        if (order.feedback) {
+          const feedbackDate = new Date(order.feedback.createdAt);
+          list.push({
+            id: `feedback_${order.id}`,
+            type: 'feedback',
+            title: 'New Feedback Received',
+            description: `${order.feedback.rating} ★ review by ${order.customerName} on #${orderIdShort}: "${order.feedback.comment.slice(0, 40)}${order.feedback.comment.length > 40 ? '...' : ''}"`,
+            timestamp: feedbackDate,
+            orderId: order.id,
+            order: order,
+            read: readNotificationIds.includes(`feedback_${order.id}`)
+          });
+        }
+
+        if (order.returnRequest) {
+          const returnDate = toDate(order.returnRequest.createdAt);
+          list.push({
+            id: `return_${order.id}`,
+            type: 'return_request',
+            title: 'Return Request Submitted',
+            description: `Return (${order.returnRequest.status}) requested by ${order.customerName} for #${orderIdShort}.`,
+            timestamp: returnDate,
+            orderId: order.id,
+            order: order,
+            read: readNotificationIds.includes(`return_${order.id}`)
+          });
+        }
       });
+    } else {
+      orders.forEach(order => {
+        const orderIdShort = order.orderId || order.id.slice(0, 6);
+        const orderDate = toDate(order.updatedAt || order.createdAt);
 
-      if (order.feedback) {
-        const feedbackDate = new Date(order.feedback.createdAt);
-        list.push({
-          id: `feedback_${order.id}`,
-          type: 'feedback',
-          title: 'New Feedback Received',
-          description: `${order.feedback.rating} ★ review by ${order.customerName} on #${orderIdShort}: "${order.feedback.comment.slice(0, 40)}${order.feedback.comment.length > 40 ? '...' : ''}"`,
-          timestamp: feedbackDate,
-          orderId: order.id,
-          order: order,
-          read: readNotificationIds.includes(`feedback_${order.id}`)
-        });
-      }
-
-      if (order.returnRequest) {
-        const returnDate = toDate(order.returnRequest.createdAt);
-        list.push({
-          id: `return_${order.id}`,
-          type: 'return_request',
-          title: 'Return Request Submitted',
-          description: `Return (${order.returnRequest.status}) requested by ${order.customerName} for #${orderIdShort}.`,
-          timestamp: returnDate,
-          orderId: order.id,
-          order: order,
-          read: readNotificationIds.includes(`return_${order.id}`)
-        });
-      }
-    });
+        if (order.status === 'processing') {
+          list.push({
+            id: `status_processing_${order.id}`,
+            type: 'status_processing',
+            title: 'Order Processing',
+            description: `Your order #${orderIdShort} is confirmed and is being processed.`,
+            timestamp: orderDate,
+            orderId: order.id,
+            order: order,
+            read: readNotificationIds.includes(`status_processing_${order.id}`)
+          });
+        } else if (order.status === 'shipped') {
+          list.push({
+            id: `status_shipped_${order.id}`,
+            type: 'status_shipped',
+            title: 'Order Shipped',
+            description: `Your order #${orderIdShort} has been shipped via ${order.courierName || 'Courier'}. Tracking ID: ${order.trackingNumber || 'N/A'}.`,
+            timestamp: orderDate,
+            orderId: order.id,
+            order: order,
+            read: readNotificationIds.includes(`status_shipped_${order.id}`)
+          });
+        } else if (order.status === 'delivered') {
+          list.push({
+            id: `status_delivered_${order.id}`,
+            type: 'status_delivered',
+            title: 'Order Delivered',
+            description: `Your order #${orderIdShort} has been delivered successfully. Thank you!`,
+            timestamp: orderDate,
+            orderId: order.id,
+            order: order,
+            read: readNotificationIds.includes(`status_delivered_${order.id}`)
+          });
+        }
+      });
+    }
 
     return list.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-  }, [orders, readNotificationIds]);
+  }, [orders, readNotificationIds, isAdmin, user]);
 
   const unreadCount = useMemo(() => {
     return notifications.filter(n => !n.read).length;
   }, [notifications]);
 
-  const markAllAsRead = () => {
+  const markAllAsRead = async () => {
     const allIds = notifications.map(n => n.id);
     setReadNotificationIds(allIds);
     localStorage.setItem('admin_read_notifications', JSON.stringify(allIds));
+
+    if (firestore && user && adminDocRef) {
+      try {
+        const { setDoc } = await import('firebase/firestore');
+        await setDoc(adminDocRef, {
+          readNotificationIds: allIds
+        }, { merge: true });
+      } catch (e) {
+        console.error('Error syncing all notification read states to Firestore:', e);
+      }
+    }
   };
 
   useEffect(() => {
@@ -236,7 +320,7 @@ export function Navbar() {
 
             <ThemeToggle />
 
-            {isAdmin && (
+            {user && (
               <div className="relative">
                 <Button
                   variant="ghost"
@@ -258,7 +342,7 @@ export function Navbar() {
                   <div className="absolute right-0 mt-4 w-80 md:w-96 bg-card border border-border rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="p-4 border-b border-border/40 flex justify-between items-center bg-secondary/20">
                       <h3 className="font-headline font-bold text-xs md:text-sm text-foreground flex items-center gap-2">
-                        <Bell className="w-4 h-4 text-primary" /> Activity Center
+                        <Bell className="w-4 h-4 text-primary" /> {isAdmin ? 'Activity Center' : 'Notifications'}
                       </h3>
                       {unreadCount > 0 && (
                         <button 
@@ -272,7 +356,7 @@ export function Navbar() {
                     <div className="max-h-[350px] overflow-y-auto divide-y divide-border/30 custom-scrollbar">
                       {notifications.length === 0 ? (
                         <div className="p-8 text-center text-muted-foreground text-xs">
-                          No activity notifications.
+                          {isAdmin ? 'No activity notifications.' : 'No notifications yet.'}
                         </div>
                       ) : (
                         notifications.map(notif => (
@@ -281,17 +365,23 @@ export function Navbar() {
                             onClick={() => {
                               markAsRead(notif.id);
                               setIsNotifOpen(false);
-                              router.push(`/admin?viewOrder=${notif.orderId}`);
+                              if (isAdmin) {
+                                router.push(`/admin?viewOrder=${notif.orderId}`);
+                              } else {
+                                router.push(`/order/${notif.orderId}`);
+                              }
                             }}
                             className="p-4 hover:bg-secondary/40 cursor-pointer transition-colors flex gap-3 items-start text-left bg-card"
                           >
                             <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
                               notif.type === 'new_order' ? 'bg-green-500/10 text-green-600' :
                               notif.type === 'feedback' ? 'bg-amber-500/10 text-amber-600' :
+                              notif.type.startsWith('status_') ? 'bg-primary/10 text-primary' :
                               'bg-blue-500/10 text-blue-600'
                             }`}>
                               {notif.type === 'new_order' ? <ShoppingBag className="w-4 h-4" /> :
                                notif.type === 'feedback' ? <Star className="w-4 h-4 fill-amber-500 text-amber-500" /> :
+                               notif.type.startsWith('status_') ? <Truck className="w-4 h-4" /> :
                                <AlertCircle className="w-4 h-4" />}
                             </div>
                             <div className="min-w-0 flex-1">
@@ -367,7 +457,7 @@ export function Navbar() {
         <div className="lg:hidden flex items-center gap-1 md:gap-4">
           <ThemeToggle />
 
-          {isAdmin && (
+          {user && (
             <div className="relative">
               <Button
                 variant="ghost"
@@ -389,7 +479,7 @@ export function Navbar() {
                 <div className="absolute right-0 mt-3 w-80 bg-card border border-border rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                   <div className="p-3 border-b border-border/40 flex justify-between items-center bg-secondary/20">
                     <h3 className="font-headline font-bold text-xs text-foreground flex items-center gap-2">
-                      <Bell className="w-4 h-4 text-primary" /> Activity Center
+                      <Bell className="w-4 h-4 text-primary" /> {isAdmin ? 'Activity Center' : 'Notifications'}
                     </h3>
                     {unreadCount > 0 && (
                       <button 
@@ -403,7 +493,7 @@ export function Navbar() {
                   <div className="max-h-[280px] overflow-y-auto divide-y divide-border/30 custom-scrollbar">
                     {notifications.length === 0 ? (
                       <div className="p-6 text-center text-muted-foreground text-xs">
-                        No activity notifications.
+                        {isAdmin ? 'No activity notifications.' : 'No notifications yet.'}
                       </div>
                     ) : (
                       notifications.map(notif => (
@@ -412,17 +502,23 @@ export function Navbar() {
                           onClick={() => {
                             markAsRead(notif.id);
                             setIsNotifOpen(false);
-                            router.push(`/admin?viewOrder=${notif.orderId}`);
+                            if (isAdmin) {
+                              router.push(`/admin?viewOrder=${notif.orderId}`);
+                            } else {
+                              router.push(`/order/${notif.orderId}`);
+                            }
                           }}
                           className="p-3 hover:bg-secondary/40 cursor-pointer transition-colors flex gap-2.5 items-start text-left bg-card"
                         >
                           <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
                             notif.type === 'new_order' ? 'bg-green-500/10 text-green-600' :
                             notif.type === 'feedback' ? 'bg-amber-500/10 text-amber-600' :
+                            notif.type.startsWith('status_') ? 'bg-primary/10 text-primary' :
                             'bg-blue-500/10 text-blue-600'
                           }`}>
                             {notif.type === 'new_order' ? <ShoppingBag className="w-3.5 h-3.5" /> :
                              notif.type === 'feedback' ? <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" /> :
+                             notif.type.startsWith('status_') ? <Truck className="w-3.5 h-3.5" /> :
                              <AlertCircle className="w-3.5 h-3.5" />}
                           </div>
                           <div className="min-w-0 flex-1">

@@ -17,6 +17,13 @@ interface CartContextType {
   isCartOpen: boolean;
   setIsCartOpen: (open: boolean) => void;
   giftWrapPrice: number;
+  deliverySettings: {
+    lampDeliveryCharge?: number;
+    mdfDeliveryCharge?: number;
+    largeFrameDeliveryCharge?: number;
+    tnDeliveryMultiplier?: number;
+    otherDeliveryMultiplier?: number;
+  } | null;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -49,8 +56,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [giftWrapPrice, setGiftWrapPrice] = useState(50);
+  const [deliverySettings, setDeliverySettings] = useState<any>(null);
 
-  // Load global settings for Gift Wrap price
+  // Load global settings for Gift Wrap price & Delivery Settings
   useEffect(() => {
     if (!firestore) return;
     const fetchSettings = async () => {
@@ -63,6 +71,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           if (typeof data.giftWrapPrice === 'number') {
             setGiftWrapPrice(data.giftWrapPrice);
           }
+          setDeliverySettings({
+            lampDeliveryCharge: data.lampDeliveryCharge,
+            mdfDeliveryCharge: data.mdfDeliveryCharge,
+            largeFrameDeliveryCharge: data.largeFrameDeliveryCharge,
+            tnDeliveryMultiplier: data.tnDeliveryMultiplier,
+            otherDeliveryMultiplier: data.otherDeliveryMultiplier,
+          });
         }
       } catch (err) {
         console.error("Error fetching global settings:", err);
@@ -326,7 +341,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         itemCount,
         isCartOpen,
         setIsCartOpen,
-        giftWrapPrice
+        giftWrapPrice,
+        deliverySettings
       }}
     >
       {children}

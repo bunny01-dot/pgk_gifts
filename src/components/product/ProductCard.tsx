@@ -48,11 +48,14 @@ export function ProductCard({ product }: ProductCardProps) {
     }
     
     addToCart(product as any);
-    toast({
+    const { dismiss } = toast({
       title: "Added to Bag",
       description: `${product.name} is ready for checkout.`,
       action: (
-        <Button size="sm" variant="outline" className="h-8 rounded-full text-[10px] font-bold" onClick={() => setIsCartOpen(true)}>
+        <Button size="sm" variant="outline" className="h-8 rounded-full text-[10px] font-bold" onClick={() => {
+          setIsCartOpen(true);
+          dismiss();
+        }}>
           View Bag
         </Button>
       ),

@@ -13,6 +13,7 @@ import { PaymentService } from '@/services/payment.service';
 import Image from 'next/image';
 import { formatPrice } from '@/utils/currency';
 import { useCart } from '@/context/CartContext';
+import { getItemDeliveryCharge } from '@/utils/customization';
 import { motion } from 'framer-motion';
 import { CONTACT_INFO } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -59,7 +60,7 @@ const INDIAN_STATES = [
 ];
 
 export default function CheckoutPage() {
-  const { cart, cartTotal, clearCart, updateQuantity, removeFromCart } = useCart();
+  const { cart, cartTotal, clearCart, updateQuantity, removeFromCart, deliverySettings } = useCart();
   const { user } = useUser();
   const router = useRouter();
    const { toast } = useToast();
@@ -226,31 +227,31 @@ export default function CheckoutPage() {
   };
 
   return (
-    <div className="min-h-screen pt-24 md:pt-40 pb-16 md:pb-20 bg-background transition-colors duration-500">
+    <div className="min-h-screen pt-24 md:pt-36 pb-16 bg-background transition-colors duration-500">
       <div className="container mx-auto px-4 md:px-6 max-w-6xl">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
         >
-          <Button variant="ghost" onClick={handleBack} className="mb-5 md:mb-10 rounded-full group font-bold h-10 md:h-12 px-4 md:px-6 text-sm md:text-base hover:bg-secondary">
-            <ArrowLeft className="mr-2 md:mr-3 w-4 h-4 md:w-5 md:h-5 group-hover:-translate-x-1 transition-transform" /> Back to Cart
+          <Button variant="ghost" onClick={handleBack} className="mb-4 md:mb-6 rounded-full group font-semibold h-9 md:h-10 px-4 text-xs md:text-sm hover:bg-secondary">
+            <ArrowLeft className="mr-2 w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Back to Cart
           </Button>
         </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-12">
-          <div className="lg:col-span-7 space-y-5 md:space-y-10">
-            <Card className="rounded-2xl md:rounded-[3rem] border-none shadow-premium p-5 md:p-14 bg-card transition-all duration-500">
-              <header className="mb-6 md:mb-12">
-                <div className="flex items-center gap-3 md:gap-5 mb-3 md:mb-4">
-                  <div className="w-9 h-9 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-primary text-primary-foreground flex items-center justify-center font-headline font-bold text-base md:text-xl shadow-lg">1</div>
-                  <h3 className="text-2xl md:text-4xl font-headline font-bold">Shipping Details</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
+          <div className="lg:col-span-7 space-y-4 md:space-y-6">
+            <Card className="rounded-2xl border border-border/50 shadow-md p-6 md:p-8 bg-card transition-all duration-500">
+              <header className="mb-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm shadow-md">1</div>
+                  <h3 className="text-xl md:text-2xl font-bold">Shipping Details</h3>
                 </div>
-                <p className="text-sm md:text-base text-muted-foreground font-medium">Where should we deliver your handcrafted treasure?</p>
+                <p className="text-xs md:text-sm text-muted-foreground">Where should we deliver your handcrafted treasure?</p>
               </header>
 
-              <form onSubmit={handlePayment} className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
-                <div className="space-y-3">
-                  <Label htmlFor="name" className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground ml-2">Recipient Name</Label>
+              <form onSubmit={handlePayment} className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-xs font-semibold text-muted-foreground ml-1">Recipient Name</Label>
                   <Input
                     id="name"
                     name="name"
@@ -258,12 +259,12 @@ export default function CheckoutPage() {
                     placeholder="e.g. Rahul Sharma"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="h-11 md:h-14 rounded-xl md:rounded-2xl border-border bg-secondary/30 focus-visible:ring-primary text-sm md:text-base px-4 md:px-6"
+                    className="h-10 md:h-11 rounded-lg border-border bg-secondary/30 focus-visible:ring-primary text-sm px-3 md:px-4"
                   />
                 </div>
 
-                <div className="space-y-3">
-                  <Label htmlFor="phone" className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground ml-2">Contact Number</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="text-xs font-semibold text-muted-foreground ml-1">Contact Number</Label>
                   <Input
                     id="phone"
                     name="phone"
@@ -271,12 +272,12 @@ export default function CheckoutPage() {
                     placeholder="+91 00000 00000"
                     value={formData.phone}
                     onChange={handleInputChange}
-                    className="h-11 md:h-14 rounded-xl md:rounded-2xl border-border bg-secondary/30 focus-visible:ring-primary text-sm md:text-base px-4 md:px-6"
+                    className="h-10 md:h-11 rounded-lg border-border bg-secondary/30 focus-visible:ring-primary text-sm px-3 md:px-4"
                   />
                 </div>
 
-                <div className="md:col-span-2 space-y-3">
-                  <Label htmlFor="address" className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground ml-2">Full Address</Label>
+                <div className="md:col-span-2 space-y-2">
+                  <Label htmlFor="address" className="text-xs font-semibold text-muted-foreground ml-1">Full Address</Label>
                   <Input
                     id="address"
                     name="address"
@@ -284,12 +285,12 @@ export default function CheckoutPage() {
                     placeholder="House No, Street, Landmark"
                     value={formData.address}
                     onChange={handleInputChange}
-                    className="h-11 md:h-14 rounded-xl md:rounded-2xl border-border bg-secondary/30 focus-visible:ring-primary text-sm md:text-base px-4 md:px-6"
+                    className="h-10 md:h-11 rounded-lg border-border bg-secondary/30 focus-visible:ring-primary text-sm px-3 md:px-4"
                   />
                 </div>
 
-                <div className="space-y-3">
-                  <Label htmlFor="city" className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground ml-2">City</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="city" className="text-xs font-semibold text-muted-foreground ml-1">City</Label>
                   <Input
                     id="city"
                     name="city"
@@ -297,12 +298,12 @@ export default function CheckoutPage() {
                     placeholder="Chennai"
                     value={formData.city}
                     onChange={handleInputChange}
-                    className="h-11 md:h-14 rounded-xl md:rounded-2xl border-border bg-secondary/30 focus-visible:ring-primary text-sm md:text-base px-4 md:px-6"
+                    className="h-10 md:h-11 rounded-lg border-border bg-secondary/30 focus-visible:ring-primary text-sm px-3 md:px-4"
                   />
                 </div>
 
-                <div className="space-y-3">
-                  <Label htmlFor="pincode" className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground ml-2">Pincode</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="pincode" className="text-xs font-semibold text-muted-foreground ml-1">Pincode</Label>
                   <Input
                     id="pincode"
                     name="pincode"
@@ -310,19 +311,19 @@ export default function CheckoutPage() {
                     placeholder="600001"
                     value={formData.pincode}
                     onChange={handleInputChange}
-                    className="h-11 md:h-14 rounded-xl md:rounded-2xl border-border bg-secondary/30 focus-visible:ring-primary text-sm md:text-base px-4 md:px-6"
+                    className="h-10 md:h-11 rounded-lg border-border bg-secondary/30 focus-visible:ring-primary text-sm px-3 md:px-4"
                   />
                 </div>
 
-                <div className="md:col-span-2 space-y-3">
-                  <Label htmlFor="state" className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground ml-2">State</Label>
+                <div className="md:col-span-2 space-y-2">
+                  <Label htmlFor="state" className="text-xs font-semibold text-muted-foreground ml-1">State</Label>
                   <Select value={formData.state} onValueChange={(value) => setFormData({ ...formData, state: value })}>
-                    <SelectTrigger className="h-11 md:h-14 rounded-xl md:rounded-2xl border-border bg-secondary/30 focus-visible:ring-primary text-sm md:text-base px-4 md:px-6 shadow-none">
+                    <SelectTrigger className="h-10 md:h-11 rounded-lg border-border bg-secondary/30 focus-visible:ring-primary text-sm px-3 md:px-4 shadow-none">
                       <SelectValue placeholder="Select State" />
                     </SelectTrigger>
-                    <SelectContent className="max-h-60 rounded-xl md:rounded-2xl bg-card border border-border p-2">
+                    <SelectContent className="max-h-60 rounded-lg bg-card border border-border p-1">
                       {INDIAN_STATES.map((state) => (
-                        <SelectItem key={state} value={state} className="rounded-lg h-10 pl-8 pr-4 cursor-pointer hover:bg-accent">
+                        <SelectItem key={state} value={state} className="rounded-md h-9 pl-8 pr-4 cursor-pointer hover:bg-accent text-sm">
                           {state}
                         </SelectItem>
                       ))}
@@ -332,34 +333,34 @@ export default function CheckoutPage() {
               </form>
             </Card>
 
-            <Card className="rounded-2xl md:rounded-[2.5rem] border-none shadow-premium p-5 md:p-10 bg-card/80 backdrop-blur-sm transition-all duration-500">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-8">
-                <div className="flex items-center gap-3 md:gap-5">
-                  <div className="w-9 h-9 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-secondary text-foreground flex items-center justify-center font-headline font-bold text-base md:text-xl shadow-inner border border-border/50">2</div>
-                  <h3 className="text-2xl md:text-3xl font-headline font-bold">Secure Payment</h3>
+            <Card className="rounded-2xl border border-border/50 shadow-sm p-4 md:p-6 bg-card/80 backdrop-blur-sm transition-all duration-500">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-secondary text-foreground flex items-center justify-center font-bold text-sm shadow-sm border border-border/50">2</div>
+                  <h3 className="text-lg md:text-xl font-bold">Secure Payment</h3>
                 </div>
-                <div className="flex items-center gap-2 md:gap-3 bg-secondary/50 px-4 md:px-6 py-2 md:py-3 rounded-full border border-border/30">
-                  <ShieldCheck className="w-5 h-5 text-green-600" />
-                  <span className="text-xs font-bold uppercase tracking-widest">Razorpay Secure</span>
+                <div className="flex items-center gap-2 bg-secondary/50 px-4 py-2 rounded-full border border-border/30 w-fit">
+                  <ShieldCheck className="w-4 h-4 text-green-600 animate-pulse" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider">Razorpay Secure</span>
                 </div>
               </div>
             </Card>
           </div>
 
           <div className="lg:col-span-5">
-            <Card className="rounded-2xl md:rounded-[3rem] border-none shadow-xl md:shadow-2xl p-5 md:p-12 bg-card lg:sticky lg:top-32 overflow-hidden transition-all duration-500">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
+            <Card className="rounded-2xl border border-border/50 shadow-md p-6 md:p-8 bg-card lg:sticky lg:top-32 overflow-hidden transition-all duration-500">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl pointer-events-none" />
 
-              <h3 className="text-2xl md:text-3xl font-headline font-bold mb-5 md:mb-10 pb-4 md:pb-6 border-b border-dashed border-border/50">Order Summary</h3>
+              <h3 className="text-lg md:text-xl font-bold mb-4 md:mb-6 pb-3 border-b border-dashed border-border/50">Order Summary</h3>
 
-              <div className="space-y-5 md:space-y-8 max-h-[320px] md:max-h-[400px] overflow-y-auto mb-6 md:mb-10 pr-2 md:pr-4 custom-scrollbar">
+              <div className="space-y-4 max-h-[300px] overflow-y-auto mb-6 pr-2 custom-scrollbar">
                 {cart.map((item) => (
-                  <div key={item.id} className="flex gap-4 md:gap-6 items-center group">
-                    <div className="relative w-16 h-16 md:w-24 md:h-24 rounded-xl md:rounded-2xl overflow-hidden bg-secondary/50 flex-shrink-0 border border-border/50 shadow-sm transition-transform group-hover:scale-105">
+                  <div key={item.id} className="flex gap-4 items-center group">
+                    <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-secondary/50 flex-shrink-0 border border-border/50 shadow-sm transition-transform group-hover:scale-[1.02]">
                       <Image src={item.image} alt={item.name} fill className="object-cover" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-sm md:text-lg leading-tight truncate text-foreground">{item.name}</p>
+                      <p className="font-bold text-sm leading-tight truncate text-foreground">{item.name}</p>
                       <div className="flex items-center justify-between mt-2">
                         <div className="flex items-center border border-border/60 rounded-full px-2 bg-secondary/50 shadow-sm h-7">
                           <button 
@@ -409,7 +410,7 @@ export default function CheckoutPage() {
                           Text: &ldquo;<span className="text-foreground font-semibold">{item.customText}</span>&rdquo;
                         </p>
                       )}
-                      <p className="font-headline font-bold text-base md:text-xl mt-1 md:mt-2 text-primary">{formatPrice(item.price * item.quantity)}</p>
+                      <p className="font-bold text-sm mt-1 text-primary">{formatPrice(item.price * item.quantity)}</p>
                     </div>
                   </div>
                 ))}
@@ -417,7 +418,7 @@ export default function CheckoutPage() {
 
               {/* Coupon Code Input */}
               <div className="py-4 border-t border-dashed border-border/50 space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground ml-2">Promo / Discount Code</Label>
+                <Label className="text-xs font-semibold text-muted-foreground ml-1">Promo / Discount Code</Label>
                 <div className="flex gap-2">
                   <Input
                     placeholder="e.g. WELCOME10"
@@ -427,14 +428,14 @@ export default function CheckoutPage() {
                       setCouponError('');
                     }}
                     disabled={!!appliedCoupon || validatingCoupon}
-                    className="h-11 rounded-xl border-border bg-secondary/20 focus-visible:ring-primary text-sm px-4 uppercase font-bold"
+                    className="h-10 rounded-lg border-border bg-secondary/20 focus-visible:ring-primary text-sm px-3 uppercase font-bold"
                   />
                   {appliedCoupon ? (
                     <Button 
                       type="button" 
                       variant="destructive" 
                       onClick={handleRemoveCoupon}
-                      className="rounded-xl h-11 px-4 font-bold text-sm shrink-0"
+                      className="rounded-lg h-10 px-4 font-bold text-sm shrink-0"
                     >
                       Remove
                     </Button>
@@ -443,7 +444,7 @@ export default function CheckoutPage() {
                       type="button" 
                       onClick={handleApplyCoupon}
                       disabled={!couponCode || validatingCoupon}
-                      className="rounded-xl h-11 px-5 font-bold text-sm shrink-0 hover:bg-primary/95"
+                      className="rounded-lg h-10 px-5 font-bold text-sm shrink-0 hover:bg-primary/95"
                     >
                       {validatingCoupon ? '...' : 'Apply'}
                     </Button>
@@ -459,35 +460,31 @@ export default function CheckoutPage() {
 
               {(() => {
                 let totalWeight = 0;
-                let hasRegularShipping = false;
                 cart.forEach((item) => {
                   if (item.deliveryCharge !== 'complimentary') {
-                    hasRegularShipping = true;
                     const itemWeight = (item.weight && item.weight > 0) ? item.weight : 1;
                     totalWeight += itemWeight * item.quantity;
                   }
                 });
 
-                const weightCeil = Math.max(1, Math.ceil(totalWeight));
-                const multiplier = formData.state === 'Tamil Nadu' ? 50 : 100;
-                const shippingFee = hasRegularShipping ? (weightCeil * multiplier) : 0;
+                const shippingFee = cart.reduce((sum, item) => sum + getItemDeliveryCharge(item, formData.state, deliverySettings || undefined) * item.quantity, 0);
                 const grandTotal = Math.max(0, cartTotal + shippingFee - (appliedCoupon?.discount || 0));
 
                 return (
-                  <div className="space-y-3 md:space-y-4 pt-5 md:pt-8 border-t border-dashed border-border/50">
-                    <div className="flex justify-between items-center text-sm font-bold uppercase tracking-[0.25em] text-muted-foreground">
-                      <span>Delivery ({formData.state}{hasRegularShipping && totalWeight > 0 ? ` - ${totalWeight.toFixed(2)} Kg` : ''})</span>
-                      <span className="text-primary font-black">{shippingFee > 0 ? formatPrice(shippingFee) : 'Complimentary'}</span>
+                  <div className="space-y-3 pt-4 border-t border-dashed border-border/50">
+                    <div className="flex justify-between items-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      <span>Delivery ({formData.state}{shippingFee > 0 && totalWeight > 0 ? ` - ${totalWeight.toFixed(2)} Kg` : ''})</span>
+                      <span className="text-foreground">{shippingFee > 0 ? formatPrice(shippingFee) : 'Complimentary'}</span>
                     </div>
                     {appliedCoupon && (
-                      <div className="flex justify-between items-center text-sm font-bold uppercase tracking-[0.25em] text-green-600">
+                      <div className="flex justify-between items-center text-xs font-semibold text-green-600 uppercase tracking-wider">
                         <span>Discount ({appliedCoupon.code})</span>
-                        <span className="font-black">-{formatPrice(appliedCoupon.discount)}</span>
+                        <span>-{formatPrice(appliedCoupon.discount)}</span>
                       </div>
                     )}
-                    <div className="flex justify-between items-end pt-4">
-                      <span className="text-base md:text-lg font-headline font-medium">Estimated Total</span>
-                      <span className="text-3xl md:text-5xl font-headline font-bold text-primary leading-none">
+                    <div className="flex justify-between items-end pt-4 border-t border-border/50">
+                      <span className="text-sm md:text-base font-semibold">Total Amount</span>
+                      <span className="text-2xl md:text-3xl font-bold text-primary leading-none">
                         {formatPrice(grandTotal)}
                       </span>
                     </div>
@@ -498,24 +495,24 @@ export default function CheckoutPage() {
               <Button
                 onClick={handlePayment}
                 disabled={loading}
-                className="w-full rounded-full h-12 md:h-20 text-base md:text-2xl font-headline font-bold mt-6 md:mt-12 shadow-xl md:shadow-2xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95"
+                className="w-full rounded-full h-11 md:h-12 text-sm md:text-base font-bold mt-6 shadow-md shadow-primary/10 transition-all hover:scale-[1.01] active:scale-[0.99]"
               >
                 {loading ? (
-                  <><Loader2 className="mr-2 md:mr-3 h-5 w-5 md:h-8 md:w-8 animate-spin" /> Launching...</>
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Launching Secure Gateway...</>
                 ) : (
-                  <>Complete Purchase</>
+                  <>Pay Securely Now</>
                 )}
               </Button>
 
-              <div className="mt-6 md:mt-10 flex items-center justify-center gap-3 text-muted-foreground opacity-40">
-                <Lock className="w-4 h-4" />
-                <span className="text-[10px] font-black uppercase tracking-[0.4em]">Server Verified Payment</span>
+              <div className="mt-4 flex items-center justify-center gap-2 text-muted-foreground opacity-60">
+                <Lock className="w-3.5 h-3.5" />
+                <span className="text-[9px] font-bold uppercase tracking-widest">Secure 256-Bit SSL Checkout</span>
               </div>
 
-              <div className="mt-7 md:mt-12 pt-6 md:pt-10 border-t border-dashed border-border/50 text-center">
-                <p className="font-bold text-base md:text-lg mb-2">Need help with your order?</p>
-                <p className="text-sm text-muted-foreground mb-6">Our team is available 24/7 to help you process payment or customize your items.</p>
-                <Button asChild variant="outline" className="w-full h-11 md:h-14 rounded-full border border-green-500/20 bg-green-500/5 text-green-700 hover:bg-green-500 hover:text-white transition-colors dark:text-green-400">
+              <div className="mt-6 pt-5 border-t border-dashed border-border/50 text-center">
+                <p className="font-semibold text-sm mb-1">Need help with your payment?</p>
+                <p className="text-xs text-muted-foreground mb-4">Our support team is available to assist you via WhatsApp.</p>
+                <Button asChild variant="outline" className="w-full h-10 rounded-full border border-green-500/20 bg-green-500/5 text-green-700 hover:bg-green-500 hover:text-white transition-colors text-xs font-bold dark:text-green-400">
                   <a href={`${CONTACT_INFO.whatsapp}?text=${encodeURIComponent("Hi, I'm trying to checkout but I have a question!")}`} target="_blank" rel="noopener noreferrer">
                     Chat with Support
                   </a>

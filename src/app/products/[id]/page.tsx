@@ -12,7 +12,7 @@ import { useCart } from '@/context/CartContext';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { ToastAction } from '@/components/ui/toast';
-import { formatPrice } from '@/utils/currency';
+import { formatPrice, adjustProductPrice } from '@/utils/currency';
 import { useFirebase, useFirestore, useUser } from '@/firebase';
 import { Product } from '@/types/product';
 import { Review } from '@/types/review';
@@ -45,7 +45,12 @@ export default function ProductDetailPage() {
   const firestore = useFirestore();
   const { auth, storage } = useFirebase();
   const uploadService = useMemo(() => new UploadService(storage, auth), [storage, auth]);
-  const [product, setProduct] = useState<Product | null>(PRODUCTS.find((p) => p.id === id) as any || null);
+  const [product, setProduct] = useState<Product | null>(
+    (() => {
+      const p = PRODUCTS.find((p) => p.id === id);
+      return p ? adjustProductPrice(p as any) : null;
+    })()
+  );
   const [loading, setLoading] = useState(!product);
 
   const requiredSlots = product ? getRequiredPhotoSlots(product) : 0;
@@ -56,6 +61,7 @@ export default function ProductDetailPage() {
   const [isProcessingPhotos, setIsProcessingPhotos] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Record<number, number>>({});
   const [customText, setCustomText] = useState('');
+  const [showFrameText, setShowFrameText] = useState(false);
   const textLabel = product ? getRequiredTextLabel(product) : null;
 
   const hasInitializedPhotos = useRef(false);
@@ -63,6 +69,7 @@ export default function ProductDetailPage() {
   useEffect(() => {
     hasInitializedPhotos.current = false;
     setCustomText('');
+    setShowFrameText(false);
   }, [id]);
 
   useEffect(() => {
@@ -159,13 +166,14 @@ export default function ProductDetailPage() {
         const dynamicProduct = await svc.getProductById(id as string);
         if (dynamicProduct) {
           const localProduct = PRODUCTS.find((p) => p.id === id);
-          if (localProduct) {
+          const localProductAdjusted = localProduct ? adjustProductPrice(localProduct as any) : null;
+          if (localProductAdjusted) {
             setProduct({
-              ...localProduct,
+              ...localProductAdjusted,
               ...dynamicProduct,
               requiredPhotoSlots: dynamicProduct.requiredPhotoSlots !== undefined && dynamicProduct.requiredPhotoSlots !== null
                 ? dynamicProduct.requiredPhotoSlots
-                : localProduct.requiredPhotoSlots
+                : localProductAdjusted.requiredPhotoSlots
             } as Product);
           } else {
             setProduct(dynamicProduct as Product);
@@ -253,21 +261,27 @@ export default function ProductDetailPage() {
       selectedSize: product.sizes ? selectedSize : undefined,
       quantity,
       customPhotos: uploadedPhotos.filter(Boolean),
-      customText: textLabel ? customText : undefined,
+      customText: (textLabel || (requiredSlots > 0 && showFrameText)) ? customText.trim() : undefined,
     });
     
     if (redirect) {
       router.push('/checkout');
     } else {
-      toast({
+      const { dismiss } = toast({
         title: "Added to Bag",
         description: `${product.name}${product.sizes ? ` (${selectedSize})` : ''} (x${quantity}) is ready for checkout.`,
         action: (
           <div className="flex gap-2">
-            <ToastAction altText="View Bag" onClick={() => setIsCartOpen(true)}>
+            <ToastAction altText="View Bag" onClick={() => {
+              setIsCartOpen(true);
+              dismiss();
+            }}>
               View Bag
             </ToastAction>
-            <Button size="sm" variant="outline" className="h-8 rounded-full text-[10px] font-bold" onClick={() => router.push('/cart')}>
+            <Button size="sm" variant="outline" className="h-8 rounded-full text-[10px] font-bold" onClick={() => {
+              router.push('/cart');
+              dismiss();
+            }}>
               Checkout
             </Button>
           </div>
@@ -658,6 +672,47 @@ export default function ProductDetailPage() {
                       <span>✓</span> All slots filled! Ready to add to bag.
                     </p>
                   )
+                )}
+              </div>
+            )}
+
+            {/* Optional Custom Text for Frame Section */}
+            {product && requiredSlots > 0 && (
+              <div className="space-y-4 p-6 rounded-3xl bg-secondary/30 border border-border/80 shadow-inner">
+                {!showFrameText ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowFrameText(true)}
+                    className="flex items-center gap-2 text-primary hover:text-primary/85 font-bold text-sm transition-colors py-2 px-4 rounded-full border border-primary/20 hover:bg-primary/5 bg-background shadow-sm"
+                  >
+                    <span className="text-base font-bold">+</span> Add Custom Text to Print on Frame (Optional)
+                  </button>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <h3 className="font-bold text-sm flex items-center gap-2 text-foreground">
+                        <span>✍️</span> Text to Print on Frame
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowFrameText(false);
+                          setCustomText('');
+                        }}
+                        className="text-xs text-destructive hover:text-destructive/80 font-bold transition-colors"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    <Input
+                      type="text"
+                      placeholder="e.g. Happy Anniversary, Best Mom, etc."
+                      value={customText}
+                      onChange={(e) => setCustomText(e.target.value)}
+                      className="h-12 bg-background border-border rounded-xl focus-visible:ring-primary font-medium"
+                      maxLength={100}
+                    />
+                  </div>
                 )}
               </div>
             )}

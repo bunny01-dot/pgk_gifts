@@ -69,13 +69,22 @@ export function InvoiceView({ order }: InvoiceViewProps) {
           {order.items?.map((item, i) => (
             <tr key={i} className="border-b border-border/50">
               <td className="py-4 px-4">
-                <p className="font-bold text-sm">{item.name}</p>
-                <p className="text-[10px] text-gray-500 uppercase">{item.category}</p>
-                {item.customText && (
-                  <p className="text-xs text-gray-700 italic mt-1 font-semibold">
-                    Text: &ldquo;{item.customText}&rdquo;
-                  </p>
-                )}
+                <div className="flex gap-4 items-center">
+                  {item.image && (
+                    <div className="relative w-12 h-12 rounded overflow-hidden bg-gray-50 shrink-0 border border-gray-200">
+                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <div>
+                    <p className="font-bold text-sm">{item.name}</p>
+                    <p className="text-[10px] text-gray-500 uppercase">{item.category}</p>
+                    {item.customText && (
+                      <p className="text-xs text-gray-700 italic mt-1 font-semibold">
+                        Text: &ldquo;{item.customText}&rdquo;
+                      </p>
+                    )}
+                  </div>
+                </div>
               </td>
               <td className="py-4 px-4 text-center text-sm">{formatPrice(item.price)}</td>
               <td className="py-4 px-4 text-center text-sm">{item.quantity}</td>
@@ -90,7 +99,7 @@ export function InvoiceView({ order }: InvoiceViewProps) {
         <div className="w-64 space-y-3">
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Subtotal</span>
-            <span>{formatPrice(order.subtotal || (order.total - (order.shippingFee || 0)))}</span>
+            <span>{formatPrice(order.subtotal || (order.total - (order.shippingFee || 0) - (order.gatewayFee || 0) + (order.discount || 0)))}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Shipping</span>
@@ -100,6 +109,12 @@ export function InvoiceView({ order }: InvoiceViewProps) {
             <div className="flex justify-between text-sm text-green-600 font-bold">
               <span>Discount ({order.couponCode || 'Promo'})</span>
               <span>-{formatPrice(order.discount)}</span>
+            </div>
+          )}
+          {order.gatewayFee !== undefined && order.gatewayFee > 0 && (
+            <div className="flex justify-between text-sm text-gray-500">
+              <span>Gateway Charge (2.36%)</span>
+              <span>{formatPrice(order.gatewayFee)}</span>
             </div>
           )}
           <div className="flex justify-between border-t-2 border-primary pt-3">

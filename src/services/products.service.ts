@@ -16,11 +16,12 @@ import {
 import { Product } from '@/types/product';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { adjustProductPrice } from '@/utils/currency';
 
 export class ProductsService {
   constructor(private db: Firestore) {}
 
-  async getAllProducts(category?: string): Promise<Product[]> {
+  async getAllProducts(category?: string, adjust = true): Promise<Product[]> {
     const productsRef = collection(this.db, 'products');
     let q = query(productsRef, orderBy('createdAt', 'desc'));
     
@@ -30,7 +31,8 @@ export class ProductsService {
 
     try {
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+      const rawProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+      return adjust ? rawProducts.map(p => adjustProductPrice(p)) : rawProducts;
     } catch (e: any) {
       errorEmitter.emit('permission-error', new FirestorePermissionError({
         path: 'products',
@@ -40,12 +42,13 @@ export class ProductsService {
     }
   }
 
-  async getFeaturedProducts(): Promise<Product[]> {
+  async getFeaturedProducts(adjust = true): Promise<Product[]> {
     const productsRef = collection(this.db, 'products');
     const q = query(productsRef, where('featured', '==', true), orderBy('createdAt', 'desc'));
     try {
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+      const rawProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+      return adjust ? rawProducts.map(p => adjustProductPrice(p)) : rawProducts;
     } catch (e: any) {
       errorEmitter.emit('permission-error', new FirestorePermissionError({
         path: 'products',
@@ -55,12 +58,13 @@ export class ProductsService {
     }
   }
 
-  async getProductById(id: string): Promise<Product | null> {
+  async getProductById(id: string, adjust = true): Promise<Product | null> {
     const docRef = doc(this.db, 'products', id);
     try {
       const snapshot = await getDoc(docRef);
       if (!snapshot.exists()) return null;
-      return { id: snapshot.id, ...snapshot.data() } as Product;
+      const rawProduct = { id: snapshot.id, ...snapshot.data() } as Product;
+      return adjust ? adjustProductPrice(rawProduct) : rawProduct;
     } catch (e: any) {
       errorEmitter.emit('permission-error', new FirestorePermissionError({
         path: `products/${id}`,

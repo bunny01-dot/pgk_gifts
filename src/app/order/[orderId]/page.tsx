@@ -230,7 +230,7 @@ export default function OrderTrackingPage() {
                 <div className="pt-6 space-y-3 border-t border-primary/10">
                   <div className="flex justify-between items-center text-[10px] md:text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     <span>Subtotal</span>
-                    <span className="text-foreground">{formatPrice(order.subtotal || order.total - (order.shippingFee || 0))}</span>
+                    <span className="text-foreground">{formatPrice(order.subtotal || (order.total - (order.shippingFee || 0) - (order.gatewayFee || 0) + (order.discount || 0)))}</span>
                   </div>
                   <div className="flex justify-between items-center text-[10px] md:text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     <span>Delivery</span>
@@ -240,6 +240,12 @@ export default function OrderTrackingPage() {
                     <div className="flex justify-between items-center text-[10px] md:text-xs font-bold uppercase tracking-wider text-green-600">
                       <span>Discount ({order.couponCode || 'Promo'})</span>
                       <span>-{formatPrice(order.discount)}</span>
+                    </div>
+                  )}
+                  {order.gatewayFee !== undefined && order.gatewayFee > 0 && (
+                    <div className="flex justify-between items-center text-[10px] md:text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      <span>Gateway Charge (2.36%)</span>
+                      <span className="text-foreground">{formatPrice(order.gatewayFee)}</span>
                     </div>
                   )}
                   

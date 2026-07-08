@@ -229,3 +229,81 @@ export function getRequiredTextLabel(product: Product): string | null {
 
   return null;
 }
+
+/**
+ * Calculates the delivery charge for a product based on custom settings, categories, and size rules.
+ */
+export function getItemDeliveryCharge(
+  item: {
+    name?: string;
+    category?: string;
+    dimensions?: string;
+    deliveryCharge?: 'complimentary' | 'regular' | number | undefined;
+    weight?: number | null | undefined;
+  },
+  state?: string,
+  settings?: {
+    lampDeliveryCharge?: number;
+    mdfDeliveryCharge?: number;
+    largeFrameDeliveryCharge?: number;
+    tnDeliveryMultiplier?: number;
+    otherDeliveryMultiplier?: number;
+  }
+): number {
+  if (!item) return 0;
+
+  // 1. Check for custom numeric override (highest priority)
+  if (typeof item.deliveryCharge === 'number') {
+    return item.deliveryCharge;
+  }
+
+  // 2. Check for complimentary shipping
+  if (item.deliveryCharge === 'complimentary') {
+    return 0;
+  }
+
+  const name = (item.name || '').toLowerCase();
+  const category = (item.category || '').toLowerCase();
+  const dimensions = (item.dimensions || '').toLowerCase();
+
+  const lampCharge = settings?.lampDeliveryCharge ?? 50;
+  const mdfCharge = settings?.mdfDeliveryCharge ?? 80;
+  const largeFrameCharge = settings?.largeFrameDeliveryCharge ?? 100;
+  const tnMultiplier = settings?.tnDeliveryMultiplier ?? 50;
+  const otherMultiplier = settings?.otherDeliveryMultiplier ?? 100;
+
+  // 3. Night Lamps
+  if (category.includes('lamp') || name.includes('lamp')) {
+    return lampCharge;
+  }
+
+  // 4. MDF frames
+  if (name.includes('mdf') || category.includes('mdf')) {
+    return mdfCharge;
+  }
+
+  // 5. Frames that are above 12x8 should have large frame delivery charge
+  const isFrame = 
+    category.includes('frame') || 
+    category.includes('decor') || 
+    name.includes('frame') || 
+    name.includes('collage');
+
+  if (isFrame) {
+    const dimMatch = dimensions.match(/(\d+)\s*[x*]\s*(\d+)/);
+    if (dimMatch && dimMatch[1] && dimMatch[2]) {
+      const w = parseInt(dimMatch[1], 10);
+      const h = parseInt(dimMatch[2], 10);
+      // Area above 12x8 = 96, or size above 12x8
+      if (w * h > 96 || w > 12 || h > 8) {
+        return largeFrameCharge;
+      }
+    }
+  }
+
+  // 6. Regular fallback based on weight
+  const itemWeight = item.weight && item.weight > 0 ? item.weight : 1;
+  const weightCeil = Math.ceil(itemWeight);
+  const multiplier = state?.trim().toLowerCase() === 'tamil nadu' ? tnMultiplier : otherMultiplier;
+  return weightCeil * multiplier;
+}

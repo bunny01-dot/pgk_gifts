@@ -216,8 +216,14 @@ function SuccessContent() {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Subtotal</span>
-                  <span>{formatPrice(order.subtotal || (order.total - (order.shippingFee || 0)))}</span>
+                  <span>{formatPrice(order.subtotal || (order.total - (order.shippingFee || 0) - (order.gatewayFee || 0) + (order.discount || 0)))}</span>
                 </div>
+                {order.discount !== undefined && order.discount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Discount ({order.couponCode || 'Promo'})</span>
+                    <span>-{formatPrice(order.discount)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-muted-foreground">
                   <span>Shipping Fee</span>
                   <span>
@@ -228,6 +234,12 @@ function SuccessContent() {
                     )}
                   </span>
                 </div>
+                {order.gatewayFee !== undefined && order.gatewayFee > 0 && (
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Gateway Charge (2.36%)</span>
+                    <span>{formatPrice(order.gatewayFee)}</span>
+                  </div>
+                )}
                 <div className="border-t pt-3 flex justify-between font-headline font-bold text-lg text-foreground">
                   <span>Total Amount Paid</span>
                   <span className="text-primary">{formatPrice(order.total)}</span>

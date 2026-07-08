@@ -31,6 +31,6 @@ export interface Product {
   sizes?: { name: string; price: number }[] | undefined;
   requiredPhotoSlots?: number | null | undefined;
   needsMainImage?: boolean | undefined;
-  deliveryCharge?: 'complimentary' | 'regular' | undefined;
+  deliveryCharge?: 'complimentary' | 'regular' | number | undefined;
   weight?: number | null | undefined;
 }

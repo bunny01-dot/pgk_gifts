@@ -42,6 +42,7 @@ export interface Order {
   trackingNumber?: string;
   trackingUrl?: string;
   discount?: number;
+  gatewayFee?: number;
   couponCode?: string | null;
   appliedCoupon?: {
     code: string;
