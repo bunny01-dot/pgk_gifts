@@ -425,32 +425,47 @@ export default function AdminPage() {
         if (prev.length > 0 && data.length > prev.length) {
           const newOrders = data.filter(o => !prev.some(p => p.id === o.id));
           newOrders.forEach(o => {
-            // Synthesize pleasant double-chime sound using Web Audio API (zero external assets needed)
+            // Synthesize a louder, rich ascending triple-chime sound using Web Audio API
             try {
               const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
               
-              const osc = ctx.createOscillator();
-              const gain = ctx.createGain();
-              osc.connect(gain);
-              gain.connect(ctx.destination);
-              osc.type = 'sine';
-              osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-              gain.gain.setValueAtTime(0.1, ctx.currentTime);
-              gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
-              osc.start(ctx.currentTime);
-              osc.stop(ctx.currentTime + 0.6);
+              // First note: D5 (587.33 Hz)
+              const osc1 = ctx.createOscillator();
+              const gain1 = ctx.createGain();
+              osc1.connect(gain1);
+              gain1.connect(ctx.destination);
+              osc1.type = 'sine';
+              osc1.frequency.setValueAtTime(587.33, ctx.currentTime);
+              gain1.gain.setValueAtTime(0.35, ctx.currentTime);
+              gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+              osc1.start(ctx.currentTime);
+              osc1.stop(ctx.currentTime + 0.6);
 
+              // Second note: F#5 (739.99 Hz)
               const osc2 = ctx.createOscillator();
               const gain2 = ctx.createGain();
               osc2.connect(gain2);
               gain2.connect(ctx.destination);
               osc2.type = 'sine';
-              osc2.frequency.setValueAtTime(880.00, ctx.currentTime + 0.15); // A5 (harmonious harmony)
+              osc2.frequency.setValueAtTime(739.99, ctx.currentTime + 0.12);
               gain2.gain.setValueAtTime(0, ctx.currentTime);
-              gain2.gain.setValueAtTime(0.1, ctx.currentTime + 0.15);
-              gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.75);
-              osc2.start(ctx.currentTime + 0.15);
-              osc2.stop(ctx.currentTime + 0.75);
+              gain2.gain.setValueAtTime(0.35, ctx.currentTime + 0.12);
+              gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.72);
+              osc2.start(ctx.currentTime + 0.12);
+              osc2.stop(ctx.currentTime + 0.72);
+
+              // Third note: A5 (880.00 Hz)
+              const osc3 = ctx.createOscillator();
+              const gain3 = ctx.createGain();
+              osc3.connect(gain3);
+              gain3.connect(ctx.destination);
+              osc3.type = 'sine';
+              osc3.frequency.setValueAtTime(880.00, ctx.currentTime + 0.24);
+              gain3.gain.setValueAtTime(0, ctx.currentTime);
+              gain3.gain.setValueAtTime(0.35, ctx.currentTime + 0.24);
+              gain3.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.84);
+              osc3.start(ctx.currentTime + 0.24);
+              osc3.stop(ctx.currentTime + 0.84);
             } catch (e) {
               console.error("Audio chime failed to play:", e);
             }
@@ -1519,8 +1534,20 @@ export default function AdminPage() {
                           title="Click to view full image"
                         >
                           <img src={imgUrl} className="w-full h-full object-cover" />
-                          {i === 0 && (
+                          {i === 0 ? (
                              <Badge className="absolute bottom-2 left-2 text-[8px] px-1.5 h-4 border-none bg-primary text-primary-foreground pointer-events-none">Cover</Badge>
+                          ) : (
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const newImages = [imgUrl, ...productForm.images!.filter((_, index) => index !== i)];
+                                setProductForm({...productForm, images: newImages, image: imgUrl});
+                              }}
+                              className="absolute bottom-2 left-2 bg-background/80 hover:bg-background text-foreground border border-border text-[8px] font-bold px-1.5 h-4 rounded-md opacity-90 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10"
+                            >
+                              Make Cover
+                            </button>
                           )}
                           <button 
                             onClick={(e) => {
@@ -1529,7 +1556,7 @@ export default function AdminPage() {
                                const newImages = productForm.images!.filter((_, index) => index !== i);
                                setProductForm({...productForm, images: newImages, image: newImages[0] || ''});
                             }}
-                            className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                            className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-90 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10"
                           >
                              <X className="w-4 h-4" />
                           </button>

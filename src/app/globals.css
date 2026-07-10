@@ -122,3 +122,54 @@ html {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Neomorphic/Embossed tactile styles */
+.shadow-embossed {
+  box-shadow: 
+    0 4px 10px rgba(0, 0, 0, 0.08),
+    inset 0 2px 2px rgba(255, 255, 255, 0.95),
+    inset 0 -2px 2px rgba(0, 0, 0, 0.05) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+.dark .shadow-embossed {
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.45),
+    inset 0 1.5px 1.5px rgba(255, 255, 255, 0.1),
+    inset 0 -1.5px 1.5px rgba(0, 0, 0, 0.35) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+.shadow-sunken {
+  box-shadow: 
+    inset 0 2.5px 5px rgba(0, 0, 0, 0.14),
+    0 1px 1px rgba(255, 255, 255, 0.8) !important;
+}
+.dark .shadow-sunken {
+  box-shadow: 
+    inset 0 2.5px 5px rgba(0, 0, 0, 0.55),
+    0 1px 1px rgba(255, 255, 255, 0.03) !important;
+}
+
+.shadow-panel-embossed {
+  box-shadow: 
+    0 15px 30px -5px rgba(0, 0, 0, 0.08),
+    inset 0 2px 3px rgba(255, 255, 255, 0.9),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.03) !important;
+}
+.dark .shadow-panel-embossed {
+  box-shadow: 
+    0 20px 40px -5px rgba(0, 0, 0, 0.45),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.1),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.55) !important;
+}
+
+/* Lottie/Lordicon styling */
+.lottie-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: filter 0.3s ease, opacity 0.3s ease;
+}
+.dark .lottie-icon {
+  filter: invert(1) brightness(1.8);
+}

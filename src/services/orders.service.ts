@@ -27,10 +27,14 @@ export class OrdersService {
       const snapshot = await getDocs(q);
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
     } catch (e: any) {
-      errorEmitter.emit('permission-error', new FirestorePermissionError({
-        path: 'orders',
-        operation: 'list'
-      }));
+      if (e?.code === 'permission-denied') {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: 'orders',
+          operation: 'list'
+        }));
+      } else {
+        console.error("Firestore error in getAllOrders:", e);
+      }
       return [];
     }
   }
@@ -44,10 +48,14 @@ export class OrdersService {
       }
       return null;
     } catch (e: any) {
-      errorEmitter.emit('permission-error', new FirestorePermissionError({
-        path: `orders/${orderId}`,
-        operation: 'get'
-      }));
+      if (e?.code === 'permission-denied') {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: `orders/${orderId}`,
+          operation: 'get'
+        }));
+      } else {
+        console.error(`Firestore error in getOrderById(${orderId}):`, e);
+      }
       return null;
     }
   }
@@ -75,11 +83,15 @@ export class OrdersService {
     // Non-blocking write
     updateDoc(orderRef, updateData)
       .catch((e: any) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-          path: `orders/${orderId}`,
-          operation: 'update',
-          requestResourceData: updateData
-        }));
+        if (e?.code === 'permission-denied') {
+          errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: `orders/${orderId}`,
+            operation: 'update',
+            requestResourceData: updateData
+          }));
+        } else {
+          console.error(`Firestore error in updateOrderStatus(${orderId}):`, e);
+        }
       });
   }
 
@@ -94,10 +106,14 @@ export class OrdersService {
         callback(orders);
       },
       (error) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-          path: 'orders',
-          operation: 'list'
-        }));
+        if (error?.code === 'permission-denied') {
+          errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: 'orders',
+            operation: 'list'
+          }));
+        } else {
+          console.error("Firestore error in subscribeToOrders:", error);
+        }
       }
     );
   }

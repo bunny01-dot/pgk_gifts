@@ -44,11 +44,7 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
   const handleBuyNow = () => {
     const requiredSlots = getRequiredPhotoSlots(product as any);
     if (requiredSlots > 0) {
-      toast({
-        title: "Photo Upload Required",
-        description: `This personalized item requires uploading ${requiredSlots} photo(s). Redirecting to details...`,
-      });
-      router.push(`/products/${product.id}`);
+      router.push(`/products/${product.id}?requiredUpload=true`);
       onClose();
       return;
     }
@@ -153,11 +149,7 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
                 onClick={() => { 
                   const requiredSlots = getRequiredPhotoSlots(product as any);
                   if (requiredSlots > 0) {
-                    toast({
-                      title: "Photo Upload Required",
-                      description: `This personalized item requires uploading ${requiredSlots} photo(s). Redirecting to details...`,
-                    });
-                    router.push(`/products/${product.id}`);
+                    router.push(`/products/${product.id}?requiredUpload=true`);
                     onClose();
                     return;
                   }

@@ -4,8 +4,8 @@
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { ShoppingCart, ArrowLeft, Heart, Share2, ZoomIn, ShoppingBag, ShieldCheck, Truck, Star, Check, Loader2, PlayCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ShoppingCart, ArrowLeft, Heart, Share2, ZoomIn, ShoppingBag, ShieldCheck, Truck, Star, Check, Loader2, PlayCircle, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PRODUCTS, CONTACT_INFO } from '@/lib/data';
 import { useCart } from '@/context/CartContext';
@@ -62,6 +62,7 @@ export default function ProductDetailPage() {
   const [uploadProgress, setUploadProgress] = useState<Record<number, number>>({});
   const [customText, setCustomText] = useState('');
   const [showFrameText, setShowFrameText] = useState(false);
+  const [interstitialMessage, setInterstitialMessage] = useState<string | null>(null);
   const textLabel = product ? getRequiredTextLabel(product) : null;
 
   const hasInitializedPhotos = useRef(false);
@@ -71,6 +72,34 @@ export default function ProductDetailPage() {
     setCustomText('');
     setShowFrameText(false);
   }, [id]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      if (searchParams.get('requiredUpload') === 'true') {
+        const slots = product ? getRequiredPhotoSlots(product) : 0;
+        const msg = slots === 1 ? "This item needs photo uploaded" : "This item needs photos uploaded";
+        setInterstitialMessage(msg);
+        
+        // Remove the parameter so refresh doesn't trigger it again
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+
+        const timer = setTimeout(() => {
+          setInterstitialMessage(null);
+          const uploadSection = document.getElementById('photo-upload-section');
+          if (uploadSection) {
+            uploadSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            uploadSection.classList.add('ring-4', 'ring-primary/30', 'scale-[1.01]');
+            setTimeout(() => {
+              uploadSection.classList.remove('ring-4', 'ring-primary/30', 'scale-[1.01]');
+            }, 2000);
+          }
+        }, 1800);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [id, product]);
 
   useEffect(() => {
     if (product && !hasInitializedPhotos.current) {
@@ -235,11 +264,20 @@ export default function ProductDetailPage() {
       const targetSlotsCount = Math.max(slots, uploadedPhotos.length);
       const uploadedCount = uploadedPhotos.filter(Boolean).length;
       if (targetSlotsCount > 0 && uploadedCount < targetSlotsCount) {
-        toast({
-          variant: "destructive",
-          title: "Photos Required",
-          description: `Please upload all ${targetSlotsCount} photos. You've only uploaded ${uploadedCount}.`,
-        });
+        const msg = targetSlotsCount === 1 ? "This item needs photo uploaded" : "This item needs photos uploaded";
+        setInterstitialMessage(msg);
+        
+        setTimeout(() => {
+          setInterstitialMessage(null);
+          const uploadSection = document.getElementById('photo-upload-section');
+          if (uploadSection) {
+            uploadSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            uploadSection.classList.add('ring-4', 'ring-primary/30', 'scale-[1.01]');
+            setTimeout(() => {
+              uploadSection.classList.remove('ring-4', 'ring-primary/30', 'scale-[1.01]');
+            }, 2000);
+          }
+        }, 1800);
         return;
       }
     }
@@ -266,27 +304,6 @@ export default function ProductDetailPage() {
     
     if (redirect) {
       router.push('/checkout');
-    } else {
-      const { dismiss } = toast({
-        title: "Added to Bag",
-        description: `${product.name}${product.sizes ? ` (${selectedSize})` : ''} (x${quantity}) is ready for checkout.`,
-        action: (
-          <div className="flex gap-2">
-            <ToastAction altText="View Bag" onClick={() => {
-              setIsCartOpen(true);
-              dismiss();
-            }}>
-              View Bag
-            </ToastAction>
-            <Button size="sm" variant="outline" className="h-8 rounded-full text-[10px] font-bold" onClick={() => {
-              router.push('/cart');
-              dismiss();
-            }}>
-              Checkout
-            </Button>
-          </div>
-        ),
-      });
     }
   };
 
@@ -336,7 +353,45 @@ export default function ProductDetailPage() {
   };
 
   return (
-    <div className="min-h-screen pt-24 md:pt-40 pb-28 md:pb-40 bg-background">
+    <>
+      <AnimatePresence>
+        {interstitialMessage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/95 backdrop-blur-md p-6 text-center"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ delay: 0.1, duration: 0.3 }}
+              className="max-w-md space-y-6"
+            >
+              {/* Pulsing Photo Icon */}
+              <div className="mx-auto w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary animate-pulse shadow-inner">
+                <Camera className="w-10 h-10" />
+              </div>
+              
+              <div className="space-y-2">
+                <h2 className="text-2xl md:text-3xl font-headline font-bold text-foreground">
+                  {interstitialMessage}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Taking you to the customization section...
+                </p>
+              </div>
+
+              <div className="flex justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="min-h-screen pt-24 md:pt-40 pb-28 md:pb-40 bg-background">
       <div className="container mx-auto px-4">
         <Button 
           variant="ghost" 
@@ -481,7 +536,7 @@ export default function ProductDetailPage() {
 
             {/* Custom Photo Upload Section */}
             {product && requiredSlots > 0 && (
-              <div className="space-y-4 p-6 rounded-3xl bg-secondary/30 border border-border/80 shadow-inner">
+              <div id="photo-upload-section" className="space-y-4 p-6 rounded-3xl bg-secondary/30 border border-border/80 shadow-inner transition-all duration-300">
                 <div className="flex justify-between items-center">
                   <div>
                     <h3 className="font-bold text-lg flex items-center gap-2">
@@ -876,5 +931,6 @@ export default function ProductDetailPage() {
         </div>
       </div>
     </div>
+  </>
   );
 }

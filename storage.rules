@@ -1,26 +1,48 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && (
+          request.auth.uid == '30S6HkIJXKWWSrmlLD8c8GBskst1'
+          || (request.auth.token.email != null && (
+               request.auth.token.email == 'admin@pgk.com'
+               || request.auth.token.email == 'kalab320@gmail.com'
+             ))
+        );
+    }
     
     // User-isolated customizations folder
     match /users/{userId}/customizations/{fileName} {
-      // Allow reading and deleting if authenticated and the UID matches the folder
-      allow read, delete: if request.auth != null && request.auth.uid == userId;
+      // Allow reading and deleting if authenticated and the UID matches the folder, or if admin
+      allow read: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
+      allow delete: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
       
       // Allow creation and updates under strict size and format constraints
-      allow create, update: if request.auth != null 
+      allow create, update: if isSignedIn() 
                             && request.auth.uid == userId
                             && request.resource.size < 5 * 1024 * 1024 // Enforce 5MB limit
-                            && (request.resource.contentType == 'image/png' 
-                                || request.resource.contentType == 'image/jpeg' 
-                                || request.resource.contentType == 'image/jpg' 
-                                || request.resource.contentType == 'image/webp');
+                            && request.resource.contentType.matches('image/.*');
     }
 
-    // Publicly readable product images, but writable only via Admin SDK
+    // Publicly readable product images, but writable only by admins
     match /products/{allPaths=**} {
       allow read: if true;
-      allow write: if false;
+      allow write: if isAdmin();
+    }
+
+    // Damage/Return photo evidence
+    match /returns/{fileName} {
+      allow read: if true;
+      allow create, update: if isSignedIn()
+                            && request.resource.size < 5 * 1024 * 1024 // Enforce 5MB limit
+                            && request.resource.contentType.matches('image/.*');
+      allow delete: if isAdmin();
     }
   }
 }

@@ -34,10 +34,14 @@ export class ProductsService {
       const rawProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
       return adjust ? rawProducts.map(p => adjustProductPrice(p)) : rawProducts;
     } catch (e: any) {
-      errorEmitter.emit('permission-error', new FirestorePermissionError({
-        path: 'products',
-        operation: 'list'
-      }));
+      if (e?.code === 'permission-denied') {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: 'products',
+          operation: 'list'
+        }));
+      } else {
+        console.error("Firestore error in getAllProducts:", e);
+      }
       return [];
     }
   }
@@ -50,10 +54,14 @@ export class ProductsService {
       const rawProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
       return adjust ? rawProducts.map(p => adjustProductPrice(p)) : rawProducts;
     } catch (e: any) {
-      errorEmitter.emit('permission-error', new FirestorePermissionError({
-        path: 'products',
-        operation: 'list'
-      }));
+      if (e?.code === 'permission-denied') {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: 'products',
+          operation: 'list'
+        }));
+      } else {
+        console.error("Firestore error in getFeaturedProducts:", e);
+      }
       return [];
     }
   }
@@ -66,10 +74,14 @@ export class ProductsService {
       const rawProduct = { id: snapshot.id, ...snapshot.data() } as Product;
       return adjust ? adjustProductPrice(rawProduct) : rawProduct;
     } catch (e: any) {
-      errorEmitter.emit('permission-error', new FirestorePermissionError({
-        path: `products/${id}`,
-        operation: 'get'
-      }));
+      if (e?.code === 'permission-denied') {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: `products/${id}`,
+          operation: 'get'
+        }));
+      } else {
+        console.error(`Firestore error in getProductById(${id}):`, e);
+      }
       return null;
     }
   }
@@ -78,11 +90,15 @@ export class ProductsService {
     const docRef = doc(this.db, 'products', id);
     return updateDoc(docRef, { ...data, updatedAt: serverTimestamp() })
       .catch((e: any) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-          path: `products/${id}`,
-          operation: 'update',
-          requestResourceData: data
-        }));
+        if (e?.code === 'permission-denied') {
+          errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: `products/${id}`,
+            operation: 'update',
+            requestResourceData: data
+          }));
+        } else {
+          console.error(`Firestore error in updateProduct(${id}):`, e);
+        }
         throw e;
       });
   }
@@ -95,11 +111,15 @@ export class ProductsService {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     }).catch((e: any) => {
-      errorEmitter.emit('permission-error', new FirestorePermissionError({
-        path: 'products',
-        operation: 'create',
-        requestResourceData: data
-      }));
+      if (e?.code === 'permission-denied') {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: 'products',
+          operation: 'create',
+          requestResourceData: data
+        }));
+      } else {
+        console.error("Firestore error in createProduct:", e);
+      }
       throw e;
     });
   }
@@ -108,10 +128,14 @@ export class ProductsService {
     const { deleteDoc, doc } = await import('firebase/firestore');
     const docRef = doc(this.db, 'products', id);
     return deleteDoc(docRef).catch((e: any) => {
-      errorEmitter.emit('permission-error', new FirestorePermissionError({
-        path: `products/${id}`,
-        operation: 'delete'
-      }));
+      if (e?.code === 'permission-denied') {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: `products/${id}`,
+          operation: 'delete'
+        }));
+      } else {
+        console.error(`Firestore error in deleteProduct(${id}):`, e);
+      }
       throw e;
     });
   }

@@ -38,7 +38,7 @@ export default function RootLayout({
           <FirebaseClientProvider>
             <CartProvider>
               <Navbar />
-              <main className="min-h-screen">
+              <main className="min-h-screen pb-20 lg:pb-0">
                 {children}
               </main>
               <CartDrawer />

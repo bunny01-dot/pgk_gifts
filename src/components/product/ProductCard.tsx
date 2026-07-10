@@ -34,11 +34,7 @@ export function ProductCard({ product }: ProductCardProps) {
     // Redirect if it requires photo uploads
     const requiredSlots = getRequiredPhotoSlots(product as any);
     if (requiredSlots > 0) {
-      toast({
-        title: "Photo Upload Required",
-        description: `This personalized item requires uploading ${requiredSlots} photo(s). Redirecting to details...`,
-      });
-      router.push(`/products/${product.id}`);
+      router.push(`/products/${product.id}?requiredUpload=true`);
       return;
     }
     
@@ -46,20 +42,7 @@ export function ProductCard({ product }: ProductCardProps) {
       setIsQuickViewOpen(true);
       return;
     }
-    
     addToCart(product as any);
-    const { dismiss } = toast({
-      title: "Added to Bag",
-      description: `${product.name} is ready for checkout.`,
-      action: (
-        <Button size="sm" variant="outline" className="h-8 rounded-full text-[10px] font-bold" onClick={() => {
-          setIsCartOpen(true);
-          dismiss();
-        }}>
-          View Bag
-        </Button>
-      ),
-    });
   };
 
   const handleQuickView = (e: React.MouseEvent) => {

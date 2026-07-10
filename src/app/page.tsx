@@ -11,11 +11,13 @@ import { CategoryShowcase } from '@/components/home/CategoryShowcase';
 import { ProductCard } from '@/components/product/ProductCard';
 import { PRODUCTS, CONTACT_INFO } from '@/lib/data';
 import { adjustProductPrice } from '@/utils/currency';
+import { useFirestore } from '@/firebase';
 const ADJUSTED_PRODUCTS = PRODUCTS.map(p => adjustProductPrice(p));
 
 import type { Product } from '@/types/product';
 
 export default function Home() {
+  const firestore = useFirestore();
   const firstProduct = ADJUSTED_PRODUCTS[0];
   if (!firstProduct) {
     throw new Error("No products found in catalog.");
@@ -23,12 +25,14 @@ export default function Home() {
   const [featuredProduct, setFeaturedProduct] = useState<Product>(firstProduct);
   
   // A balanced curated mix of featured products across categories, including the new MDF frames
-  const featuredProducts = [
+  const staticFeatured = [
     ...ADJUSTED_PRODUCTS.filter(p => p.category === 'MDF Wall Frames' && p.featured).slice(0, 2),
     ...ADJUSTED_PRODUCTS.filter(p => p.category === 'Wall Decor and Photo Frames' && p.featured).slice(0, 2),
     ...ADJUSTED_PRODUCTS.filter(p => p.category === 'Night Lamps' && p.featured).slice(0, 2),
     ...ADJUSTED_PRODUCTS.filter(p => (p.category === 'Personalized Gifts' || p.category === 'Car Dashboard Accessories') && p.featured).slice(0, 2)
   ];
+
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>(staticFeatured);
 
   useEffect(() => {
     // Pick a random product on mount to keep the experience fresh
@@ -38,6 +42,35 @@ export default function Home() {
       setFeaturedProduct(randomProduct);
     }
   }, []);
+
+  useEffect(() => {
+    if (!firestore) return;
+    const loadFeatured = async () => {
+      try {
+        const { ProductsService } = await import('@/services/products.service');
+        const svc = new ProductsService(firestore);
+        const dynamicFeatured = await svc.getFeaturedProducts();
+        
+        if (dynamicFeatured && dynamicFeatured.length > 0) {
+          let merged = [...dynamicFeatured];
+          
+          staticFeatured.forEach(staticP => {
+            if (!merged.some(p => p.name.toLowerCase() === staticP.name.toLowerCase())) {
+              merged.push(staticP);
+            }
+          });
+          
+          setFeaturedProducts(merged.slice(0, 8));
+        } else {
+          setFeaturedProducts(staticFeatured);
+        }
+      } catch (err) {
+        console.error("Failed to load featured products from firestore", err);
+        setFeaturedProducts(staticFeatured);
+      }
+    };
+    loadFeatured();
+  }, [firestore]);
 
   return (
     <div className="min-h-screen bg-background">

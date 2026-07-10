@@ -3,9 +3,9 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import { Menu, X, ShoppingBag, Grid, ImageIcon, Phone, User, Camera, LogOut, LayoutDashboard, Truck, Package, Bell, BellRing, Star, AlertCircle } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import { Menu, X, ShoppingBag, Grid, ImageIcon, Phone, User, Camera, LogOut, LayoutDashboard, Truck, Package, Bell, BellRing, Star, AlertCircle, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { CONTACT_INFO, ADMIN_EMAILS } from '@/lib/data';
@@ -36,8 +36,65 @@ const NAV_LINKS = [
   { name: 'Contact', href: '/contact', icon: Phone },
 ];
 
+const BOTTOM_NAV_ITEMS = [
+  { name: 'Home', href: '/', icon: Home },
+  { name: 'Shop', href: '/shop', icon: ShoppingBag },
+  { name: 'Track', href: '/track', icon: Truck },
+  { name: 'Photography', href: '/photography', icon: Camera },
+  { name: 'Gallery', href: '/gallery', icon: ImageIcon },
+];
+
+interface AnimatedIconProps {
+  icon: any;
+  active: boolean;
+  className?: string;
+}
+
+const iconVariants = {
+  active: {
+    scale: 1.25,
+    y: -3,
+    rotate: [0, -12, 10, -8, 6, 0],
+    transition: {
+      type: "spring",
+      stiffness: 400,
+      damping: 18,
+      rotate: {
+        duration: 0.55,
+        ease: "easeInOut"
+      }
+    }
+  },
+  inactive: {
+    scale: 1,
+    y: 0,
+    rotate: 0,
+    transition: {
+      type: "spring",
+      stiffness: 400,
+      damping: 17
+    }
+  }
+};
+
+function AnimatedIcon({ icon: Icon, active, className }: AnimatedIconProps) {
+  return (
+    <motion.div
+      variants={iconVariants}
+      animate={active ? "active" : "inactive"}
+      whileHover={{ scale: 1.12, y: -1 }}
+      whileTap={{ scale: 0.95 }}
+      className={`flex items-center justify-center ${className}`}
+    >
+      <Icon className="w-5 h-5 transition-colors duration-300" />
+    </motion.div>
+  );
+}
+
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
+  const hideBottomNav = pathname.startsWith('/admin') || pathname.startsWith('/login');
   const [scrolled, setScrolled] = useState(false);
   const { itemCount, setIsCartOpen } = useCart();
   const { user } = useUser();
@@ -60,6 +117,30 @@ export function Navbar() {
   const [orders, setOrders] = useState<any[]>([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [readNotificationIds, setReadNotificationIds] = useState<string[]>([]);
+  const desktopNotifRef = useRef<HTMLDivElement>(null);
+  const mobileNotifRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const clickedOutsideDesktop = desktopNotifRef.current && !desktopNotifRef.current.contains(target);
+      const clickedOutsideMobile = mobileNotifRef.current && !mobileNotifRef.current.contains(target);
+      
+      if (isNotifOpen) {
+        const isOutsideDesktop = !desktopNotifRef.current || clickedOutsideDesktop;
+        const isOutsideMobile = !mobileNotifRef.current || clickedOutsideMobile;
+        
+        if (isOutsideDesktop && isOutsideMobile) {
+          setIsNotifOpen(false);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isNotifOpen]);
 
   // Load and save read notification IDs
   useEffect(() => {
@@ -257,7 +338,8 @@ export function Navbar() {
   };
 
   return (
-    <nav className={`fixed top-0 z-50 w-full transition-all duration-500 ${scrolled ? 'glass h-16 md:h-20 shadow-lg' : 'bg-transparent h-20 md:h-28'}`}>
+    <>
+      <nav className={`fixed top-0 z-50 w-full transition-all duration-500 ${scrolled ? 'glass h-16 md:h-20 shadow-lg' : 'bg-transparent h-20 md:h-28'}`}>
       <div className="container mx-auto px-4 md:px-6 h-full flex items-center justify-between">
         
         {/* Logo Section - Scaled for Mobile */}
@@ -321,7 +403,7 @@ export function Navbar() {
             <ThemeToggle />
 
             {user && (
-              <div className="relative">
+              <div ref={desktopNotifRef} className="relative">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -458,7 +540,7 @@ export function Navbar() {
           <ThemeToggle />
 
           {user && (
-            <div className="relative">
+            <div ref={mobileNotifRef} className="relative">
               <Button
                 variant="ghost"
                 size="icon"
@@ -591,42 +673,39 @@ export function Navbar() {
               </Badge>
             )}
           </button>
-          <Button variant="ghost" size="icon" onClick={() => setIsOpen(!isOpen)} className="rounded-xl h-11 w-11 hover:bg-secondary">
-            {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </Button>
         </div>
       </div>
+      </nav>
 
-      {/* Mobile Drawer */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden absolute top-full left-0 w-full bg-card border-b px-5 py-5 flex flex-col gap-3 shadow-2xl overflow-hidden backdrop-blur-3xl"
-          >
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.name}
-                href={link.href}
-                className="flex items-center gap-4 text-xl font-headline font-bold py-2 group border-b border-border/30 pb-3 last:border-0"
-                onClick={() => setIsOpen(false)}
-              >
-                <div className="p-2.5 rounded-xl bg-primary/5 text-primary group-hover:bg-primary group-hover:text-white transition-all">
-                   <link.icon className="w-5 h-5" />
-                </div>
-                {link.name}
-              </Link>
-            ))}
-            {!user && (
-               <Button asChild className="w-full h-12 rounded-xl text-base font-bold mt-2">
-                 <Link href="/login" onClick={() => setIsOpen(false)}>Sign In</Link>
-               </Button>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </nav>
+      {/* Mobile Bottom Navigation Bar */}
+      {!hideBottomNav && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] w-full bg-secondary/95 dark:bg-zinc-900/95 backdrop-blur-lg border-t border-border/80 shadow-panel-embossed py-2 px-3 pb-[calc(8px+env(safe-area-inset-bottom,12px))]">
+          <div className="flex items-center justify-around w-full bg-zinc-200/50 dark:bg-zinc-950/40 p-1 rounded-[1.8rem] shadow-sunken">
+            {BOTTOM_NAV_ITEMS.map((item) => {
+              const isActive = pathname === item.href;
+              
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-300 group/navitem ${
+                    isActive 
+                      ? 'bg-background text-primary shadow-embossed scale-105' 
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <AnimatedIcon 
+                    icon={item.icon} 
+                    active={isActive} 
+                    className={isActive ? 'text-primary' : 'text-muted-foreground group-hover/navitem:text-foreground'}
+                  />
+                  <span className="text-[9px] font-bold mt-1 tracking-tight">{item.name}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </>
   );
 }

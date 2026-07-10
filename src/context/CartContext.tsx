@@ -5,6 +5,8 @@ import { CartItem } from '@/types/cart';
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { useFirebase } from '@/firebase';
 import { UploadService } from '@/services/upload.service';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Check } from 'lucide-react';
 
 interface CartContextType {
   cart: CartItem[];
@@ -57,6 +59,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [giftWrapPrice, setGiftWrapPrice] = useState(50);
   const [deliverySettings, setDeliverySettings] = useState<any>(null);
+
 
   // Load global settings for Gift Wrap price & Delivery Settings
   useEffect(() => {

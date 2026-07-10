@@ -128,55 +128,53 @@ function ShopContent() {
            }
         });
 
+        // Helper to get matching dynamic product from Firestore and merge it
+        const getMergedProduct = (p: typeof ADJUSTED_PRODUCTS[0]) => {
+          const dbMatch = dynamic.find(dp => dp.id === p.id || dp.name.toLowerCase().trim() === p.name.toLowerCase().trim());
+          if (dbMatch) {
+            return {
+              ...p,
+              ...dbMatch,
+              stockCount: dbMatch.stockCount ?? p.stockCount ?? 10,
+              searchIndex: `${dbMatch.name || p.name} ${p.category} ${(dbMatch.tags || p.tags || []).join(' ')}`.toLowerCase()
+            };
+          }
+          return {
+            ...p,
+            stockCount: p.stockCount ?? 10,
+            searchIndex: `${p.name} ${p.category} ${(p.tags || []).join(' ')}`.toLowerCase()
+          };
+        };
+
         // Strict Authority: For the "Night Lamps" category, we override everything to match the local 17-asset catalog exactly.
         // This removes any duplicates that might exist in Firestore but not in our clean local list.
         const cleanNightLamps = ADJUSTED_PRODUCTS
           .filter(p => p.category === 'Night Lamps')
-          .map(p => ({
-            ...p,
-            stockCount: p.stockCount ?? 10,
-            searchIndex: `${p.name} ${p.category} ${(p.tags || []).join(' ')}`.toLowerCase()
-          }));
+          .map(getMergedProduct);
         merged = merged.filter(p => p.category !== 'Night Lamps');
         merged = [...merged, ...cleanNightLamps];
 
         const cleanWallDecor = ADJUSTED_PRODUCTS
           .filter(p => p.category === 'Wall Decor and Photo Frames')
-          .map(p => ({
-            ...p,
-            stockCount: p.stockCount ?? 10,
-            searchIndex: `${p.name} ${p.category} ${(p.tags || []).join(' ')}`.toLowerCase()
-          }));
+          .map(getMergedProduct);
         merged = merged.filter(p => p.category !== 'Wall Decor and Photo Frames' && String(p.category) !== 'Wall Decor Photo Frames');
         merged = [...merged, ...cleanWallDecor];
 
         const cleanMdfFrames = ADJUSTED_PRODUCTS
           .filter(p => p.category === 'MDF Wall Frames')
-          .map(p => ({
-            ...p,
-            stockCount: p.stockCount ?? 10,
-            searchIndex: `${p.name} ${p.category} ${(p.tags || []).join(' ')}`.toLowerCase()
-          }));
+          .map(getMergedProduct);
         merged = merged.filter(p => p.category !== 'MDF Wall Frames');
         merged = [...merged, ...cleanMdfFrames];
 
         const cleanKeychains = ADJUSTED_PRODUCTS
           .filter(p => p.category === 'Keychains')
-          .map(p => ({
-            ...p,
-            stockCount: p.stockCount ?? 10,
-            searchIndex: `${p.name} ${p.category} ${(p.tags || []).join(' ')}`.toLowerCase()
-          }));
+          .map(getMergedProduct);
         merged = merged.filter(p => p.category !== 'Keychains');
         merged = [...merged, ...cleanKeychains];
 
         const cleanPersonalizedGifts = ADJUSTED_PRODUCTS
           .filter(p => p.category === 'Personalized Gifts')
-          .map(p => ({
-            ...p,
-            stockCount: p.stockCount ?? 10,
-            searchIndex: `${p.name} ${p.category} ${(p.tags || []).join(' ')}`.toLowerCase()
-          }));
+          .map(getMergedProduct);
         merged = merged.filter(p => p.category !== 'Personalized Gifts');
         merged = [...merged, ...cleanPersonalizedGifts];
 

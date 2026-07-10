@@ -148,7 +148,9 @@ service cloud.firestore {
       allow list: if isAdmin()
         || (isSignedIn() && (resource.data.createdBy == request.auth.uid || resource.data.customerEmail == request.auth.token.email));
       allow create: if false;
-      allow update, delete: if isAdmin();
+      allow update: if isAdmin()
+        || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['returnRequest', 'feedback']);
+      allow delete: if isAdmin();
     }
 
     match /carts/{userId} {
@@ -172,6 +174,15 @@ service cloud.firestore {
     match /websiteContent/{contentId} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
+    }
+
+    match /settings/{settingId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /coupons/{couponId} {
+      allow read, write: if isAdmin();
     }
 
     match /razorpayOrders/{document=**} {

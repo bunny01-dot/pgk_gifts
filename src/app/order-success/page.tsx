@@ -29,6 +29,39 @@ import { formatPrice } from '@/utils/currency';
 import { addDays, format } from 'date-fns';
 import Image from 'next/image';
 
+function playCustomerDing() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    
+    // First high note (C6)
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(1046.50, ctx.currentTime); // C6
+    gain1.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+    osc1.start(ctx.currentTime);
+    osc1.stop(ctx.currentTime + 0.5);
+
+    // Second higher note (E6) starting slightly later for a classic ding chime
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(1318.51, ctx.currentTime + 0.08); // E6
+    gain2.gain.setValueAtTime(0, ctx.currentTime);
+    gain2.gain.setValueAtTime(0.08, ctx.currentTime + 0.08);
+    gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+    osc2.start(ctx.currentTime + 0.08);
+    osc2.stop(ctx.currentTime + 0.6);
+  } catch (e) {
+    console.error("Audio ding failed to play:", e);
+  }
+}
+
 function SuccessContent() {
   const searchParams = useSearchParams();
   const docId = searchParams.get('id');
@@ -36,6 +69,7 @@ function SuccessContent() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
+  const [hasPlayedSound, setHasPlayedSound] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -56,6 +90,13 @@ function SuccessContent() {
     };
     fetchOrder();
   }, [docId, firestore, isMounted]);
+
+  useEffect(() => {
+    if (order && !hasPlayedSound) {
+      playCustomerDing();
+      setHasPlayedSound(true);
+    }
+  }, [order, hasPlayedSound]);
 
   if (!isMounted || loading) {
     return (
