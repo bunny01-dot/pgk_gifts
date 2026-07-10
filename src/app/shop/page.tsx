@@ -135,6 +135,7 @@ function ShopContent() {
             return {
               ...p,
               ...dbMatch,
+              category: p.category,
               stockCount: dbMatch.stockCount ?? p.stockCount ?? 10,
               searchIndex: `${dbMatch.name || p.name} ${p.category} ${(dbMatch.tags || p.tags || []).join(' ')}`.toLowerCase()
             };
