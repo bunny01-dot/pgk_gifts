@@ -142,6 +142,41 @@ export function Navbar() {
     };
   }, [isNotifOpen]);
 
+  // Save scroll positions in session storage to persist across route changes and refreshes
+  useEffect(() => {
+    const handleScroll = () => {
+      try {
+        const positions = JSON.parse(sessionStorage.getItem('nav_scroll_positions') || '{}');
+        positions[pathname] = window.scrollY;
+        sessionStorage.setItem('nav_scroll_positions', JSON.stringify(positions));
+      } catch (e) {
+        console.error("Failed to save scroll position:", e);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [pathname]);
+
+  // Restore scroll positions when route changes
+  useEffect(() => {
+    try {
+      const positions = JSON.parse(sessionStorage.getItem('nav_scroll_positions') || '{}');
+      const savedPosition = positions[pathname] || 0;
+      
+      const timer = setTimeout(() => {
+        window.scrollTo({
+          top: savedPosition,
+          behavior: 'instant' as ScrollBehavior
+        });
+      }, 75);
+      
+      return () => clearTimeout(timer);
+    } catch (e) {
+      console.error("Failed to restore scroll position:", e);
+    }
+  }, [pathname]);
+
   // Load and save read notification IDs
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -343,7 +378,7 @@ export function Navbar() {
       <div className="container mx-auto px-4 md:px-6 h-full flex items-center justify-between">
         
         {/* Logo Section - Scaled for Mobile */}
-        <Link href="/" className="flex items-center gap-2 md:gap-4 shrink-0 group">
+        <Link href="/" scroll={false} className="flex items-center gap-2 md:gap-4 shrink-0 group">
           <div className="relative w-10 h-10 md:w-14 md:h-14 transition-transform duration-700 group-hover:scale-110">
             <Image
               src={CONTACT_INFO.headerLogo}
@@ -368,6 +403,7 @@ export function Navbar() {
               <Link
                 key={link.name}
                 href={link.href}
+                scroll={false}
                 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground hover:text-primary transition-all relative group/link"
               >
                 {link.name}
@@ -688,6 +724,7 @@ export function Navbar() {
                 <Link
                   key={item.name}
                   href={item.href}
+                  scroll={false}
                   className={`flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-300 group/navitem ${
                     isActive 
                       ? 'bg-background text-primary shadow-embossed scale-105' 
