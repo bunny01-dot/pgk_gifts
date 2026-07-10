@@ -22,7 +22,7 @@ import { Order, OrderStatus } from "@/types/order";
 import { Product } from "@/types/product";
 import { formatPrice } from "@/utils/currency";
 import { formatDate, toDate } from "@/utils/date";
-import { doc } from "firebase/firestore";
+import { doc, deleteField } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import Link from "next/link";
 import { PRODUCTS, ADMIN_EMAILS } from "@/lib/data"; // Import the static products to seed
@@ -877,7 +877,14 @@ export default function AdminPage() {
         }
       }
 
-      const cleanData = { ...productForm, image: finalImageUrl || '', active: productForm.active ?? true };
+      const cleanData: any = { ...productForm, image: finalImageUrl || '', active: productForm.active ?? true };
+      if (productForm.stockCount === undefined) {
+        if (editingProduct) {
+          cleanData.stockCount = deleteField();
+        } else {
+          delete cleanData.stockCount;
+        }
+      }
 
       if (editingProduct) {
         await svc.updateProduct(editingProduct.id, cleanData);
@@ -1453,7 +1460,7 @@ export default function AdminPage() {
                   <DialogDescription>Modify specific fields to update your live storefront catalog.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-5 md:space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                     <div className="space-y-2 sm:col-span-2">
                       <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Product Name</Label>
                       <Input
@@ -1464,13 +1471,37 @@ export default function AdminPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Stock</Label>
+                      <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Stock Status</Label>
+                      <Select 
+                        value={productForm.stockCount === undefined ? "unlimited" : "limited"} 
+                        onValueChange={v => {
+                          if (v === "unlimited") {
+                            const updated = { ...productForm };
+                            delete updated.stockCount;
+                            setProductForm(updated);
+                          } else {
+                            setProductForm({ ...productForm, stockCount: 10 });
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="rounded-xl h-12 bg-secondary/50 focus-visible:ring-primary border-none font-bold shadow-none">
+                          <SelectValue placeholder="Stock Status" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl border-none shadow-xl">
+                          <SelectItem value="unlimited" className="rounded-lg font-semibold">Unlimited</SelectItem>
+                          <SelectItem value="limited" className="rounded-lg font-semibold">Limited</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Stock Count</Label>
                       <Input
-                        type="number"
-                        value={productForm.stockCount?.toString() ?? ''}
+                        type={productForm.stockCount === undefined ? "text" : "number"}
+                        disabled={productForm.stockCount === undefined}
+                        value={productForm.stockCount === undefined ? 'Unlimited' : (productForm.stockCount?.toString() ?? '10')}
                         onChange={e => setProductForm({...productForm, stockCount: parseInt(e.target.value) || 0})}
-                        className="rounded-xl h-12 bg-secondary/50 focus-visible:ring-primary border-none font-bold font-sans"
-                        placeholder="10"
+                        className="rounded-xl h-12 bg-secondary/50 focus-visible:ring-primary border-none font-bold font-sans disabled:opacity-50"
+                        placeholder="Unlimited"
                       />
                     </div>
                   </div>
