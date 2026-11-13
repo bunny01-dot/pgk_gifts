@@ -6,6 +6,13 @@ import { isRateLimited, verifyCsrf, verifyAppCheck } from '@/utils/security';
 import { logger } from '@/utils/logger';
 import { PRODUCTS } from '@/lib/data';
 import { getItemDeliveryCharge } from '@/utils/customization';
+import {
+  calculateAutomaticDiscount,
+  resolvePromotionalDiscounts,
+  validateCouponEligibility,
+  DEFAULT_AUTOMATIC_OFFERS,
+} from '@/utils/discount';
+import { PromotionalOffer } from '@/types/promotions';
 
 export const runtime = 'nodejs';
 
@@ -153,7 +160,7 @@ function getUnitPrice(product: ProductData, selectedSize?: string) {
     throw new Error(`Product price is invalid for ${product.name || 'product'}.`);
   }
 
-  return Math.round(basePrice * 1.03);
+  return Math.round(basePrice); // Price already includes Razorpay gateway fee (baked into DB price)
 }
 
 async function buildServerCalculatedOrder(items: CheckoutItemInput[], state: string) {
@@ -298,44 +305,174 @@ export async function POST(request: Request) {
     const couponCode = cleanString(body.couponCode, 50).toUpperCase();
     const calculated = await buildServerCalculatedOrder(inputItems, shipping.state);
     
-    // Validate coupon and calculate discount
-    let discountAmount = 0;
-    let appliedCoupon = null;
+    // --- 1. Fetch promotional offers and global discount settings from Firestore ---
+    let isAutomaticDiscountEnabled = true;
+    let promotionalOffers: PromotionalOffer[] = DEFAULT_AUTOMATIC_OFFERS;
+
+    try {
+      const settingsSnap = await adminDb.collection('settings').doc('global').get();
+      if (settingsSnap.exists) {
+        const sData = settingsSnap.data();
+        if (typeof sData?.automaticDiscountsEnabled === 'boolean') {
+          isAutomaticDiscountEnabled = sData.automaticDiscountsEnabled;
+        }
+      }
+
+      const offersSnap = await adminDb.collection('promotional_offers').get();
+      if (!offersSnap.empty) {
+        promotionalOffers = offersSnap.docs
+          .map((d) => ({ offerId: d.id, ...(d.data() as any) }))
+          .filter((o) => o.active !== false);
+      }
+    } catch (err) {
+      logger.warn('Failed to load promotional configuration, using defaults', err);
+    }
+
+    // --- 2. Discounts are strictly customer-selected: No automatic discounts applied ---
+    const autoDiscountResult = {
+      discountAmount: 0,
+      discountPaise: 0,
+      appliedOffer: null,
+    };
+
+    // --- 3. Validate Coupon (if provided) server-side ---
+    let validatedCoupon: { code: string; discountAmount: number; type?: string; value?: number } | null = null;
+    let couponSource: 'customer_coupons' | 'coupons' | null = null;
 
     if (couponCode) {
-      const couponSnap = await adminDb.collection('coupons').doc(couponCode).get();
-      if (couponSnap.exists) {
-        const couponData = couponSnap.data();
-        const subtotal = calculated.subtotal;
-        
-        const isCouponActive = couponData?.active === true;
-        const isExpiryValid = !couponData?.expiresAt || new Date(couponData.expiresAt).getTime() > Date.now();
-        const isLimitValid = couponData?.usageLimit === undefined || couponData?.usageLimit === null || (couponData.usageCount || 0) < couponData.usageLimit;
-        const isMinAmountValid = !couponData?.minOrderAmount || subtotal >= Number(couponData.minOrderAmount);
+      // Check customer_coupons collection first
+      const custCouponSnap = await adminDb.collection('customer_coupons').doc(couponCode).get();
+      if (custCouponSnap.exists) {
+        const custData = custCouponSnap.data();
+        if (custData) {
+          const eligibility = validateCouponEligibility(
+            {
+              couponCode,
+              discountAmount: Number(custData.discountAmount || 50),
+              minimumPurchase: Number(custData.minimumPurchase || 300),
+              customerPhone: custData.customerPhone || null,
+              status: custData.status || 'active',
+              issuedAt: custData.issuedAt,
+              expiresAt: custData.expiresAt,
+            },
+            calculated.subtotal,
+            shipping.phone
+          );
 
-        if (isCouponActive && isExpiryValid && isLimitValid && isMinAmountValid) {
-          const val = Number(couponData.value || 0);
-          if (couponData.type === 'percentage') {
-            discountAmount = Math.round((subtotal * val) / 100);
-          } else {
-            discountAmount = val;
+          if (eligibility.valid) {
+            validatedCoupon = {
+              code: couponCode,
+              discountAmount: eligibility.discountAmount,
+              type: 'flat',
+              value: custData.discountAmount || 50,
+            };
+            couponSource = 'customer_coupons';
+          } else if (calculated.subtotal >= 300) {
+            // Subtotal dropped below coupon requirement: auto-downgrade to PGK15 (₹50 OFF)
+            validatedCoupon = {
+              code: 'PGK15',
+              discountAmount: Math.min(50, calculated.subtotal),
+              type: 'flat',
+              value: 50,
+            };
+            couponSource = 'coupons';
           }
-          // Cap discount at subtotal
-          discountAmount = Math.min(discountAmount, subtotal);
-          appliedCoupon = {
-            code: couponCode,
-            type: couponData.type,
-            value: val,
-            discount: discountAmount
+        }
+      } else if (couponCode === 'BUNNY15' || couponCode === 'WELCOME10') {
+        // Retired legacy codes
+        validatedCoupon = null;
+      } else if (couponCode === 'PGK15') {
+        if (calculated.subtotal >= 300) {
+          validatedCoupon = {
+            code: 'PGK15',
+            discountAmount: Math.min(50, calculated.subtotal),
+            type: 'flat',
+            value: 50,
           };
+          couponSource = 'coupons';
+        } else {
+          validatedCoupon = null;
+        }
+      } else if (couponCode === 'PGK100') {
+        if (calculated.subtotal >= 700) {
+          validatedCoupon = {
+            code: 'PGK100',
+            discountAmount: Math.min(100, calculated.subtotal),
+            type: 'flat',
+            value: 100,
+          };
+          couponSource = 'coupons';
+        } else if (calculated.subtotal >= 300) {
+          // Changed order: auto-downgrade to lesser value coupon PGK15 (₹50 OFF)
+          validatedCoupon = {
+            code: 'PGK15',
+            discountAmount: Math.min(50, calculated.subtotal),
+            type: 'flat',
+            value: 50,
+          };
+          couponSource = 'coupons';
+        } else {
+          validatedCoupon = null;
+        }
+      } else {
+        // Fallback: Check legacy coupons collection
+        const legacyCouponSnap = await adminDb.collection('coupons').doc(couponCode).get();
+        if (legacyCouponSnap.exists) {
+          const legacyData = legacyCouponSnap.data();
+          if (legacyData) {
+            const isCouponActive = legacyData.active === true;
+            const isExpiryValid = !legacyData.expiresAt || new Date(legacyData.expiresAt).getTime() > Date.now();
+            const isLimitValid = legacyData.usageLimit === undefined || legacyData.usageLimit === null || (legacyData.usageCount || 0) < legacyData.usageLimit;
+            const isMinAmountValid = !legacyData.minOrderAmount || calculated.subtotal >= Number(legacyData.minOrderAmount);
+
+            if (isCouponActive && isExpiryValid && isLimitValid) {
+              if (isMinAmountValid) {
+                const val = Number(legacyData.value || 0);
+                const disc = legacyData.type === 'percentage'
+                  ? Math.min(Math.round((calculated.subtotal * val) / 100), 100)
+                  : val;
+                validatedCoupon = {
+                  code: couponCode,
+                  discountAmount: Math.min(disc, calculated.subtotal),
+                  type: 'flat',
+                  value: disc,
+                };
+                couponSource = 'coupons';
+              } else if (calculated.subtotal >= 300) {
+                // Minimum purchase not met due to order change: auto-downgrade to PGK15 (₹50 OFF)
+                validatedCoupon = {
+                  code: 'PGK15',
+                  discountAmount: Math.min(50, calculated.subtotal),
+                  type: 'flat',
+                  value: 50,
+                };
+                couponSource = 'coupons';
+              }
+            }
+          }
         }
       }
     }
 
-    const baseTotal = Math.max(0, calculated.total - discountAmount);
-    const gatewayFee = 0; // gatewayFee absorbed in the 3% product markups
-    const finalTotal = baseTotal;
+    // --- 4. Discounts are customer-selected only: Apply validated coupon or ₹0 ---
+    const discountAmount = validatedCoupon ? validatedCoupon.discountAmount : 0;
+    const discountType = validatedCoupon ? 'coupon' : 'none';
+    const activeCouponCode = validatedCoupon ? validatedCoupon.code : null;
+
+    const appliedCoupon = validatedCoupon && discountType === 'coupon'
+      ? {
+          code: validatedCoupon.code,
+          type: (validatedCoupon.type || 'flat') as 'percentage' | 'flat',
+          value: validatedCoupon.value || validatedCoupon.discountAmount,
+          discount: discountAmount,
+          source: couponSource,
+        }
+      : null;
+
+    // Final total calculation: (subtotal + shipping - discount) in integer paise
+    const finalTotal = Math.max(0, calculated.subtotal + calculated.shippingFee - discountAmount);
     const amountPaise = Math.round(finalTotal * 100);
+    const gatewayFee = 0; // Fee is baked into product prices in DB
 
     const razorpay = getRazorpayClient();
     const receipt = `PGK-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`.slice(0, 40);
@@ -346,6 +483,8 @@ export async function POST(request: Request) {
       receipt,
       notes: {
         createdBy: createdBy.uid,
+        discountType,
+        appliedCoupon: activeCouponCode || 'none',
       },
     });
 
@@ -355,11 +494,15 @@ export async function POST(request: Request) {
       currency: CURRENCY,
       amount: amountPaise,
       serverCalculatedTotal: finalTotal,
+      finalAmount: finalTotal,
       subtotal: calculated.subtotal,
       shippingFee: calculated.shippingFee,
+      shippingCharge: calculated.shippingFee,
       discount: discountAmount,
+      discountAmount,
+      discountType,
       gatewayFee,
-      couponCode: couponCode || null,
+      couponCode: activeCouponCode || null,
       appliedCoupon,
       items: calculated.items,
       shipping,
@@ -370,7 +513,14 @@ export async function POST(request: Request) {
       updatedAt: FieldValue.serverTimestamp(),
     }));
 
-    logger.info('Razorpay order created successfully with gateway fee', { orderId: order.id, uid: createdBy.uid, gatewayFee });
+    logger.info('Razorpay order created successfully with validated discount', {
+      orderId: order.id,
+      uid: createdBy.uid,
+      subtotal: calculated.subtotal,
+      discountAmount,
+      discountType,
+      finalTotal,
+    });
 
     return NextResponse.json({
       id: order.id,

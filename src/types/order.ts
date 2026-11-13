@@ -33,8 +33,13 @@ export interface Order {
   total: number;
   subtotal?: number;
   shippingFee?: number;
+  shippingCharge?: number; // Normalized field
+  discountAmount?: number; // Normalized discount in Rupees
+  discountType?: 'automatic' | 'coupon' | 'none'; // Type of discount applied
+  finalAmount?: number; // Normalized payable amount
   paymentStatus: "paid" | "failed" | "pending";
   status: OrderStatus;
+  orderStatus?: OrderStatus; // Normalized status
   createdAt: DatabaseDate;
   returnRequest?: ReturnRequest;
   feedback?: OrderFeedback;
@@ -50,5 +55,7 @@ export interface Order {
     value: number;
     discount: number;
   } | null;
+  manuallyApprovedBy?: string;
+  verifiedAt?: any;
 }
 

@@ -1,22 +1,26 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ShieldCheck, Lock, Loader2, Minus, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Lock, Loader2, Minus, Plus, Trash2, Camera, Tag, Sparkles, AlertCircle, CheckCircle2, Ticket, ChevronDown, ChevronUp, Check, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
 import { PaymentService } from '@/services/payment.service';
 import Image from 'next/image';
+import Link from 'next/link';
 import { formatPrice } from '@/utils/currency';
 import { useCart } from '@/context/CartContext';
 import { getItemDeliveryCharge } from '@/utils/customization';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { CONTACT_INFO } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { resolvePromotionalDiscounts, checkAndAdjustCouponForSubtotal } from '@/utils/discount';
+import { AvailableCoupon } from '@/types/promotions';
 
 declare global {
   interface Window {
@@ -60,12 +64,20 @@ const INDIAN_STATES = [
 ];
 
 export default function CheckoutPage() {
-  const { cart, cartTotal, clearCart, updateQuantity, removeFromCart, deliverySettings } = useCart();
-  const { user } = useUser();
+  const { cart, cartTotal, automaticDiscount, clearCart, updateQuantity, removeFromCart, deliverySettings } = useCart();
+  const { user, isUserLoading } = useUser();
   const router = useRouter();
-   const { toast } = useToast();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [isPurchased, setIsPurchased] = useState(false);
+
+  // Items that are missing required photos
+  const itemsMissingPhotos = cart.filter(
+    (item) =>
+      item.requiredPhotoSlots &&
+      item.requiredPhotoSlots > 0 &&
+      (item.customPhotos?.length ?? 0) < item.requiredPhotoSlots
+  );
 
   const [formData, setFormData] = useState({
     name: '',
@@ -77,26 +89,147 @@ export default function CheckoutPage() {
   });
 
   const [couponCode, setCouponCode] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; type: string; value: number; discount: number } | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string;
+    type: string;
+    value: number;
+    discount: number;
+    minimumPurchase: number;
+    message?: string | undefined;
+  } | null>(null);
+  const [couponSuccessMessage, setCouponSuccessMessage] = useState('');
   const [couponError, setCouponError] = useState('');
   const [validatingCoupon, setValidatingCoupon] = useState(false);
+  const [discountPreference, setDiscountPreference] = useState<'automatic' | 'coupon' | null>(null);
 
-  const handleApplyCoupon = async () => {
-    if (!couponCode.trim()) return;
+  // Track previous cart total to reactively handle order changes
+  const prevCartTotalRef = useRef(cartTotal);
+
+  // Available coupons discovery state (visible by default so customers can select their offer)
+  const [availableCoupons, setAvailableCoupons] = useState<AvailableCoupon[]>([]);
+  const [loadingCoupons, setLoadingCoupons] = useState(false);
+  const [showCouponsList, setShowCouponsList] = useState(true);
+
+  // Reactive Re-validation: When customer updates items or quantities, verify coupon eligibility
+  useEffect(() => {
+    const prevTotal = prevCartTotalRef.current;
+    prevCartTotalRef.current = cartTotal;
+
+    if (!appliedCoupon) return;
+    if (prevTotal === cartTotal) return;
+
+    const minPurchase = appliedCoupon.minimumPurchase || (appliedCoupon.code === 'PGK100' ? 700 : 300);
+
+    const adjustment = checkAndAdjustCouponForSubtotal({
+      couponCode: appliedCoupon.code,
+      couponDiscount: appliedCoupon.value || appliedCoupon.discount,
+      minimumPurchase: minPurchase,
+      subtotal: cartTotal,
+    });
+
+    if (adjustment.removed) {
+      // Subtotal dropped below ₹300 minimum requirement: remove coupon
+      setAppliedCoupon(null);
+      setCouponCode('');
+      setCouponSuccessMessage('');
+      setCouponError(adjustment.notificationMessage || 'Coupon removed because order subtotal fell below minimum requirement.');
+      toast({
+        variant: 'destructive',
+        title: 'Coupon Removed',
+        description: adjustment.notificationMessage,
+      });
+    } else if (adjustment.adjusted) {
+      // Subtotal dropped below higher coupon tier (e.g. ₹700 for PGK100): switch to lesser value coupon (PGK15 - ₹50 OFF)
+      setAppliedCoupon({
+        code: adjustment.couponCode,
+        type: 'flat',
+        value: adjustment.discountAmount,
+        discount: adjustment.discountAmount,
+        minimumPurchase: adjustment.minimumPurchase,
+        message: adjustment.notificationMessage,
+      });
+      setCouponCode(adjustment.couponCode);
+      setCouponSuccessMessage(adjustment.notificationMessage || '');
+      setCouponError('');
+      toast({
+        title: 'Coupon Adjusted',
+        description: adjustment.notificationMessage,
+      });
+    } else if (adjustment.valid) {
+      if (adjustment.discountAmount !== appliedCoupon.discount) {
+        setAppliedCoupon((prev) => (prev ? { ...prev, discount: adjustment.discountAmount } : null));
+      }
+    }
+  }, [cartTotal, appliedCoupon, toast]);
+
+  // Fetch available coupons based on current subtotal and customer phone
+  useEffect(() => {
+    let active = true;
+    const fetchAvailable = async () => {
+      if (cartTotal <= 0) return;
+      setLoadingCoupons(true);
+      try {
+        const res = await fetch('/api/coupon/available', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subtotal: cartTotal,
+            phone: formData.phone.trim() || undefined,
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (active && Array.isArray(data.coupons)) {
+            setAvailableCoupons(data.coupons);
+          }
+        }
+      } catch (err) {
+        console.warn('Could not fetch available coupons:', err);
+      } finally {
+        if (active) setLoadingCoupons(false);
+      }
+    };
+
+    fetchAvailable();
+    return () => {
+      active = false;
+    };
+  }, [cartTotal, formData.phone]);
+
+  const handleApplyCoupon = async (explicitCode?: string) => {
+    const codeToApply = (explicitCode || couponCode).trim();
+    if (!codeToApply) return;
     setValidatingCoupon(true);
     setCouponError('');
+    setCouponSuccessMessage('');
     try {
       const res = await fetch('/api/coupon/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: couponCode, subtotal: cartTotal })
+        body: JSON.stringify({
+          code: codeToApply,
+          subtotal: cartTotal,
+          phone: formData.phone || undefined,
+        }),
       });
       const data = await res.json();
       if (res.ok && data.valid) {
-        setAppliedCoupon(data);
-        toast({ title: 'Coupon Applied!', description: `Discount of Rs. ${data.discount} applied to your order.` });
+        setAppliedCoupon({
+          code: data.code || codeToApply,
+          type: data.type || 'flat',
+          value: Number(data.value || data.discount || 50),
+          discount: Number(data.discount || 50),
+          minimumPurchase: Number(data.minimumPurchase || (data.code === 'PGK100' ? 700 : 300)),
+          message: data.message,
+        });
+        setCouponCode(data.code || codeToApply);
+        const msg = data.message || `Congratulations! Your ₹${data.discount} reward has been applied.`;
+        setCouponSuccessMessage(msg);
+        toast({ title: 'Coupon Applied!', description: msg });
       } else {
-        setCouponError(data.error || 'Invalid coupon code.');
+        const errorMsg = data.error || 'This coupon is invalid or expired.';
+        setCouponError(errorMsg);
+        toast({ variant: 'destructive', title: 'Coupon Invalid', description: errorMsg });
       }
     } catch (err) {
       setCouponError('Failed to validate coupon.');
@@ -105,17 +238,53 @@ export default function CheckoutPage() {
     }
   };
 
+  const handleSelectCoupon = (coupon: AvailableCoupon) => {
+    if (!coupon.isEligible) {
+      toast({
+        variant: 'destructive',
+        title: 'Coupon Not Eligible Yet',
+        description: coupon.reason || `Add ₹${coupon.amountNeeded} more to unlock this reward.`,
+      });
+      return;
+    }
+    setCouponCode(coupon.code);
+    handleApplyCoupon(coupon.code);
+  };
+
   const handleRemoveCoupon = () => {
     setAppliedCoupon(null);
     setCouponCode('');
     setCouponError('');
+    setCouponSuccessMessage('');
+    setDiscountPreference(null);
   };
 
   useEffect(() => {
-    if (cart.length === 0 && !isPurchased) {
+    if (!isUserLoading && !user && !isPurchased) {
+      toast({
+        title: 'Authentication Required',
+        description: 'Please sign up or sign in to complete your checkout and track your order.',
+      });
+      router.replace('/login?redirect=/checkout');
+    }
+  }, [user, isUserLoading, router, toast, isPurchased]);
+
+  useEffect(() => {
+    if (!isUserLoading && user && cart.length === 0 && !isPurchased) {
       router.replace('/shop');
     }
-  }, [cart.length, router, isPurchased]);
+  }, [cart.length, router, isPurchased, user, isUserLoading]);
+
+  if (isUserLoading || (!user && !isPurchased)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto" />
+          <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground animate-pulse">Securing Checkout Session...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (cart.length === 0 && !isPurchased) {
     return null;
@@ -156,7 +325,12 @@ export default function CheckoutPage() {
       }
 
       const paymentService = new PaymentService(async () => user?.getIdToken() ?? null);
-      const rpOrder = await paymentService.createRazorpayOrder(cart, formData, appliedCoupon?.code || undefined);
+      const rpOrder = await paymentService.createRazorpayOrder(
+        cart,
+        formData,
+        appliedCoupon?.code || undefined,
+        'coupon'
+      );
 
       const options = {
         key: rpOrder.keyId,
@@ -416,12 +590,17 @@ export default function CheckoutPage() {
                 ))}
               </div>
 
-              {/* Coupon Code Input */}
-              <div className="py-4 border-t border-dashed border-border/50 space-y-2">
-                <Label className="text-xs font-semibold text-muted-foreground ml-1">Promo / Discount Code</Label>
+              {/* Coupon / Loyalty Reward Input */}
+              <div className="py-4 border-t border-dashed border-border/50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <Tag className="w-3.5 h-3.5 text-primary" /> Have a coupon code?
+                  </Label>
+                </div>
+
                 <div className="flex gap-2">
                   <Input
-                    placeholder="e.g. WELCOME10"
+                    placeholder="Enter coupon code (e.g. PGK15)"
                     value={couponCode}
                     onChange={(e) => {
                       setCouponCode(e.target.value);
@@ -442,19 +621,139 @@ export default function CheckoutPage() {
                   ) : (
                     <Button 
                       type="button" 
-                      onClick={handleApplyCoupon}
-                      disabled={!couponCode || validatingCoupon}
+                      onClick={() => handleApplyCoupon()}
+                      disabled={!couponCode.trim() || validatingCoupon}
                       className="rounded-lg h-10 px-5 font-bold text-sm shrink-0 hover:bg-primary/95"
                     >
-                      {validatingCoupon ? '...' : 'Apply'}
+                      {validatingCoupon ? (
+                        <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> Validating</>
+                      ) : (
+                        'Apply Coupon'
+                      )}
                     </Button>
                   )}
                 </div>
-                {couponError && <p className="text-xs text-destructive font-semibold ml-2">{couponError}</p>}
+
+                {couponError && (
+                  <div className="flex items-center gap-1.5 text-xs text-destructive font-semibold">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{couponError}</span>
+                  </div>
+                )}
+
                 {appliedCoupon && (
-                  <p className="text-xs text-green-600 font-semibold ml-2">
-                    Success! {appliedCoupon.type === 'percentage' ? `${appliedCoupon.value}%` : `Rs. ${appliedCoupon.value}`} coupon active.
-                  </p>
+                  <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/20">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>{couponSuccessMessage || `Congratulations! Your ₹${appliedCoupon.discount} reward has been applied.`}</span>
+                  </div>
+                )}
+
+                {/* Available & Eligible Coupons Discovery Drawer */}
+                {availableCoupons.length > 0 && (
+                  <div className="pt-2 border-t border-border/40">
+                    <button
+                      type="button"
+                      onClick={() => setShowCouponsList(!showCouponsList)}
+                      className="w-full flex items-center justify-between text-xs font-bold text-primary p-2.5 rounded-xl bg-primary/5 hover:bg-primary/10 transition-colors border border-primary/20"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <Ticket className="w-4 h-4" />
+                        Available Coupons ({availableCoupons.filter((c) => c.isEligible).length} Eligible)
+                      </span>
+                      <span className="flex items-center gap-1 text-[11px] font-semibold text-primary/80">
+                        {showCouponsList ? 'Hide Offers' : 'View Offers'}
+                        {showCouponsList ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                      </span>
+                    </button>
+
+                    <AnimatePresence>
+                      {showCouponsList && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="overflow-hidden space-y-2.5 mt-2.5"
+                        >
+                          {availableCoupons.map((coupon) => {
+                            const isCurrentlyApplied = appliedCoupon?.code === coupon.code;
+
+                            return (
+                              <div
+                                key={coupon.code}
+                                className={`p-3 rounded-xl border transition-all ${
+                                  isCurrentlyApplied
+                                    ? 'border-emerald-500 bg-emerald-500/10 shadow-xs'
+                                    : coupon.isEligible
+                                    ? 'border-border/70 bg-card hover:border-primary/50 shadow-xs'
+                                    : 'border-border/40 bg-secondary/20 opacity-75'
+                                }`}
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="font-mono font-bold text-xs bg-secondary/80 px-2 py-0.5 rounded border border-border/60">
+                                        {coupon.code}
+                                      </span>
+                                      <span className="font-extrabold text-xs text-emerald-600 dark:text-emerald-400">
+                                        ₹{coupon.discountAmount || coupon.value} OFF
+                                      </span>
+                                      {coupon.isEligible && (
+                                        <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-[9px] px-1.5 py-0 h-4 border-none">
+                                          Eligible
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
+                                      {coupon.description || (coupon.minimumPurchase > 0 ? `Minimum order: ₹${coupon.minimumPurchase}` : 'No minimum order required')}
+                                    </p>
+                                    {!coupon.isEligible && (
+                                      <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold mt-0.5 flex items-center gap-1">
+                                        <Lock className="w-3 h-3 shrink-0" />
+                                        Add ₹{coupon.amountNeeded} more of products to unlock this reward
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  <div className="shrink-0 text-right">
+                                    {isCurrentlyApplied ? (
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={handleRemoveCoupon}
+                                        className="h-7 text-[11px] font-bold text-emerald-600 border-emerald-500 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg px-2.5"
+                                      >
+                                        <Check className="w-3 h-3 mr-1" /> Applied
+                                      </Button>
+                                    ) : coupon.isEligible ? (
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        onClick={() => handleSelectCoupon(coupon)}
+                                        className="h-7 text-[11px] font-bold rounded-lg px-3 shadow-xs"
+                                      >
+                                        Apply
+                                      </Button>
+                                    ) : (
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        disabled
+                                        className="h-7 text-[10px] font-bold rounded-lg px-2.5 opacity-50"
+                                      >
+                                        Locked
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 )}
               </div>
 
@@ -468,22 +767,41 @@ export default function CheckoutPage() {
                 });
 
                 const shippingFee = cart.reduce((sum, item) => sum + getItemDeliveryCharge(item, formData.state, deliverySettings || undefined) * item.quantity, 0);
-                const grandTotal = Math.max(0, cartTotal + shippingFee - (appliedCoupon?.discount || 0));
+                const discountAmount = appliedCoupon ? appliedCoupon.discount : 0;
+                const grandTotal = Math.max(0, cartTotal + shippingFee - discountAmount);
 
                 return (
                   <div className="space-y-3 pt-4 border-t border-dashed border-border/50">
-                    <div className="flex justify-between items-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      <span>Delivery ({formData.state}{shippingFee > 0 && totalWeight > 0 ? ` - ${totalWeight.toFixed(2)} Kg` : ''})</span>
-                      <span className="text-foreground">{shippingFee > 0 ? formatPrice(shippingFee) : 'Complimentary'}</span>
+                    <div className="flex justify-between items-center text-xs font-semibold text-muted-foreground">
+                      <span>Product Subtotal</span>
+                      <span className="text-foreground font-bold">{formatPrice(cartTotal)}</span>
                     </div>
-                    {appliedCoupon && (
-                      <div className="flex justify-between items-center text-xs font-semibold text-green-600 uppercase tracking-wider">
-                        <span>Discount ({appliedCoupon.code})</span>
-                        <span>-{formatPrice(appliedCoupon.discount)}</span>
+
+                    {/* Dedicated Discount Line Item */}
+                    {discountAmount > 0 && appliedCoupon && (
+                      <div className="flex justify-between items-center text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                        <span className="flex items-center gap-1.5">
+                          <Tag className="w-3.5 h-3.5" />
+                          Coupon Discount ({appliedCoupon.code})
+                        </span>
+                        <span>-{formatPrice(discountAmount)}</span>
                       </div>
                     )}
+
+                    <div className="flex justify-between items-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      <span>Delivery ({formData.state}{shippingFee > 0 && totalWeight > 0 ? ` - ${totalWeight.toFixed(2)} Kg` : ''})</span>
+                      <span className="text-foreground font-bold">{shippingFee > 0 ? formatPrice(shippingFee) : 'Complimentary'}</span>
+                    </div>
+
                     <div className="flex justify-between items-end pt-4 border-t border-border/50">
-                      <span className="text-sm md:text-base font-semibold">Total Amount</span>
+                      <div>
+                        <span className="text-sm md:text-base font-bold block">Total Payable</span>
+                        {discountAmount > 0 && (
+                          <span className="text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400">
+                            Total Savings: {formatPrice(discountAmount)}
+                          </span>
+                        )}
+                      </div>
                       <span className="text-2xl md:text-3xl font-bold text-primary leading-none">
                         {formatPrice(grandTotal)}
                       </span>
@@ -492,10 +810,47 @@ export default function CheckoutPage() {
                 );
               })()}
 
+              {/* Missing Photos Warning */}
+              {itemsMissingPhotos.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-6 rounded-xl border border-amber-300/60 dark:border-amber-700/50 bg-amber-50 dark:bg-amber-950/30 p-4 space-y-3"
+                >
+                  <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                    <Camera className="w-4 h-4 shrink-0" />
+                    <p className="text-xs font-bold uppercase tracking-wider">
+                      {itemsMissingPhotos.length === 1
+                        ? '1 item needs photos before we can make it'
+                        : `${itemsMissingPhotos.length} items need photos before we can make them`}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    {itemsMissingPhotos.map((item) => (
+                      <Link
+                        key={item.id}
+                        href={`/products/${item.productId}`}
+                        className="flex items-center justify-between gap-3 bg-white dark:bg-amber-950/40 rounded-lg px-3 py-2.5 border border-amber-200/70 dark:border-amber-800/40 hover:bg-amber-50 dark:hover:bg-amber-950/60 transition-colors group"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="relative w-8 h-8 rounded-md overflow-hidden bg-secondary/50 shrink-0">
+                            <Image src={item.image} alt={item.name} fill className="object-cover" />
+                          </div>
+                          <span className="text-xs font-semibold text-amber-800 dark:text-amber-300 truncate">{item.name}</span>
+                        </div>
+                        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 shrink-0 group-hover:underline">
+                          Upload photos ({item.customPhotos?.length ?? 0}/{item.requiredPhotoSlots}) →
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
               <Button
                 onClick={handlePayment}
-                disabled={loading}
-                className="w-full rounded-full h-11 md:h-12 text-sm md:text-base font-bold mt-6 shadow-md shadow-primary/10 transition-all hover:scale-[1.01] active:scale-[0.99]"
+                disabled={loading || itemsMissingPhotos.length > 0}
+                className="w-full rounded-full h-11 md:h-12 text-sm md:text-base font-bold mt-6 shadow-md shadow-primary/10 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
                 {loading ? (
                   <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Launching Secure Gateway...</>

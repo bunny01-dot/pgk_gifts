@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Package, Truck, CheckCircle2, Clock, MapPin, ArrowLeft, Loader2, MessageSquare, CreditCard, ShoppingBag, Download, AlertCircle, Star } from 'lucide-react';
+import { Package, Truck, CheckCircle2, Clock, MapPin, ArrowLeft, Loader2, MessageSquare, CreditCard, ShoppingBag, Download, AlertCircle, Star, Globe, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -208,7 +208,7 @@ export default function OrderTrackingPage() {
                               <div className="flex flex-wrap gap-1.5">
                                 {item.customPhotos.map((photo, pIdx) => (
                                   <a key={pIdx} href={photo.imageUrl} target="_blank" rel="noopener noreferrer" className="relative w-10 h-10 rounded-lg overflow-hidden border border-border group bg-secondary/10 cursor-pointer block" title="Click to view full image">
-                                    <img src={photo.imageUrl} alt={photo.fileName} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                    <Image src={photo.imageUrl} alt={photo.fileName || "Customization preview"} fill className="object-cover group-hover:scale-105 transition-transform" />
                                   </a>
                                 ))}
                               </div>
@@ -230,21 +230,26 @@ export default function OrderTrackingPage() {
                 <div className="pt-6 space-y-3 border-t border-primary/10">
                   <div className="flex justify-between items-center text-[10px] md:text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     <span>Subtotal</span>
-                    <span className="text-foreground">{formatPrice(order.subtotal || (order.total - (order.shippingFee || 0) - (order.gatewayFee || 0) + (order.discount || 0)))}</span>
+                    <span className="text-foreground">{formatPrice(order.subtotal || ((order.finalAmount || order.total) - (order.shippingFee || 0) + (order.discountAmount || order.discount || 0)))}</span>
                   </div>
                   <div className="flex justify-between items-center text-[10px] md:text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     <span>Delivery</span>
-                    <span className="text-foreground">{order.shippingFee ? formatPrice(order.shippingFee) : 'FREE'}</span>
+                    <span className="text-foreground">{(order.shippingCharge ?? order.shippingFee) ? formatPrice(order.shippingCharge ?? order.shippingFee ?? 0) : 'FREE'}</span>
                   </div>
-                  {order.discount !== undefined && order.discount > 0 && (
-                    <div className="flex justify-between items-center text-[10px] md:text-xs font-bold uppercase tracking-wider text-green-600">
-                      <span>Discount ({order.couponCode || 'Promo'})</span>
-                      <span>-{formatPrice(order.discount)}</span>
+                  {((order.discountAmount !== undefined && order.discountAmount > 0) || (order.discount !== undefined && order.discount > 0)) && (
+                    <div className="flex justify-between items-center text-[10px] md:text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                      <span className="flex items-center gap-1">
+                        <Tag className="w-3.5 h-3.5" />
+                        {order.discountType === 'coupon' || order.couponCode
+                          ? `Loyalty Reward (${order.couponCode || 'Coupon'})`
+                          : 'Shopping Discount'}
+                      </span>
+                      <span>-{formatPrice(order.discountAmount || order.discount || 0)}</span>
                     </div>
                   )}
                   {order.gatewayFee !== undefined && order.gatewayFee > 0 && (
                     <div className="flex justify-between items-center text-[10px] md:text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      <span>Gateway Charge (2.36%)</span>
+                      <span>Gateway Charge</span>
                       <span className="text-foreground">{formatPrice(order.gatewayFee)}</span>
                     </div>
                   )}
@@ -252,7 +257,12 @@ export default function OrderTrackingPage() {
                   <div className="flex justify-between items-center pt-4 border-t border-dashed">
                     <div className="flex flex-col">
                       <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-wider text-muted-foreground">TOTAL PAID</span>
-                      <span className="text-xl md:text-2xl font-headline font-bold text-primary">{formatPrice(order.total)}</span>
+                      <span className="text-xl md:text-2xl font-headline font-bold text-primary">{formatPrice(order.finalAmount || order.total)}</span>
+                      {((order.discountAmount || order.discount || 0) > 0) && (
+                        <span className="text-[10px] font-bold text-emerald-600">
+                          Total Saved: {formatPrice(order.discountAmount || order.discount || 0)}
+                        </span>
+                      )}
                     </div>
                     <div className="text-right">
                       <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-wider text-green-600">VERIFIED</span>
@@ -361,6 +371,24 @@ export default function OrderTrackingPage() {
                     </a>
                   </Button>
                 </div>
+              </div>
+
+              {/* Official Google Review Card (Independent of any discounts / reward policies) */}
+              <div className="mt-4 p-5 rounded-xl border border-primary/20 bg-card/80 backdrop-blur-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
+                    <Star className="w-5 h-5 fill-amber-400 text-amber-500" />
+                  </div>
+                  <div>
+                    <h4 className="font-headline font-bold text-sm md:text-base text-foreground">Share Your Experience on Google</h4>
+                    <p className="text-xs text-muted-foreground">We hope you loved your purchase! Share your honest experience with PGK GIFTS on Google.</p>
+                  </div>
+                </div>
+                <Button asChild className="rounded-full h-10 px-6 font-bold text-xs shrink-0 shadow-sm">
+                  <a href={CONTACT_INFO.googleMap || "https://maps.app.goo.gl/8gF9FSyhokzJeakW6"} target="_blank" rel="noopener noreferrer">
+                    <Globe className="w-4 h-4 mr-2" /> Write a Google Review
+                  </a>
+                </Button>
               </div>
             </Card>
           )}

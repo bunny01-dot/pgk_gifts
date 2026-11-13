@@ -72,7 +72,7 @@ export function InvoiceView({ order }: InvoiceViewProps) {
                 <div className="flex gap-4 items-center">
                   {item.image && (
                     <div className="relative w-12 h-12 rounded overflow-hidden bg-gray-50 shrink-0 border border-gray-200">
-                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                      <Image src={item.image} alt={item.name} fill className="object-cover" />
                     </div>
                   )}
                   <div>
@@ -99,27 +99,27 @@ export function InvoiceView({ order }: InvoiceViewProps) {
         <div className="w-64 space-y-3">
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Subtotal</span>
-            <span>{formatPrice(order.subtotal || (order.total - (order.shippingFee || 0) - (order.gatewayFee || 0) + (order.discount || 0)))}</span>
+            <span>{formatPrice(order.subtotal || ((order.finalAmount || order.total) - (order.shippingFee || 0) + (order.discountAmount || order.discount || 0)))}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Shipping</span>
-            <span className="font-bold">{order.shippingFee ? formatPrice(order.shippingFee) : 'FREE'}</span>
+            <span className="font-bold">{(order.shippingCharge ?? order.shippingFee) ? formatPrice(order.shippingCharge ?? order.shippingFee ?? 0) : 'FREE'}</span>
           </div>
-          {order.discount !== undefined && order.discount > 0 && (
+          {((order.discountAmount !== undefined && order.discountAmount > 0) || (order.discount !== undefined && order.discount > 0)) && (
             <div className="flex justify-between text-sm text-green-600 font-bold">
-              <span>Discount ({order.couponCode || 'Promo'})</span>
-              <span>-{formatPrice(order.discount)}</span>
+              <span>{order.discountType === 'coupon' || order.couponCode ? `Loyalty Coupon (${order.couponCode})` : 'Shopping Discount'}</span>
+              <span>-{formatPrice(order.discountAmount || order.discount || 0)}</span>
             </div>
           )}
           {order.gatewayFee !== undefined && order.gatewayFee > 0 && (
             <div className="flex justify-between text-sm text-gray-500">
-              <span>Gateway Charge (2.36%)</span>
+              <span>Gateway Charge</span>
               <span>{formatPrice(order.gatewayFee)}</span>
             </div>
           )}
           <div className="flex justify-between border-t-2 border-primary pt-3">
             <span className="font-bold uppercase tracking-widest text-xs">Final Amount</span>
-            <span className="font-bold text-xl text-primary">{formatPrice(order.total)}</span>
+            <span className="font-bold text-xl text-primary">{formatPrice(order.finalAmount || order.total)}</span>
           </div>
         </div>
       </div>

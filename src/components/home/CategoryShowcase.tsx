@@ -1,13 +1,14 @@
 
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
 import { PRODUCTS } from '@/lib/data';
 import type { Category } from '@/types/product';
+import { useFirestore } from '@/firebase';
 
 const CATEGORIES = [
   {
@@ -64,7 +65,11 @@ const CATEGORIES = [
   }
 ] satisfies { title: string; subtitle: string; category: Category; href: string; thumbnail?: string }[];
 
-function getCategoryThumbnail(cat: typeof CATEGORIES[number]) {
+function getCategoryThumbnail(cat: typeof CATEGORIES[number], dynamicThumbnails?: Record<string, string>) {
+  // Prefer dynamic thumbnail from Firestore/admin if available
+  if (dynamicThumbnails && dynamicThumbnails[cat.category]) {
+    return dynamicThumbnails[cat.category];
+  }
   if (cat.thumbnail) return cat.thumbnail;
   const category = cat.category;
   return PRODUCTS.find((product) => product.active && product.featured && product.category === category)?.image
@@ -85,6 +90,29 @@ function CategoryPlaceholder({ title }: { title: string }) {
 export function CategoryShowcase() {
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const firestore = useFirestore();
+  const [dynamicThumbnails, setDynamicThumbnails] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!firestore) return;
+    const fetchThumbnails = async () => {
+      try {
+        const { doc, getDoc } = await import('firebase/firestore');
+        const docRef = doc(firestore, 'settings', 'global');
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.categoryThumbnails && typeof data.categoryThumbnails === 'object') {
+            setDynamicThumbnails(data.categoryThumbnails as Record<string, string>);
+          }
+        }
+      } catch (err) {
+        // silently ignore — falls back to static thumbnails
+        console.warn('Could not load dynamic category thumbnails:', err);
+      }
+    };
+    fetchThumbnails();
+  }, [firestore]);
 
   const scrollTo = (index: number) => {
     if (!scrollRef.current) return;
@@ -169,7 +197,7 @@ export function CategoryShowcase() {
             className="flex overflow-x-auto gap-4 md:gap-8 pb-3 md:pb-10 pt-2 md:pt-4 scroll-smooth no-scrollbar snap-x snap-mandatory px-1 md:px-2"
           >
             {CATEGORIES.map((cat, i) => {
-              const thumbnail = getCategoryThumbnail(cat);
+            const thumbnail = getCategoryThumbnail(cat, dynamicThumbnails);
 
               return (
                 <motion.div

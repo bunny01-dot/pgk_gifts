@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PORTFOLIO_ITEMS, PortfolioItem } from '@/lib/portfolio-data';
 import { PortfolioGrid } from '@/components/portfolio/PortfolioGrid';
 import { PortfolioModal } from '@/components/portfolio/PortfolioModal';
@@ -9,9 +9,36 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Camera, PenTool, Sparkles, Truck, MessageCircle, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { useFirestore } from '@/firebase';
+import { PortfolioService } from '@/services/portfolio.service';
 
 export default function GalleryPage() {
   const [selectedItem, setSelectedItem] = useState<PortfolioItem | null>(null);
+  const [items, setItems] = useState<PortfolioItem[]>(PORTFOLIO_ITEMS);
+  const firestore = useFirestore();
+
+  useEffect(() => {
+    if (!firestore) return;
+    const fetchPortfolio = async () => {
+      try {
+        const svc = new PortfolioService(firestore);
+        const dynamicItems = await svc.getAllPortfolioItems();
+        if (dynamicItems && dynamicItems.length > 0) {
+          // Merge dynamic items with static items, avoiding duplicate titles or IDs
+          const merged = [...dynamicItems];
+          PORTFOLIO_ITEMS.forEach(staticItem => {
+            if (!merged.some(item => item.title.toLowerCase() === staticItem.title.toLowerCase() || item.id === staticItem.id)) {
+              merged.push(staticItem);
+            }
+          });
+          setItems(merged);
+        }
+      } catch (err) {
+        console.error("Failed to load portfolio items from firestore:", err);
+      }
+    };
+    fetchPortfolio();
+  }, [firestore]);
 
   const steps = [
     { icon: Camera, title: "Share Your Vision", desc: "Send us your favorite high-quality photos and special quotes." },
@@ -65,7 +92,7 @@ export default function GalleryPage() {
       <section className="py-12 md:py-32 bg-background">
         <div className="container mx-auto px-6">
           <PortfolioGrid 
-            items={PORTFOLIO_ITEMS} 
+            items={items} 
             onItemClick={(item) => setSelectedItem(item)} 
           />
         </div>

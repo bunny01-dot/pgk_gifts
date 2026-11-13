@@ -1,9 +1,16 @@
+'use client';
+
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Camera, Calendar, ArrowRight } from "lucide-react";
+import { Camera, Calendar, ArrowRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
+import { useFirestore } from "@/firebase";
+import { PortfolioService } from "@/services/portfolio.service";
+import { PortfolioItem } from "@/lib/portfolio-data";
 
 const CATEGORIES = [
   {
@@ -27,6 +34,41 @@ const CATEGORIES = [
 ];
 
 export default function PhotographyPage() {
+  const firestore = useFirestore();
+  const [photos, setPhotos] = useState<PortfolioItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!firestore) return;
+    const fetchPhotos = async () => {
+      try {
+        const svc = new PortfolioService(firestore);
+        const allItems = await svc.getAllPortfolioItems();
+        // Filter for photography categories
+        const photographyItems = allItems.filter(item => 
+          ["Weddings", "Portraits", "Events"].includes(item.category)
+        );
+        setPhotos(photographyItems);
+      } catch (err) {
+        console.error("Failed to load photography items:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPhotos();
+  }, [firestore]);
+
+  // Fallback photography photos if none exist in database yet
+  const displayPhotos = photos.length > 0 
+    ? photos.map(p => ({ id: p.id, imageUrl: p.image, title: p.title, category: p.category }))
+    : [1, 2, 3, 4, 5, 6, 7, 8].map(i => ({
+        id: `static-${i}`,
+        imageUrl: `https://picsum.photos/seed/pgk-gallery-${i}/600/600`,
+        title: `Gallery Image ${i}`,
+        category: "Showcase"
+      }));
+
   return (
     <div className="bg-background">
       {/* Portfolio Hero */}
@@ -90,17 +132,22 @@ export default function PhotographyPage() {
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-              <div key={i} className="relative aspect-square rounded-lg overflow-hidden group cursor-zoom-in">
+            {displayPhotos.map((photo) => (
+              <div 
+                key={photo.id} 
+                className="relative aspect-square rounded-lg overflow-hidden group cursor-zoom-in"
+                onClick={() => setSelectedImage(photo.imageUrl)}
+              >
                 <Image
-                  src={`https://picsum.photos/seed/pgk-gallery-${i}/600/600`}
-                  alt={`Gallery image ${i}`}
+                  src={photo.imageUrl}
+                  alt={photo.title}
                   fill
                   className="object-cover transition-all duration-500 group-hover:scale-110 group-hover:rotate-1"
-                  data-ai-hint="beautiful photography"
                 />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <span className="text-white text-sm font-medium border border-white/40 px-4 py-2 rounded-full">View Large</span>
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-3 text-center">
+                  <span className="text-white text-xs font-bold uppercase tracking-wider mb-1">{photo.category}</span>
+                  <span className="text-white text-sm font-semibold truncate max-w-full">{photo.title}</span>
+                  <span className="text-white text-xs opacity-80 border border-white/40 px-3 py-1 rounded-full mt-2">View Large</span>
                 </div>
               </div>
             ))}
@@ -136,6 +183,30 @@ export default function PhotographyPage() {
           </div>
         </div>
       </section>
+
+      {/* Lightbox / Zoom Dialog */}
+      <Dialog open={!!selectedImage} onOpenChange={(open) => !open && setSelectedImage(null)}>
+        <DialogContent className="max-w-4xl p-0 border-none bg-black/95 rounded-[2rem] overflow-hidden flex items-center justify-center">
+          <DialogTitle className="sr-only">Showcase Lightbox</DialogTitle>
+          <DialogDescription className="sr-only">Zoomed image view</DialogDescription>
+          {selectedImage && (
+            <div className="relative w-full h-[80vh] flex items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img 
+                src={selectedImage} 
+                alt="Zoomed View" 
+                className="max-w-full max-h-full object-contain" 
+              />
+              <button 
+                onClick={() => setSelectedImage(null)}
+                className="absolute top-4 right-4 text-white hover:text-primary transition-colors bg-black/60 p-2 rounded-full"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

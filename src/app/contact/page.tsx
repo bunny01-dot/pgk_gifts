@@ -97,16 +97,16 @@ export default function ContactPage() {
             <Card className="overflow-hidden border border-border/50 shadow-2xl rounded-3xl md:rounded-[3rem] bg-card">
               <CardContent className="p-0">
                 <div className="h-[300px] md:h-[500px] relative">
-	                <iframe 
-	                  src={`https://maps.google.com/maps?q=${encodeURIComponent('PGK Studio, Kallal')}&t=&z=15&ie=UTF8&iwloc=&output=embed`} 
-	                  width="100%" 
+                <iframe 
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3929.8377771787834!2d78.6631853!3d9.988167!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3b005f6e09f9319d%3A0xd1c7d4a820152faa!2sPGK%20Studio!5e0!3m2!1sen!2sin!4v1720794500000!5m2!1sen!2sin" 
+                  width="100%" 
                   height="100%" 
                   style={{ border: 0 }} 
                   allowFullScreen 
                   loading="lazy" 
                   referrerPolicy="no-referrer-when-downgrade"
-	                  className="dark:opacity-80"
-	                ></iframe>
+                  className="dark:opacity-80"
+                ></iframe>
                 </div>
                 <div className="p-4 md:p-6">
                   <Button asChild className="w-full h-12 md:h-14 rounded-2xl font-bold">

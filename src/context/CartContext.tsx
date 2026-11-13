@@ -7,12 +7,15 @@ import { useFirebase } from '@/firebase';
 import { UploadService } from '@/services/upload.service';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check } from 'lucide-react';
+import { DiscountProgress, PromotionalOffer } from '@/types/promotions';
+import { calculateAutomaticDiscount, DEFAULT_AUTOMATIC_OFFERS } from '@/utils/discount';
 
 interface CartContextType {
   cart: CartItem[];
   addToCart: (item: any) => void;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
+  updateCartItem: (id: string, updates: Partial<Pick<CartItem, 'customPhotos' | 'customText' | 'requiredPhotoSlots' | 'quantity'>>) => void;
   clearCart: (excludeStorageDeletion?: boolean) => void;
   cartTotal: number;
   itemCount: number;
@@ -26,6 +29,10 @@ interface CartContextType {
     tnDeliveryMultiplier?: number;
     otherDeliveryMultiplier?: number;
   } | null;
+  automaticDiscount: number;
+  discountProgress: DiscountProgress;
+  finalCartTotal: number;
+  promotionalOffers: PromotionalOffer[];
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -59,20 +66,24 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [giftWrapPrice, setGiftWrapPrice] = useState(50);
   const [deliverySettings, setDeliverySettings] = useState<any>(null);
+  const [promotionalOffers, setPromotionalOffers] = useState<PromotionalOffer[]>(DEFAULT_AUTOMATIC_OFFERS);
+  const [isAutoDiscountEnabled, setIsAutoDiscountEnabled] = useState(true);
 
-
-  // Load global settings for Gift Wrap price & Delivery Settings
+  // Load global settings for Gift Wrap price & Delivery Settings & Promotional Offers
   useEffect(() => {
     if (!firestore) return;
     const fetchSettings = async () => {
       try {
-        const { doc, getDoc } = await import("firebase/firestore");
+        const { doc, getDoc, collection, onSnapshot } = await import("firebase/firestore");
         const settingsRef = doc(firestore, 'settings', 'global');
         const settingsSnap = await getDoc(settingsRef);
         if (settingsSnap.exists()) {
           const data = settingsSnap.data();
           if (typeof data.giftWrapPrice === 'number') {
             setGiftWrapPrice(data.giftWrapPrice);
+          }
+          if (typeof data.automaticDiscountsEnabled === 'boolean') {
+            setIsAutoDiscountEnabled(data.automaticDiscountsEnabled);
           }
           setDeliverySettings({
             lampDeliveryCharge: data.lampDeliveryCharge,
@@ -82,6 +93,24 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             otherDeliveryMultiplier: data.otherDeliveryMultiplier,
           });
         }
+
+        // Realtime subscription to promotional offers
+        const offersRef = collection(firestore, 'promotional_offers');
+        const unsub = onSnapshot(offersRef, (snap) => {
+          if (!snap.empty) {
+            const list = snap.docs
+              .map((d) => ({ offerId: d.id, ...(d.data() as any) } as PromotionalOffer))
+              .filter((o) => o.active !== false)
+              .sort((a, b) => a.minimumAmount - b.minimumAmount);
+            if (list.length > 0) {
+              setPromotionalOffers(list);
+            }
+          }
+        }, (err) => {
+          console.warn("Using default promotional offers:", err);
+        });
+
+        return () => unsub();
       } catch (err) {
         console.error("Error fetching global settings:", err);
       }
@@ -212,6 +241,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     };
 
     initCart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isUserLoading, firestore]);
 
   // Sync cart to Firestore on updates
@@ -276,6 +306,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       if (product.customText !== undefined) {
         newItem.customText = product.customText;
       }
+      if (product.requiredPhotoSlots !== undefined) {
+        newItem.requiredPhotoSlots = product.requiredPhotoSlots;
+      }
       if (product.deliveryCharge !== undefined) {
         newItem.deliveryCharge = product.deliveryCharge;
       }
@@ -307,6 +340,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
+  const updateCartItem = (
+    id: string,
+    updates: Partial<Pick<CartItem, 'customPhotos' | 'customText' | 'requiredPhotoSlots' | 'quantity'>>
+  ) => {
+    setCart((prevCart) =>
+      prevCart.map((i) => (i.id === id ? { ...i, ...updates } : i))
+    );
+  };
+
   const clearCart = (excludeStorageDeletion = false) => {
     if (!excludeStorageDeletion) {
       cart.forEach((item) => {
@@ -332,6 +374,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const cartTotal = resolvedCart.reduce((total, item) => total + item.price * item.quantity, 0);
   const itemCount = resolvedCart.reduce((count, item) => count + item.quantity, 0);
 
+  // No automatic discounts: discounts must be explicitly selected at checkout
+  const automaticDiscount = 0;
+  const autoDiscountResult = calculateAutomaticDiscount(
+    cartTotal,
+    promotionalOffers,
+    false // strictly disabled: no automatic discounts
+  );
+  const discountProgress = autoDiscountResult.progress;
+  const finalCartTotal = cartTotal;
+
   return (
     <CartContext.Provider
       value={{ 
@@ -339,13 +391,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         addToCart, 
         removeFromCart, 
         updateQuantity, 
+        updateCartItem,
         clearCart, 
         cartTotal, 
         itemCount,
         isCartOpen,
         setIsCartOpen,
         giftWrapPrice,
-        deliverySettings
+        deliverySettings,
+        automaticDiscount,
+        discountProgress,
+        finalCartTotal,
+        promotionalOffers,
       }}
     >
       {children}

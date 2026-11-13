@@ -2,19 +2,19 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ZoomIn, Star, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Product } from '@/types/product';
 import { motion } from 'framer-motion';
 import { useCart } from '@/context/CartContext';
+import { useWishlist } from '@/context/WishlistContext';
 import { formatPrice } from '@/utils/currency';
 import { QuickViewModal } from './QuickViewModal';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
 import { getRequiredPhotoSlots } from '@/utils/customization';
+import { useToast } from '@/hooks/use-toast';
 
 interface ProductCardProps {
   product: Product;
@@ -22,27 +22,44 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const { addToCart, setIsCartOpen } = useCart();
+  const { toggleWishlist, isInWishlist } = useWishlist();
   const { toast } = useToast();
-  const router = useRouter();
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
+  const [displayImage, setDisplayImage] = useState(product.image);
+
+  useEffect(() => {
+    if (product.images && product.images.length > 1) {
+      const randomIndex = Math.floor(Math.random() * product.images.length);
+      const chosenImage = product.images[randomIndex];
+      if (chosenImage) {
+        setDisplayImage(chosenImage);
+      }
+    }
+  }, [product.images]);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (product.stockCount !== undefined && product.stockCount <= 0) return;
     
-    // Redirect if it requires photo uploads
+    // Choose the first size as the default if sizes are available
+    const hasSizes = product.sizes && product.sizes.length > 0;
+    const defaultSize = hasSizes ? product.sizes![0] : null;
+    const price = defaultSize ? defaultSize.price : product.price;
+    const selectedSize = defaultSize ? defaultSize.name : undefined;
+
     const requiredSlots = getRequiredPhotoSlots(product as any);
-    if (requiredSlots > 0) {
-      router.push(`/products/${product.id}?requiredUpload=true`);
-      return;
-    }
-    
-    if (product.sizes && product.sizes.length > 0) {
-      setIsQuickViewOpen(true);
-      return;
-    }
-    addToCart(product as any);
+    addToCart({ 
+      ...product, 
+      price,
+      selectedSize,
+      requiredPhotoSlots: requiredSlots 
+    } as any);
+
+    toast({
+      title: "Added to Bag",
+      description: `${product.name} has been added to your shopping bag.`,
+    });
   };
 
   const handleQuickView = (e: React.MouseEvent) => {
@@ -64,9 +81,9 @@ export function ProductCard({ product }: ProductCardProps) {
       >
         <div className="md:hidden flex h-full flex-col">
           <div className="relative aspect-square overflow-hidden rounded-3xl border border-border/50 bg-card shadow-premium">
-            <Link href={`/products/${product.id}`} className="absolute inset-0">
+            <Link href={`/products/${product.id}`} className="block relative w-full h-full">
               <Image
-                src={product.image}
+                src={displayImage}
                 alt={product.name}
                 fill
                 className="object-cover"
@@ -101,11 +118,16 @@ export function ProductCard({ product }: ProductCardProps) {
                 {isSoldOut ? 'Out of Stock' : 'Add to Bag'}
               </Button>
               <Button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  toggleWishlist(product as any);
+                }}
                 variant="outline"
                 size="icon"
                 className="rounded-full h-9 w-9 border shrink-0 hover:bg-red-50 dark:hover:bg-red-950/25 hover:text-red-500 group/heart"
               >
-                <Heart className="w-4 h-4 text-muted-foreground group-hover/heart:text-red-500 group-hover/heart:fill-red-500 transition-colors" />
+                <Heart className={`w-4 h-4 transition-colors ${isInWishlist(product.id) ? 'text-red-500 fill-red-500' : 'text-muted-foreground group-hover/heart:text-red-500 group-hover/heart:fill-red-500'}`} />
               </Button>
             </div>
           </div>
@@ -113,9 +135,9 @@ export function ProductCard({ product }: ProductCardProps) {
 
         <Card className="hidden md:flex h-full overflow-hidden border border-border/40 shadow-premium hover:shadow-2xl transition-all duration-500 rounded-3xl bg-card flex-col relative">
           <div className="relative aspect-square overflow-hidden bg-muted group-hover:cursor-pointer">
-            <Link href={`/products/${product.id}`} className="absolute inset-0">
+            <Link href={`/products/${product.id}`} className="block relative w-full h-full">
               <Image
-                src={product.image}
+                src={displayImage}
                 alt={product.name}
                 fill
                 className={`object-cover transition-transform duration-700 ${!isSoldOut && 'group-hover:scale-105'}`}
@@ -179,11 +201,16 @@ export function ProductCard({ product }: ProductCardProps) {
                 {isSoldOut ? 'Out of Stock' : 'Add to Bag'}
              </Button>
              <Button
+               onClick={(e) => {
+                 e.preventDefault();
+                 e.stopPropagation();
+                 toggleWishlist(product as any);
+               }}
                variant="outline"
                size="icon"
                className="rounded-full h-10 w-10 border shrink-0 hover:bg-red-50 dark:hover:bg-red-950/25 hover:text-red-500 group/heart"
              >
-               <Heart className="w-5 h-5 text-muted-foreground group-hover/heart:text-red-500 group-hover/heart:fill-red-500 transition-colors" />
+               <Heart className={`w-5 h-5 transition-colors ${isInWishlist(product.id) ? 'text-red-500 fill-red-500' : 'text-muted-foreground group-hover/heart:text-red-500 group-hover/heart:fill-red-500'}`} />
              </Button>
           </CardFooter>
         </Card>

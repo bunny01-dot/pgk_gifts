@@ -6,8 +6,9 @@ import { Product } from '@/types/product';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
+import { useWishlist } from '@/context/WishlistContext';
 import { formatPrice } from '@/utils/currency';
-import { ShoppingBag, Star, Heart, CreditCard } from 'lucide-react';
+import { ShoppingBag, Star, Heart, CreditCard, Camera } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -22,6 +23,7 @@ interface QuickViewModalProps {
 
 export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps) {
   const { addToCart } = useCart();
+  const { toggleWishlist, isInWishlist } = useWishlist();
   const router = useRouter();
   const { toast } = useToast();
   const [selectedSize, setSelectedSize] = useState<string>('');
@@ -41,18 +43,14 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
     ? (product.sizes.find(s => s.name === selectedSize)?.price || product.price)
     : product.price;
 
-  const handleBuyNow = () => {
-    const requiredSlots = getRequiredPhotoSlots(product as any);
-    if (requiredSlots > 0) {
-      router.push(`/products/${product.id}?requiredUpload=true`);
-      onClose();
-      return;
-    }
+  const requiredSlots = getRequiredPhotoSlots(product as any);
 
+  const handleBuyNow = () => {
     addToCart({
       ...product,
       price: currentPrice,
       selectedSize: product.sizes ? selectedSize : undefined,
+      requiredPhotoSlots: requiredSlots,
     });
     router.push('/checkout');
     onClose();
@@ -111,7 +109,7 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
             {product.sizes && product.sizes.length > 0 && (
               <div className="space-y-2">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Select Size</span>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-1">
                   {product.sizes.map((sz) => (
                     <button
                       key={sz.name}
@@ -147,31 +145,41 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
               <Button 
                 variant="outline"
                 onClick={() => { 
-                  const requiredSlots = getRequiredPhotoSlots(product as any);
-                  if (requiredSlots > 0) {
-                    router.push(`/products/${product.id}?requiredUpload=true`);
-                    onClose();
-                    return;
-                  }
-
                   addToCart({
                     ...product,
                     price: currentPrice,
                     selectedSize: product.sizes ? selectedSize : undefined,
+                    requiredPhotoSlots: requiredSlots,
                   }); 
+                  toast({
+                    title: "Added to Bag",
+                    description: `${product.name} has been added to your shopping bag.`,
+                  });
                   onClose(); 
                 }}
                 className="w-full rounded-full h-10 md:h-12 text-sm font-bold border md:border-2"
               >
                 <ShoppingBag className="mr-2 w-4 h-4" /> Add to Bag
               </Button>
+
+              {requiredSlots > 0 && (
+                <p className="text-[10px] text-muted-foreground text-center flex items-center justify-center gap-1.5">
+                  <Camera className="w-3 h-3 shrink-0" />
+                  Photos needed — you can upload them on the product page or we&apos;ll remind you at checkout.
+                </p>
+              )}
               
               <div className="flex gap-3">
                 <Button variant="ghost" className="flex-1 rounded-full h-10 text-xs font-bold opacity-60 hover:opacity-100" onClick={onClose}>
                   Continue Browsing
                 </Button>
-                <Button variant="ghost" size="icon" className="rounded-full h-10 w-10 opacity-60 hover:opacity-100">
-                  <Heart className="w-4 h-4" />
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => toggleWishlist(product)}
+                  className={`rounded-full h-10 w-10 ${isInWishlist(product.id) ? 'text-red-500 hover:text-red-600' : 'opacity-60 hover:opacity-100'}`}
+                >
+                  <Heart className={`w-4 h-4 ${isInWishlist(product.id) ? 'fill-red-500 text-red-500' : ''}`} />
                 </Button>
               </div>
             </div>

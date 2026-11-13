@@ -158,17 +158,33 @@ export async function POST(request: Request) {
       }
 
       // Fetch coupon document in the transaction (READ)
-      let couponRef = null;
-      let couponSnap = null;
+      let customerCouponRef = null;
+      let customerCouponSnap = null;
+      let legacyCouponRef = null;
+      let legacyCouponSnap = null;
+
       if (razorpayOrder?.couponCode) {
-        couponRef = adminDb.collection('coupons').doc(razorpayOrder.couponCode);
-        couponSnap = await transaction.get(couponRef);
+        customerCouponRef = adminDb.collection('customer_coupons').doc(razorpayOrder.couponCode);
+        customerCouponSnap = await transaction.get(customerCouponRef);
+        if (!customerCouponSnap.exists) {
+          customerCouponRef = null;
+          customerCouponSnap = null;
+          legacyCouponRef = adminDb.collection('coupons').doc(razorpayOrder.couponCode);
+          legacyCouponSnap = await transaction.get(legacyCouponRef);
+        }
       }
       // --- READS END ---
 
       // --- WRITES START ---
       const orderRef = adminDb.collection('orders').doc();
       const verifiedAt = FieldValue.serverTimestamp();
+
+      const discountAmount = Number(razorpayOrder.discountAmount ?? razorpayOrder.discount ?? 0);
+      const discountType = (razorpayOrder.discountType as 'automatic' | 'coupon' | 'none') || 
+        (discountAmount > 0 ? (razorpayOrder.couponCode ? 'coupon' : 'automatic') : 'none');
+      const shippingCharge = Number(razorpayOrder.shippingFee || razorpayOrder.shippingCharge || 0);
+      const finalAmount = serverCalculatedTotal;
+      const subtotal = Number(razorpayOrder.subtotal ?? (finalAmount + discountAmount - shippingCharge));
 
       transaction.set(orderRef, sanitizeObject({
         orderId: nextOrderId(),
@@ -182,16 +198,21 @@ export async function POST(request: Request) {
         state: razorpayOrder.shipping?.state || '',
         pincode: razorpayOrder.shipping?.pincode || '',
         items: items,
-        total: serverCalculatedTotal,
-        serverCalculatedTotal,
-        subtotal: razorpayOrder.subtotal,
-        shippingFee: razorpayOrder.shippingFee,
-        discount: Number(razorpayOrder.discount || 0),
+        total: finalAmount,
+        finalAmount: finalAmount,
+        serverCalculatedTotal: finalAmount,
+        subtotal: subtotal,
+        shippingFee: shippingCharge,
+        shippingCharge: shippingCharge,
+        discount: discountAmount,
+        discountAmount: discountAmount,
+        discountType: discountType,
         gatewayFee: Number(razorpayOrder.gatewayFee || 0),
         couponCode: razorpayOrder.couponCode || null,
         appliedCoupon: razorpayOrder.appliedCoupon || null,
         paymentStatus: 'paid',
         status: 'pending',
+        orderStatus: 'pending',
         paymentIdempotencyKey: paymentId,
         createdBy: trustedCreatedBy,
         verifiedAt,
@@ -210,11 +231,17 @@ export async function POST(request: Request) {
         }
       }
 
-      // Increment coupon usage count
-      if (couponRef && couponSnap && couponSnap.exists) {
-        const couponData = couponSnap.data();
+      // Mark loyalty coupon as redeemed or increment legacy coupon usage
+      if (customerCouponRef && customerCouponSnap && customerCouponSnap.exists) {
+        transaction.update(customerCouponRef, {
+          status: 'redeemed',
+          redeemedAt: verifiedAt,
+          redeemedOrderId: orderRef.id,
+        });
+      } else if (legacyCouponRef && legacyCouponSnap && legacyCouponSnap.exists) {
+        const couponData = legacyCouponSnap.data();
         const currentCount = Number(couponData?.usageCount || 0);
-        transaction.update(couponRef, { usageCount: currentCount + 1 });
+        transaction.update(legacyCouponRef, { usageCount: currentCount + 1 });
       }
 
       transaction.set(processedPaymentRef, sanitizeObject({

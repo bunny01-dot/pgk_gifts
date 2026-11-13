@@ -15,7 +15,10 @@ import {
   CreditCard, 
   ShoppingBag, 
   Package, 
-  Truck 
+  Truck,
+  Star,
+  Tag,
+  Globe
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -249,43 +252,90 @@ function SuccessContent() {
             
             {/* Payment Summary */}
             <Card className="p-6 border-none shadow-sm rounded-2xl space-y-4">
-              <h3 className="font-headline font-bold text-lg border-b pb-3 flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-primary" />
-                Payment Summary
-              </h3>
+              <div className="flex items-center justify-between border-b pb-3">
+                <h3 className="font-headline font-bold text-lg flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-primary" />
+                  Payment Summary
+                </h3>
+                <span className="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-emerald-600 text-white shadow-xs">
+                  {order.paymentStatus === 'paid' ? 'Payment Confirmed' : 'Payment Pending'}
+                </span>
+              </div>
               
-              <div className="space-y-2 text-sm">
+              <div className="space-y-2.5 text-sm">
                 <div className="flex justify-between text-muted-foreground">
-                  <span>Subtotal</span>
-                  <span>{formatPrice(order.subtotal || (order.total - (order.shippingFee || 0) - (order.gatewayFee || 0) + (order.discount || 0)))}</span>
+                  <span>Product Subtotal</span>
+                  <span className="font-semibold text-foreground">
+                    {formatPrice(order.subtotal || ((order.finalAmount || order.total) - (order.shippingFee || 0) + (order.discountAmount || order.discount || 0)))}
+                  </span>
                 </div>
-                {order.discount !== undefined && order.discount > 0 && (
-                  <div className="flex justify-between text-green-600">
-                    <span>Discount ({order.couponCode || 'Promo'})</span>
-                    <span>-{formatPrice(order.discount)}</span>
+
+                {((order.discountAmount !== undefined && order.discountAmount > 0) || (order.discount !== undefined && order.discount > 0)) && (
+                  <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400 font-semibold">
+                    <span className="flex items-center gap-1.5">
+                      <Tag className="w-3.5 h-3.5" />
+                      {order.discountType === 'coupon' || order.couponCode
+                        ? `Loyalty Reward (${order.couponCode || 'Coupon'})`
+                        : 'Shopping Discount'}
+                    </span>
+                    <span>-{formatPrice(order.discountAmount || order.discount || 0)}</span>
                   </div>
                 )}
+
                 <div className="flex justify-between text-muted-foreground">
-                  <span>Shipping Fee</span>
+                  <span>Shipping Charges</span>
                   <span>
-                    {order.shippingFee === 0 ? (
-                      <span className="text-green-600 font-bold uppercase tracking-wider text-[10px]">Complimentary</span>
+                    {(order.shippingCharge ?? order.shippingFee) === 0 ? (
+                      <span className="text-emerald-600 font-bold uppercase tracking-wider text-[10px]">Complimentary</span>
                     ) : (
-                      formatPrice(order.shippingFee || 0)
+                      formatPrice(order.shippingCharge ?? order.shippingFee ?? 0)
                     )}
                   </span>
                 </div>
+
                 {order.gatewayFee !== undefined && order.gatewayFee > 0 && (
                   <div className="flex justify-between text-muted-foreground">
-                    <span>Gateway Charge (2.36%)</span>
+                    <span>Gateway Charge</span>
                     <span>{formatPrice(order.gatewayFee)}</span>
                   </div>
                 )}
+
                 <div className="border-t pt-3 flex justify-between font-headline font-bold text-lg text-foreground">
-                  <span>Total Amount Paid</span>
-                  <span className="text-primary">{formatPrice(order.total)}</span>
+                  <div>
+                    <span>Total Amount Paid</span>
+                    {((order.discountAmount || order.discount || 0) > 0) && (
+                      <p className="text-[11px] font-bold text-emerald-600">
+                        Total Saved: {formatPrice(order.discountAmount || order.discount || 0)}
+                      </p>
+                    )}
+                  </div>
+                  <span className="text-primary text-xl font-bold">{formatPrice(order.finalAmount || order.total)}</span>
                 </div>
               </div>
+            </Card>
+
+            {/* Google Review Integration - Compliant with Google Policies */}
+            <Card className="p-6 border border-primary/20 shadow-sm rounded-2xl bg-gradient-to-br from-amber-500/5 via-primary/5 to-card space-y-3">
+              <div className="flex items-center gap-2 text-primary">
+                <Star className="w-5 h-5 fill-amber-400 text-amber-500" />
+                <h3 className="font-headline font-bold text-base text-foreground">Share Your Experience</h3>
+              </div>
+              <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
+                We hope you loved your purchase! Share your honest experience with PGK GIFTS on Google.
+              </p>
+              <Button asChild variant="outline" className="w-full rounded-full h-11 border-primary/40 font-bold text-xs hover:bg-primary hover:text-white transition-all shadow-xs">
+                <a 
+                  href={CONTACT_INFO.googleMap || "https://maps.app.goo.gl/8gF9FSyhokzJeakW6"} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2"
+                >
+                  <Globe className="w-4 h-4 text-primary group-hover:text-white" /> Write a Google Review
+                </a>
+              </Button>
+              <p className="text-[10px] text-muted-foreground text-center">
+                Honest feedback helps our local craft studio grow and serve you better.
+              </p>
             </Card>
 
             {/* Actions List */}

@@ -1,8 +1,9 @@
+/* eslint-disable @next/next/no-img-element, jsx-a11y/alt-text */
 'use client';
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LayoutDashboard, ShoppingBag, LogOut, IndianRupee, TrendingUp, Search, ShieldAlert, Loader2, Eye, Plus, PackageOpen, DownloadCloud, X, Bell, BellRing, AlertCircle, MessageSquare, CloudDownload, Globe, ShieldCheck, Star, Settings, LayoutGrid, List } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, LogOut, IndianRupee, TrendingUp, Search, ShieldAlert, Loader2, Eye, Plus, PackageOpen, DownloadCloud, X, Bell, BellRing, AlertCircle, MessageSquare, CloudDownload, Globe, ShieldCheck, Star, Settings, LayoutGrid, List, Tag, Video, Film, PlayCircle, Clock, Percent } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,11 +16,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useFirestore, useUser, useAuth, useDoc, useMemoFirebase, useFirebase } from "@/firebase";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { OrdersService } from "@/services/orders.service";
 import { ProductsService } from "@/services/products.service";
+import { OffersService } from "@/services/offers.service";
+import { PromoVideoService } from "@/services/promo-video.service";
 import { Order, OrderStatus } from "@/types/order";
 import { Product } from "@/types/product";
+import { Offer } from "@/types/offer";
+import { PromoVideo } from "@/types/promo-video";
 import { formatPrice } from "@/utils/currency";
 import { formatDate, toDate } from "@/utils/date";
 import { doc, deleteField } from "firebase/firestore";
@@ -27,9 +32,12 @@ import { signOut } from "firebase/auth";
 import Link from "next/link";
 import { PRODUCTS, ADMIN_EMAILS } from "@/lib/data"; // Import the static products to seed
 import { useToast } from "@/hooks/use-toast";
+import { PortfolioService } from "@/services/portfolio.service";
+import { PortfolioItem, PortfolioCategory } from "@/lib/portfolio-data";
 
 import { useNotifications } from "@/hooks/use-notifications";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { MarketingOffersSection } from "@/components/admin/MarketingOffersSection";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -47,6 +55,11 @@ export default function AdminPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isMounted, setIsMounted] = useState(false);
   const [seeding, setSeeding] = useState(false);
+
+  // Always land at the top of the page when the admin panel loads
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, []);
   
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -81,6 +94,28 @@ export default function AdminPage() {
   const [adminOtherDeliveryMultiplier, setAdminOtherDeliveryMultiplier] = useState(100);
   const [savingSettings, setSavingSettings] = useState(false);
 
+  // Category thumbnails state
+  const [categoryThumbnails, setCategoryThumbnails] = useState<Record<string, string>>({});
+  const [uploadingCategoryThumbnail, setUploadingCategoryThumbnail] = useState<string | null>(null);
+
+  // Gallery showcase state
+  const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
+  const [loadingPortfolio, setLoadingPortfolio] = useState(true);
+  const [isPortfolioModalOpen, setIsPortfolioModalOpen] = useState(false);
+  const [editingPortfolioItem, setEditingPortfolioItem] = useState<PortfolioItem | null>(null);
+  const [portfolioForm, setPortfolioForm] = useState<Partial<PortfolioItem>>({
+    title: "", category: "Light & Lamp Gifts", subcategory: "", image: "", images: [], description: "", tags: [], featured: false
+  });
+  const [uploadingPortfolioImage, setUploadingPortfolioImage] = useState(false);
+
+  // Bulk upload state
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [bulkFiles, setBulkFiles] = useState<File[]>([]);
+  const [bulkCategory, setBulkCategory] = useState<PortfolioCategory>("Light & Lamp Gifts");
+  const [bulkSubcategory, setBulkSubcategory] = useState("");
+  const [uploadingBulk, setUploadingBulk] = useState(false);
+  const [bulkProgressText, setBulkProgressText] = useState("");
+
   // Notification Center state
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [readNotificationIds, setReadNotificationIds] = useState<string[]>([]);
@@ -93,6 +128,29 @@ export default function AdminPage() {
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [isSavingCategory, setIsSavingCategory] = useState(false);
+
+  // Time-Limited Offers state
+  const [offers, setOffers] = useState<Offer[]>([]);
+  const [loadingOffers, setLoadingOffers] = useState(true);
+  const [isOfferModalOpen, setIsOfferModalOpen] = useState(false);
+  const [editingOffer, setEditingOffer] = useState<Offer | null>(null);
+  const [uploadingOfferImage, setUploadingOfferImage] = useState(false);
+  const [offerForm, setOfferForm] = useState<Partial<Offer>>({
+    title: '', subtitle: '', description: '', image: '', originalPrice: 0, offerPrice: 0,
+    startDate: new Date().toISOString().slice(0, 16),
+    endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
+    linkUrl: '/shop', linkText: 'Grab Offer Now', badgeText: 'LIMITED TIME DEAL', active: true
+  });
+
+  // Promotional Videos state
+  const [promoVideos, setPromoVideos] = useState<PromoVideo[]>([]);
+  const [loadingPromoVideos, setLoadingPromoVideos] = useState(true);
+  const [isPromoVideoModalOpen, setIsPromoVideoModalOpen] = useState(false);
+  const [editingPromoVideo, setEditingPromoVideo] = useState<PromoVideo | null>(null);
+  const [uploadingPromoVideo, setUploadingPromoVideo] = useState(false);
+  const [promoVideoForm, setPromoVideoForm] = useState<Partial<PromoVideo>>({
+    title: '', description: '', videoUrl: '', thumbnailUrl: '', productLink: '/shop', productName: '', active: true
+  });
 
   // Dynamic categories list (extracting from database products + defaults)
   const categoriesList = useMemo(() => {
@@ -160,6 +218,9 @@ export default function AdminPage() {
           }
           if (Array.isArray(data.customCategories)) {
             setCustomCategories(data.customCategories);
+          }
+          if (data.categoryThumbnails && typeof data.categoryThumbnails === 'object') {
+            setCategoryThumbnails(data.categoryThumbnails as Record<string, string>);
           }
         }
       } catch (err) {
@@ -312,6 +373,7 @@ export default function AdminPage() {
         }
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewingOrderDetails, readNotificationIds]);
 
   const notifications = useMemo(() => {
@@ -389,6 +451,356 @@ export default function AdminPage() {
     const svc = new ProductsService(firestore);
     const data = await svc.getAllProducts(undefined, false);
     setProducts(data);
+  };
+
+  const fetchPortfolioItems = async () => {
+    if (!firestore) return;
+    setLoadingPortfolio(true);
+    try {
+      const svc = new PortfolioService(firestore);
+      const data = await svc.getAllPortfolioItems();
+      setPortfolioItems(data);
+    } catch (err) {
+      console.error("Error fetching portfolio items:", err);
+    } finally {
+      setLoadingPortfolio(false);
+    }
+  };
+
+  const fetchOffers = async () => {
+    if (!firestore) return;
+    setLoadingOffers(true);
+    try {
+      const svc = new OffersService(firestore);
+      const data = await svc.getAllOffers();
+      setOffers(data);
+    } catch (err) {
+      console.error("Error fetching offers:", err);
+    } finally {
+      setLoadingOffers(false);
+    }
+  };
+
+  const fetchPromoVideos = async () => {
+    if (!firestore) return;
+    setLoadingPromoVideos(true);
+    try {
+      const svc = new PromoVideoService(firestore);
+      const data = await svc.getAllPromoVideos();
+      setPromoVideos(data);
+    } catch (err) {
+      console.error("Error fetching promo videos:", err);
+    } finally {
+      setLoadingPromoVideos(false);
+    }
+  };
+
+  // Offer Actions
+  const handleOpenOfferModal = (offer?: Offer) => {
+    if (offer) {
+      setEditingOffer(offer);
+      setOfferForm({
+        ...offer,
+        startDate: offer.startDate ? new Date(offer.startDate).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
+        endDate: offer.endDate ? new Date(offer.endDate).toISOString().slice(0, 16) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
+      });
+    } else {
+      setEditingOffer(null);
+      setOfferForm({
+        title: '', subtitle: '', description: '', image: '', originalPrice: 0, offerPrice: 0,
+        startDate: new Date().toISOString().slice(0, 16),
+        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
+        linkUrl: '/shop', linkText: 'Grab Offer Now', badgeText: 'LIMITED TIME DEAL', active: true
+      });
+    }
+    setIsOfferModalOpen(true);
+  };
+
+  const handleSaveOffer = async () => {
+    if (!firestore || !offerForm.title || !offerForm.offerPrice || !offerForm.endDate) {
+      toast({
+        variant: 'destructive',
+        title: 'Missing Required Fields',
+        description: 'Please provide at least a Title, Offer Price, and End Date.'
+      });
+      return;
+    }
+
+    try {
+      const svc = new OffersService(firestore);
+      const payload = {
+        title: offerForm.title.trim(),
+        subtitle: offerForm.subtitle?.trim() || '',
+        description: offerForm.description?.trim() || '',
+        image: offerForm.image || '',
+        originalPrice: Number(offerForm.originalPrice) || 0,
+        offerPrice: Number(offerForm.offerPrice) || 0,
+        startDate: new Date(offerForm.startDate || Date.now()).toISOString(),
+        endDate: new Date(offerForm.endDate || Date.now()).toISOString(),
+        linkUrl: offerForm.linkUrl?.trim() || '/shop',
+        linkText: offerForm.linkText?.trim() || 'Grab Offer Now',
+        badgeText: offerForm.badgeText?.trim() || 'LIMITED TIME DEAL',
+        active: Boolean(offerForm.active),
+      };
+
+      if (editingOffer) {
+        await svc.updateOffer(editingOffer.id, payload);
+        toast({ title: 'Offer Updated', description: `"${payload.title}" updated successfully.` });
+      } else {
+        await svc.createOffer(payload as any);
+        toast({ title: 'Offer Created', description: `New offer "${payload.title}" created successfully.` });
+      }
+
+      setIsOfferModalOpen(false);
+      fetchOffers();
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Error Saving Offer', description: err.message });
+    }
+  };
+
+  const handleToggleOfferActive = async (id: string, currentActive: boolean) => {
+    if (!firestore) return;
+    try {
+      const svc = new OffersService(firestore);
+      await svc.updateOffer(id, { active: !currentActive });
+      toast({ title: 'Status Updated', description: `Offer is now ${!currentActive ? 'Active' : 'Inactive'}.` });
+      fetchOffers();
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Error', description: err.message });
+    }
+  };
+
+  const handleDeleteOffer = async (id: string, title: string) => {
+    if (!firestore) return;
+    try {
+      const svc = new OffersService(firestore);
+      await svc.deleteOffer(id);
+      toast({ title: 'Offer Deleted', description: `"${title}" deleted successfully.` });
+      fetchOffers();
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Error Deleting Offer', description: err.message });
+    }
+  };
+
+  const handleOfferImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !firebaseApp) return;
+    setUploadingOfferImage(true);
+    try {
+      toast({ title: 'Uploading Offer Image...', description: 'Saving photo to storage...' });
+      const storage = getStorage(firebaseApp);
+      const storageRef = ref(storage, `offers/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`);
+      const snapshot = await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(snapshot.ref);
+      setOfferForm(prev => ({ ...prev, image: url }));
+      toast({ title: 'Photo Uploaded', description: 'Offer image saved successfully.' });
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Upload Failed', description: err.message });
+    } finally {
+      setUploadingOfferImage(false);
+    }
+  };
+
+  // Promo Video Actions
+  const handleOpenPromoVideoModal = (video?: PromoVideo) => {
+    if (video) {
+      setEditingPromoVideo(video);
+      setPromoVideoForm(video);
+    } else {
+      setEditingPromoVideo(null);
+      setPromoVideoForm({
+        title: '', description: '', videoUrl: '', thumbnailUrl: '', productLink: '/shop', productName: '', active: true
+      });
+    }
+    setIsPromoVideoModalOpen(true);
+  };
+
+  const handleSavePromoVideo = async () => {
+    if (!firestore || !promoVideoForm.title || !promoVideoForm.videoUrl || !promoVideoForm.productLink) {
+      toast({
+        variant: 'destructive',
+        title: 'Missing Required Fields',
+        description: 'Please provide Title, Video File/URL, and Promoted Product Link.'
+      });
+      return;
+    }
+
+    try {
+      const svc = new PromoVideoService(firestore);
+      const payload = {
+        title: promoVideoForm.title.trim(),
+        description: promoVideoForm.description?.trim() || '',
+        videoUrl: promoVideoForm.videoUrl.trim(),
+        thumbnailUrl: promoVideoForm.thumbnailUrl?.trim() || '',
+        productLink: promoVideoForm.productLink.trim(),
+        productName: promoVideoForm.productName?.trim() || '',
+        active: Boolean(promoVideoForm.active),
+      };
+
+      if (editingPromoVideo) {
+        // Automatically delete previous video file from Firebase Storage if replaced
+        if (editingPromoVideo.videoUrl && 
+            editingPromoVideo.videoUrl !== payload.videoUrl && 
+            editingPromoVideo.videoUrl.includes('firebasestorage.googleapis.com')) {
+          try {
+            const storage = getStorage(firebaseApp);
+            const oldRef = ref(storage, editingPromoVideo.videoUrl);
+            await deleteObject(oldRef);
+            console.log('Cleaned up previous video file from storage:', editingPromoVideo.videoUrl);
+          } catch (delErr) {
+            console.warn('Could not delete previous storage file:', delErr);
+          }
+        }
+
+        await svc.updatePromoVideo(editingPromoVideo.id, payload);
+        toast({ title: 'Video Updated', description: `"${payload.title}" updated and old storage file cleaned up.` });
+      } else {
+        await svc.createPromoVideo(payload as any);
+        toast({ title: 'Video Created', description: `New promo video "${payload.title}" created successfully.` });
+      }
+
+      setIsPromoVideoModalOpen(false);
+      fetchPromoVideos();
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Error Saving Video', description: err.message });
+    }
+  };
+
+  const handleTogglePromoVideoActive = async (id: string, currentActive: boolean) => {
+    if (!firestore) return;
+    try {
+      const svc = new PromoVideoService(firestore);
+      await svc.updatePromoVideo(id, { active: !currentActive });
+      toast({ title: 'Status Updated', description: `Video is now ${!currentActive ? 'Active' : 'Inactive'}.` });
+      fetchPromoVideos();
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Error', description: err.message });
+    }
+  };
+
+  const handleDeletePromoVideo = async (id: string, title: string) => {
+    if (!firestore) return;
+    try {
+      const videoToDelete = promoVideos.find(v => v.id === id);
+      if (videoToDelete?.videoUrl && videoToDelete.videoUrl.includes('firebasestorage.googleapis.com')) {
+        try {
+          const storage = getStorage(firebaseApp);
+          const oldRef = ref(storage, videoToDelete.videoUrl);
+          await deleteObject(oldRef);
+          console.log('Deleted video file from Firebase Storage:', videoToDelete.videoUrl);
+        } catch (delErr) {
+          console.warn('Storage file deletion note:', delErr);
+        }
+      }
+
+      const svc = new PromoVideoService(firestore);
+      await svc.deletePromoVideo(id);
+      toast({ title: 'Video Deleted', description: `"${title}" and its storage file deleted successfully.` });
+      fetchPromoVideos();
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Error Deleting Video', description: err.message });
+    }
+  };
+
+  const convertVideoToWebCompatible = async (file: File): Promise<Blob | null> => {
+    return new Promise((resolve) => {
+      if (typeof window === 'undefined' || !window.MediaRecorder || !MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')) {
+        resolve(null);
+        return;
+      }
+
+      const video = document.createElement('video');
+      video.src = URL.createObjectURL(file);
+      video.muted = true;
+      video.playsInline = true;
+
+      const timeout = setTimeout(() => {
+        URL.revokeObjectURL(video.src);
+        resolve(null);
+      }, 20000);
+
+      video.onloadeddata = async () => {
+        try {
+          // @ts-ignore
+          const stream = video.captureStream ? video.captureStream() : video.mozCaptureStream ? video.mozCaptureStream() : null;
+          if (!stream) {
+            clearTimeout(timeout);
+            URL.revokeObjectURL(video.src);
+            resolve(null);
+            return;
+          }
+
+          const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8,opus' });
+          const chunks: Blob[] = [];
+
+          recorder.ondataavailable = (e) => {
+            if (e.data && e.data.size > 0) chunks.push(e.data);
+          };
+
+          recorder.onstop = () => {
+            clearTimeout(timeout);
+            URL.revokeObjectURL(video.src);
+            if (chunks.length > 0) {
+              resolve(new Blob(chunks, { type: 'video/webm' }));
+            } else {
+              resolve(null);
+            }
+          };
+
+          recorder.start();
+          video.playbackRate = 4.0; // 4x fast transcode speed
+          await video.play();
+
+          video.onended = () => {
+            if (recorder.state === 'recording') recorder.stop();
+          };
+        } catch (err) {
+          clearTimeout(timeout);
+          URL.revokeObjectURL(video.src);
+          resolve(null);
+        }
+      };
+
+      video.onerror = () => {
+        clearTimeout(timeout);
+        URL.revokeObjectURL(video.src);
+        resolve(null);
+      };
+    });
+  };
+
+  const handlePromoVideoFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !firebaseApp) return;
+    setUploadingPromoVideo(true);
+    try {
+      toast({ title: 'Processing & Uploading Video...', description: 'Optimizing video for universal web playback...' });
+      
+      let uploadPayload: Blob | File = file;
+      let extension = file.name.split('.').pop() || 'mp4';
+
+      try {
+        const processedBlob = await convertVideoToWebCompatible(file);
+        if (processedBlob && processedBlob.size > 0) {
+          uploadPayload = processedBlob;
+          extension = 'webm';
+        }
+      } catch (transcodeErr) {
+        console.warn("Using raw video upload:", transcodeErr);
+      }
+
+      const storage = getStorage(firebaseApp);
+      const storageRef = ref(storage, `promo-videos/${Date.now()}_video.${extension}`);
+      const snapshot = await uploadBytes(storageRef, uploadPayload);
+      const url = await getDownloadURL(snapshot.ref);
+
+      setPromoVideoForm(prev => ({ ...prev, videoUrl: url }));
+      toast({ title: 'Video Uploaded & Web Optimized!', description: 'Promotional video is now ready for web playback.' });
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Upload Failed', description: err.message });
+    } finally {
+      setUploadingPromoVideo(false);
+    }
   };
 
   useEffect(() => {
@@ -493,8 +905,12 @@ export default function AdminPage() {
 
     fetchProducts();
     fetchRazorpayOrders();
+    fetchPortfolioItems();
+    fetchOffers();
+    fetchPromoVideos();
 
     return () => unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isUserLoading, isAdminCheckLoading, firestore, router, isMounted, isAdmin, toast]);
 
   const updateStatus = async (orderId: string, status: OrderStatus) => {
@@ -816,11 +1232,11 @@ export default function AdminPage() {
         count++;
       }
 
-      // Seed default coupons
+      // Seed default coupons (Strictly flat rough amounts: ₹50, ₹100 - no percentages)
       const defaultCoupons = [
-        { code: "WELCOME10", type: "percentage", value: 10, minOrderAmount: 500, active: true, usageCount: 0 },
-        { code: "PGK100", type: "flat", value: 100, minOrderAmount: 1000, active: true, usageCount: 0 },
-        { code: "BUNNY15", type: "percentage", value: 15, minOrderAmount: 0, active: true, usageCount: 0 }
+        { code: "PGK15", type: "flat", value: 50, minOrderAmount: 300, active: true, usageCount: 0 },
+        { code: "PGK50", type: "flat", value: 50, minOrderAmount: 300, active: true, usageCount: 0 },
+        { code: "PGK100", type: "flat", value: 100, minOrderAmount: 700, active: true, usageCount: 0 }
       ];
       const { collection, doc, setDoc, getDoc } = await import("firebase/firestore");
       let couponCount = 0;
@@ -942,6 +1358,186 @@ export default function AdminPage() {
     }
   };
 
+  const handleOpenPortfolioModal = (item?: PortfolioItem) => {
+    if (item) {
+      setEditingPortfolioItem(item);
+      setPortfolioForm({
+        ...item,
+        images: item.images || (item.image ? [item.image] : [])
+      });
+    } else {
+      setEditingPortfolioItem(null);
+      setPortfolioForm({
+        title: "",
+        category: "Light & Lamp Gifts",
+        subcategory: "",
+        image: "",
+        images: [],
+        description: "",
+        tags: [],
+        featured: false
+      });
+    }
+    setIsPortfolioModalOpen(true);
+  };
+
+  const handleSavePortfolioItem = async () => {
+    if (!firestore || !portfolioForm.title) return;
+    const svc = new PortfolioService(firestore);
+    try {
+      const finalData: any = {
+        title: portfolioForm.title,
+        category: portfolioForm.category || "Light & Lamp Gifts",
+        subcategory: portfolioForm.subcategory || "",
+        image: portfolioForm.image || "",
+        images: portfolioForm.images || [],
+        description: portfolioForm.description || "",
+        tags: Array.isArray(portfolioForm.tags) ? portfolioForm.tags : (typeof portfolioForm.tags === 'string' ? (portfolioForm.tags as string).split(',').map(t => t.trim()).filter(Boolean) : []),
+        featured: !!portfolioForm.featured
+      };
+
+      if (editingPortfolioItem) {
+        await svc.updatePortfolioItem(editingPortfolioItem.id, finalData);
+        toast({ title: "Showcase Updated", description: "Masterpiece in gallery updated successfully." });
+      } else {
+        await svc.createPortfolioItem(finalData);
+        toast({ title: "Showcase Created", description: "New masterpiece added to gallery showcase." });
+      }
+      setIsPortfolioModalOpen(false);
+      fetchPortfolioItems();
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Error Saving Showcase", description: e.message });
+    }
+  };
+
+  const handleDeletePortfolioItem = async (id: string) => {
+    if (!firestore) return;
+    const svc = new PortfolioService(firestore);
+    try {
+      await svc.deletePortfolioItem(id);
+      toast({ title: "Deleted Showcase", description: "Masterpiece removed from gallery showcase." });
+      fetchPortfolioItems();
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Error deleting item", description: e.message });
+    }
+  };
+
+  const handlePortfolioImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isGallery = false) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setUploadingPortfolioImage(true);
+
+    try {
+      toast({ title: "Uploading...", description: `Uploading ${files.length} showcase images...` });
+      const storage = getStorage(firebaseApp);
+      
+      const newUrls: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (!file) continue;
+        const storageRef = ref(storage, `portfolio/${Date.now()}_${file.name}`);
+        try {
+          const snapshot = await uploadBytes(storageRef, file);
+          const url = await getDownloadURL(snapshot.ref);
+          newUrls.push(url);
+        } catch (uploadErr: any) {
+          if (process.env.NODE_ENV !== 'production' && uploadErr.code === 'storage/quota-exceeded') {
+            newUrls.push(URL.createObjectURL(file));
+          } else {
+            throw uploadErr;
+          }
+        }
+      }
+      
+      setPortfolioForm(prev => {
+        const existingImages = prev.images || (prev.image ? [prev.image] : []);
+        const combined = [...existingImages, ...newUrls];
+        return { 
+          ...prev, 
+          image: isGallery ? (prev.image || combined[0] || '') : (newUrls[0] || prev.image || ''),
+          images: combined 
+        };
+      });
+      
+      toast({ title: "Success", description: "Showcase image attached successfully!" });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Upload Failed", description: error.message });
+    } finally {
+      setUploadingPortfolioImage(false);
+    }
+  };
+
+  const handleBulkUpload = async () => {
+    if (!firestore || bulkFiles.length === 0) return;
+    setUploadingBulk(true);
+    const svc = new PortfolioService(firestore);
+    const storage = getStorage(firebaseApp);
+    let successCount = 0;
+
+    try {
+      for (let i = 0; i < bulkFiles.length; i++) {
+        const file = bulkFiles[i];
+        if (!file) continue;
+        
+        setBulkProgressText(`Uploading image ${i + 1} of ${bulkFiles.length}: ${file.name}...`);
+        
+        // 1. Upload file to Storage
+        const storageRef = ref(storage, `portfolio/${Date.now()}_${file.name}`);
+        let imageUrl = "";
+        try {
+          const snapshot = await uploadBytes(storageRef, file);
+          imageUrl = await getDownloadURL(snapshot.ref);
+        } catch (uploadErr: any) {
+          if (process.env.NODE_ENV !== 'production' && uploadErr.code === 'storage/quota-exceeded') {
+            imageUrl = URL.createObjectURL(file);
+          } else {
+            throw uploadErr;
+          }
+        }
+
+        // 2. Generate clean title from filename
+        const nameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+        const cleanTitle = nameWithoutExt
+          .replace(/[_-]/g, ' ')
+          .replace(/\b\w/g, c => c.toUpperCase());
+
+        // 3. Create document in Firestore
+        const finalData: any = {
+          title: cleanTitle,
+          category: bulkCategory,
+          subcategory: bulkSubcategory || "",
+          image: imageUrl,
+          images: [imageUrl],
+          description: `Uploaded via bulk tools under subcategory: ${bulkSubcategory || 'General'}`,
+          tags: bulkSubcategory ? [bulkSubcategory.toLowerCase()] : [],
+          featured: false
+        };
+
+        await svc.createPortfolioItem(finalData);
+        successCount++;
+      }
+
+      toast({ 
+        title: "Bulk Upload Complete", 
+        description: `Successfully uploaded ${successCount} items to the ${bulkCategory} category.` 
+      });
+      
+      setIsBulkModalOpen(false);
+      setBulkFiles([]);
+      setBulkSubcategory("");
+      fetchPortfolioItems();
+    } catch (e: any) {
+      toast({ 
+        variant: "destructive", 
+        title: "Bulk Upload Failed", 
+        description: `Uploaded ${successCount} successfully before failing: ${e.message}` 
+      });
+    } finally {
+      setUploadingBulk(false);
+      setBulkProgressText("");
+    }
+  };
+
   const { firebaseApp } = useFirebase();
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -983,6 +1579,32 @@ export default function AdminPage() {
     }
   };
 
+  const handleCategoryThumbnailUpload = async (categoryName: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !firebaseApp || !firestore) return;
+    setUploadingCategoryThumbnail(categoryName);
+    try {
+      toast({ title: "Uploading...", description: `Uploading thumbnail for ${categoryName}...` });
+      const storage = getStorage(firebaseApp);
+      const storageRef = ref(storage, `category-thumbnails/${Date.now()}_${file.name}`);
+      const snapshot = await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(snapshot.ref);
+
+      const { doc, setDoc } = await import("firebase/firestore");
+      const docRef = doc(firestore, "settings", "global");
+      const updatedThumbnails = { ...categoryThumbnails, [categoryName]: url };
+      await setDoc(docRef, { categoryThumbnails: updatedThumbnails }, { merge: true });
+      setCategoryThumbnails(updatedThumbnails);
+      toast({ title: "Thumbnail Updated", description: `"${categoryName}" thumbnail saved successfully.` });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Upload Failed", description: err.message });
+    } finally {
+      setUploadingCategoryThumbnail(null);
+      // Reset input so same file can be re-selected
+      e.target.value = '';
+    }
+  };
+
   if (!isMounted || isUserLoading || isAdminCheckLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-accent/5">
@@ -991,7 +1613,7 @@ export default function AdminPage() {
     );
   }
 
-  if (user && !isAdmin) {
+  if (!user || !isAdmin) {
     return (
       <div className="min-h-screen bg-accent/5 flex items-center justify-center p-4">
         <Card className="max-w-md w-full p-10 shadow-2xl rounded-[3rem] border-none text-center">
@@ -999,17 +1621,35 @@ export default function AdminPage() {
             <ShieldAlert size={40} />
           </div>
           <h1 className="text-3xl font-headline font-bold mb-4 text-foreground">Access Denied</h1>
-          <p className="text-muted-foreground mb-8">
-            Authenticated as <span className="font-bold text-foreground">{user.email}</span>. No admin role assigned.
-          </p>
-          <div className="space-y-4">
-            <Button asChild className="w-full h-14 rounded-full font-bold">
-              <Link href="/">Back to Home</Link>
-            </Button>
-            <Button variant="outline" onClick={handleLogout} className="w-full h-14 rounded-full font-bold border-2">
-              Logout
-            </Button>
-          </div>
+          {user ? (
+            <>
+              <p className="text-muted-foreground mb-8">
+                Authenticated as <span className="font-bold text-foreground">{user.email}</span>. No admin role assigned.
+              </p>
+              <div className="space-y-4">
+                <Button asChild className="w-full h-14 rounded-full font-bold">
+                  <Link href="/">Back to Home</Link>
+                </Button>
+                <Button variant="outline" onClick={handleLogout} className="w-full h-14 rounded-full font-bold border-2">
+                  Logout
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-muted-foreground mb-8">
+                You must be logged in with an administrator account to view this page.
+              </p>
+              <div className="space-y-4">
+                <Button asChild className="w-full h-14 rounded-full font-bold">
+                  <Link href="/login?redirect=/admin">Sign In</Link>
+                </Button>
+                <Button asChild variant="outline" className="w-full h-14 rounded-full font-bold border-2">
+                  <Link href="/">Back to Home</Link>
+                </Button>
+              </div>
+            </>
+          )}
         </Card>
       </div>
     );
@@ -1069,21 +1709,33 @@ export default function AdminPage() {
 
         <Tabs defaultValue="overview" className="w-full space-y-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6 bg-card p-3 md:p-4 rounded-2xl md:rounded-3xl shadow-sm border border-border/40">
-            <TabsList className="grid grid-cols-5 gap-2 rounded-2xl h-auto bg-transparent p-0 w-full md:w-auto md:flex">
-              <TabsTrigger value="overview" className="rounded-xl px-2 md:px-6 h-11 md:h-14 font-bold uppercase tracking-wider md:tracking-widest text-[10px] md:text-sm border-2 border-transparent data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all">
+            <TabsList className="grid grid-cols-4 sm:grid-cols-8 gap-2 rounded-2xl h-auto bg-transparent p-0 w-full md:w-auto md:flex">
+              <TabsTrigger value="overview" className="rounded-xl px-2 md:px-5 h-11 md:h-14 font-bold uppercase tracking-wider text-[10px] md:text-xs border-2 border-transparent data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all">
                 Overview
               </TabsTrigger>
-              <TabsTrigger value="inventory" className="rounded-xl px-2 md:px-6 h-11 md:h-14 font-bold uppercase tracking-wider md:tracking-widest text-[10px] md:text-sm border-2 border-transparent data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all">
+              <TabsTrigger value="inventory" className="rounded-xl px-2 md:px-5 h-11 md:h-14 font-bold uppercase tracking-wider text-[10px] md:text-xs border-2 border-transparent data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all">
                 Inventory
               </TabsTrigger>
-              <TabsTrigger value="orders" className="rounded-xl px-2 md:px-6 h-11 md:h-14 font-bold uppercase tracking-wider md:tracking-widest text-[10px] md:text-sm border-2 border-transparent data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all">
+              <TabsTrigger value="orders" className="rounded-xl px-2 md:px-5 h-11 md:h-14 font-bold uppercase tracking-wider text-[10px] md:text-xs border-2 border-transparent data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all">
                 Orders
               </TabsTrigger>
-              <TabsTrigger value="stuck_payments" className="rounded-xl px-2 md:px-6 h-11 md:h-14 font-bold uppercase tracking-wider md:tracking-widest text-[10px] md:text-sm border-2 border-transparent data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all text-center">
+              <TabsTrigger value="promotions" className="rounded-xl px-2 md:px-5 h-11 md:h-14 font-bold uppercase tracking-wider text-[10px] md:text-xs border-2 border-transparent data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all flex items-center gap-1.5">
+                <Percent className="w-3.5 h-3.5 hidden sm:inline" /> Marketing & Offers
+              </TabsTrigger>
+              <TabsTrigger value="offers" className="rounded-xl px-2 md:px-5 h-11 md:h-14 font-bold uppercase tracking-wider text-[10px] md:text-xs border-2 border-transparent data-[state=active]:bg-amber-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all flex items-center gap-1.5">
+                <Tag className="w-3.5 h-3.5 hidden sm:inline" /> Offers
+              </TabsTrigger>
+              <TabsTrigger value="videos" className="rounded-xl px-2 md:px-5 h-11 md:h-14 font-bold uppercase tracking-wider text-[10px] md:text-xs border-2 border-transparent data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all flex items-center gap-1.5">
+                <Film className="w-3.5 h-3.5 hidden sm:inline" /> Videos
+              </TabsTrigger>
+              <TabsTrigger value="stuck_payments" className="rounded-xl px-2 md:px-5 h-11 md:h-14 font-bold uppercase tracking-wider text-[10px] md:text-xs border-2 border-transparent data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all text-center">
                 Stuck Payments
               </TabsTrigger>
-              <TabsTrigger value="settings" className="rounded-xl px-2 md:px-6 h-11 md:h-14 font-bold uppercase tracking-wider md:tracking-widest text-[10px] md:text-sm border-2 border-transparent data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all">
+              <TabsTrigger value="settings" className="rounded-xl px-2 md:px-5 h-11 md:h-14 font-bold uppercase tracking-wider text-[10px] md:text-xs border-2 border-transparent data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all">
                 Settings
+              </TabsTrigger>
+              <TabsTrigger value="gallery" className="rounded-xl px-2 md:px-5 h-11 md:h-14 font-bold uppercase tracking-wider text-[10px] md:text-xs border-2 border-transparent data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all">
+                Gallery
               </TabsTrigger>
             </TabsList>
             
@@ -1962,6 +2614,10 @@ export default function AdminPage() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="promotions" className="space-y-6">
+            <MarketingOffersSection />
+          </TabsContent>
+
           <TabsContent value="stuck_payments">
             <Card className="border-none shadow-2xl rounded-3xl md:rounded-[3rem] overflow-hidden bg-card/50 backdrop-blur-sm">
               <CardHeader className="p-5 md:p-10 border-b flex flex-col md:flex-row md:items-center justify-between gap-5">
@@ -2040,6 +2696,91 @@ export default function AdminPage() {
           </TabsContent>
 
           <TabsContent value="settings">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 animate-in fade-in slide-in-from-bottom-6 duration-700 mb-6">
+                  <Card className="rounded-3xl md:rounded-[4rem] border-none shadow-premium overflow-hidden bg-card md:col-span-2">
+                    <div className="p-5 md:p-16 space-y-5 md:space-y-8">
+                      <div className="w-14 h-14 md:w-20 md:h-20 bg-primary/10 text-primary rounded-2xl md:rounded-[2rem] flex items-center justify-center shadow-inner">
+                        <Star className="w-7 h-7 md:w-10 md:h-10" />
+                      </div>
+                      <div className="space-y-2 md:space-y-4">
+                        <h3 className="text-2xl md:text-4xl font-body font-bold">Highlighted Collection Thumbnails</h3>
+                        <p className="text-sm md:text-xl text-muted-foreground leading-relaxed">
+                          Upload or replace the thumbnail images shown for each category card in the homepage&apos;s <strong>Highlighted Collections</strong> section.
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                        {([
+                          { title: "Night Lamps", category: "Night Lamps", staticThumb: "/assets/thumbnail/night lamps thumbnail.jpeg" },
+                          { title: "Wall Decor & Frames", category: "Wall Decor and Photo Frames", staticThumb: "/assets/thumbnail/wall decor thumnail.jpeg" },
+                          { title: "Personalized Gifts", category: "Personalized Gifts", staticThumb: undefined },
+                          { title: "MDF Wall Frames", category: "MDF Wall Frames", staticThumb: "/assets/thumbnail/MDF.webp" },
+                          { title: "Unique Gifts", category: "Unique Gifts", staticThumb: undefined },
+                          { title: "Car Accessories", category: "Car Dashboard Accessories", staticThumb: undefined },
+                          { title: "Hamper Boxes", category: "Hamper Boxes", staticThumb: undefined },
+                          { title: "Keychains", category: "Keychains", staticThumb: "/assets/keychains/acrylic-keychain-style-1.webp" },
+                        ] as const).map(({ title, category, staticThumb }) => {
+                          const dynamicThumb = categoryThumbnails[category];
+                          // Same fallback chain as getCategoryThumbnail on the homepage
+                          const productFallback = PRODUCTS.find(p => p.active && p.featured && p.category === category)?.image
+                            ?? PRODUCTS.find(p => p.active && p.category === category)?.image;
+                          const effectiveThumb = dynamicThumb || staticThumb || productFallback || null;
+                          const isCustom = Boolean(dynamicThumb);
+                          const isDefault = !dynamicThumb && Boolean(effectiveThumb);
+                          const isUploading = uploadingCategoryThumbnail === category;
+                          const inputId = `cat-thumb-${category.replace(/\s+/g, '-').toLowerCase()}`;
+                          return (
+                            <div key={category} className="group relative">
+                              <div className={`relative aspect-square rounded-2xl overflow-hidden border-2 bg-secondary transition-colors ${isCustom ? 'border-green-500/60' : isDefault ? 'border-border/50' : 'border-dashed border-border/40'}`}>
+                                {effectiveThumb ? (
+                                  <img src={effectiveThumb} alt={title} className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                                    <div className="w-8 h-8 rounded-full border-2 border-dashed border-muted-foreground/30" />
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-center leading-tight px-2">No Image</span>
+                                  </div>
+                                )}
+                                {/* Hover Overlay */}
+                                <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center gap-2">
+                                  {isUploading ? (
+                                    <Loader2 className="w-6 h-6 text-white animate-spin" />
+                                  ) : (
+                                    <label htmlFor={inputId} className="cursor-pointer flex flex-col items-center gap-1">
+                                      <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center border border-white/30 hover:bg-white/30 transition-colors">
+                                        <Plus className="w-5 h-5 text-white" />
+                                      </div>
+                                      <span className="text-[9px] font-black uppercase tracking-widest text-white">{effectiveThumb ? 'Replace' : 'Upload'}</span>
+                                    </label>
+                                  )}
+                                </div>
+                                <input
+                                  id={inputId}
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  disabled={isUploading}
+                                  onChange={(e) => handleCategoryThumbnailUpload(category, e)}
+                                />
+                              </div>
+                              <div className="pt-2 text-center">
+                                <p className="text-xs font-bold text-foreground truncate">{title}</p>
+                                {isCustom ? (
+                                  <p className="text-[10px] text-green-500 font-bold uppercase tracking-wider">✓ Custom</p>
+                                ) : isDefault ? (
+                                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Default</p>
+                                ) : (
+                                  <p className="text-[10px] text-amber-500 font-bold uppercase tracking-wider">No Image</p>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground opacity-50">Hover over any card to upload a replacement image</p>
+                    </div>
+                  </Card>
+               </div>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
                   <Card className="rounded-3xl md:rounded-[4rem] border-none shadow-premium overflow-hidden bg-card md:col-span-2">
                     <div className="p-5 md:p-16 space-y-5 md:space-y-8">
@@ -2183,7 +2924,865 @@ export default function AdminPage() {
                   </Card>
                </div>
             </TabsContent>
+
+            <TabsContent value="gallery">
+              <Card className="border-none shadow-2xl rounded-3xl md:rounded-[3rem] overflow-hidden bg-card/50 backdrop-blur-sm">
+                <CardHeader className="p-5 md:p-10 border-b flex flex-col md:flex-row md:items-center justify-between gap-5">
+                  <div>
+                    <CardTitle className="font-headline text-3xl md:text-4xl text-foreground">Gallery Showcase</CardTitle>
+                    <CardDescription className="text-sm md:text-lg mt-2">Manage items displayed in your custom gifts portfolio and photography showcase</CardDescription>
+                  </div>
+                  <div className="flex items-center gap-3 w-full md:w-auto">
+                    <Button onClick={() => setIsBulkModalOpen(true)} variant="secondary" className="flex-1 md:flex-initial h-12 md:h-14 px-3 md:px-8 rounded-full text-xs md:text-sm font-bold shrink-0">
+                      <Plus className="w-5 h-5 mr-2" /> Bulk Upload
+                    </Button>
+                    <Button onClick={() => handleOpenPortfolioModal()} className="flex-1 md:flex-initial h-12 md:h-14 px-3 md:px-8 rounded-full text-xs md:text-sm font-bold shadow-xl shadow-primary/20 shrink-0">
+                      <Plus className="w-5 h-5 mr-2" /> Add Gallery Item
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 md:p-10">
+                  {loadingPortfolio ? (
+                    <div className="flex items-center justify-center py-20">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    </div>
+                  ) : portfolioItems.length === 0 ? (
+                    <div className="text-center py-20 text-muted-foreground">
+                      No custom gallery items found. Click &apos;Add Gallery Item&apos; to get started.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                      {portfolioItems.map((item) => (
+                        <div 
+                          key={item.id} 
+                          className="group relative bg-card rounded-[2rem] border border-border/60 overflow-hidden hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col h-full cursor-pointer"
+                          onClick={() => handleOpenPortfolioModal(item)}
+                        >
+                          <div className="relative aspect-square w-full bg-secondary overflow-hidden">
+                            {item.image ? (
+                              <img 
+                                src={item.image} 
+                                alt={item.title} 
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">No Image</div>
+                            )}
+                            <div className="absolute top-4 left-4 z-10 flex gap-2">
+                              <Badge className="bg-background/80 text-foreground border-none backdrop-blur-md rounded-full px-3 py-1 font-bold text-[9px] uppercase tracking-wider">
+                                {item.category}
+                              </Badge>
+                            </div>
+                            {item.featured && (
+                              <div className="absolute top-4 right-4 z-10">
+                                <Badge className="bg-amber-500 text-white rounded-full px-3 py-1 font-bold text-[9px] uppercase tracking-wider border-none shadow-md">
+                                  Featured
+                                </Badge>
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="p-6 flex-1 flex flex-col justify-between">
+                            <div>
+                              <h3 className="font-headline font-bold text-xl line-clamp-1 group-hover:text-primary transition-colors">{item.title}</h3>
+                              <p className="text-xs font-bold text-muted-foreground uppercase mt-1 tracking-widest">{item.subcategory || "General"}</p>
+                              <p className="text-xs text-muted-foreground line-clamp-2 mt-2">{item.description}</p>
+                            </div>
+                            <div className="flex gap-2 justify-end mt-4 pt-4 border-t border-border/40">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="rounded-full text-destructive hover:bg-destructive/10 text-xs font-bold"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (confirm(`Are you sure you want to delete "${item.title}"?`)) {
+                                    handleDeletePortfolioItem(item.id);
+                                  }
+                                }}
+                              >
+                                Delete
+                              </Button>
+                              <Button variant="outline" size="sm" className="rounded-full text-xs font-bold">
+                                Edit
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="offers">
+              <Card className="border-none shadow-2xl rounded-3xl md:rounded-[3rem] overflow-hidden bg-card/50 backdrop-blur-sm">
+                <CardHeader className="p-5 md:p-10 border-b flex flex-col md:flex-row md:items-center justify-between gap-5">
+                  <div>
+                    <CardTitle className="font-headline text-3xl md:text-4xl text-foreground flex items-center gap-3">
+                      <Tag className="w-8 h-8 text-amber-500" /> Time-Limited Offers
+                    </CardTitle>
+                    <CardDescription className="text-sm md:text-lg mt-2">
+                      Create and manage monthly promotional offers with special pricing, photos, and live countdown timers on the homepage.
+                    </CardDescription>
+                  </div>
+                  <Button onClick={() => handleOpenOfferModal()} className="h-12 md:h-14 px-6 md:px-8 rounded-full text-xs md:text-sm font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-xl shadow-amber-600/20 shrink-0">
+                    <Plus className="w-5 h-5 mr-2" /> Create New Offer
+                  </Button>
+                </CardHeader>
+                <CardContent className="p-4 md:p-10">
+                  {loadingOffers ? (
+                    <div className="flex items-center justify-center py-20">
+                      <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+                    </div>
+                  ) : offers.length === 0 ? (
+                    <div className="text-center py-20 text-muted-foreground space-y-4">
+                      <Tag className="w-12 h-12 mx-auto opacity-40 text-amber-500" />
+                      <p className="text-lg font-bold">No active offers found</p>
+                      <p className="text-sm">Click &apos;Create New Offer&apos; to set up your first time-limited promotion.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {offers.map((offer) => {
+                        const isExpired = offer.endDate ? new Date(offer.endDate).getTime() < Date.now() : false;
+                        return (
+                          <div
+                            key={offer.id}
+                            className={`group relative bg-card rounded-[2.5rem] border overflow-hidden transition-all duration-300 flex flex-col justify-between ${
+                              offer.active && !isExpired ? 'border-amber-500/50 shadow-lg' : 'border-border/40 opacity-70'
+                            }`}
+                          >
+                            <div className="relative aspect-[16/9] w-full bg-black/40 overflow-hidden">
+                              {offer.image ? (
+                                <img src={offer.image} alt={offer.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">No Photo</div>
+                              )}
+                              <div className="absolute top-3 left-3 flex gap-2">
+                                <Badge className={`rounded-full px-3 py-1 text-[10px] font-extrabold uppercase border-none ${
+                                  offer.active && !isExpired ? 'bg-green-600 text-white' : isExpired ? 'bg-red-600 text-white' : 'bg-slate-600 text-white'
+                                }`}>
+                                  {isExpired ? 'Expired' : offer.active ? 'Live / Active' : 'Disabled'}
+                                </Badge>
+                                {offer.badgeText && (
+                                  <Badge className="bg-amber-500 text-black font-bold text-[10px] rounded-full border-none">
+                                    {offer.badgeText}
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="p-6 space-y-4 flex-1 flex flex-col justify-between">
+                              <div className="space-y-2">
+                                <h3 className="font-headline font-bold text-xl text-foreground line-clamp-1">{offer.title}</h3>
+                                {offer.subtitle && <p className="text-xs text-amber-500 font-bold uppercase">{offer.subtitle}</p>}
+                                <p className="text-xs text-muted-foreground line-clamp-2">{offer.description}</p>
+                              </div>
+
+                              <div className="space-y-3 pt-2 border-t border-border/40">
+                                <div className="flex items-baseline justify-between">
+                                  <span className="text-2xl font-headline font-extrabold text-amber-500">{formatPrice(offer.offerPrice)}</span>
+                                  {offer.originalPrice ? (
+                                    <span className="text-sm font-bold text-muted-foreground line-through">{formatPrice(offer.originalPrice)}</span>
+                                  ) : null}
+                                </div>
+
+                                <div className="text-[11px] text-muted-foreground space-y-1 bg-secondary/30 p-3 rounded-xl font-mono">
+                                  <div className="flex justify-between">
+                                    <span>Ends:</span>
+                                    <span className="font-bold text-foreground">{offer.endDate ? new Date(offer.endDate).toLocaleDateString() : 'N/A'}</span>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center justify-between pt-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleToggleOfferActive(offer.id, offer.active)}
+                                    className={`rounded-full text-xs font-bold ${offer.active ? 'border-amber-500/50 text-amber-600' : ''}`}
+                                  >
+                                    {offer.active ? 'Disable' : 'Enable'}
+                                  </Button>
+
+                                  <div className="flex gap-2">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleDeleteOffer(offer.id, offer.title)}
+                                      className="rounded-full text-destructive hover:bg-destructive/10 text-xs font-bold"
+                                    >
+                                      Delete
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleOpenOfferModal(offer)}
+                                      className="rounded-full text-xs font-bold"
+                                    >
+                                      Edit
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="videos">
+              <Card className="border-none shadow-2xl rounded-3xl md:rounded-[3rem] overflow-hidden bg-card/50 backdrop-blur-sm">
+                <CardHeader className="p-5 md:p-10 border-b flex flex-col md:flex-row md:items-center justify-between gap-5">
+                  <div>
+                    <CardTitle className="font-headline text-3xl md:text-4xl text-foreground flex items-center gap-3">
+                      <Film className="w-8 h-8 text-purple-500" /> Promotional Videos
+                    </CardTitle>
+                    <CardDescription className="text-sm md:text-lg mt-2">
+                      Post, edit, and manage video reels featured on the Home page with direct item links.
+                    </CardDescription>
+                    <div className="mt-3 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold">
+                      <span>⚡ Auto Storage Cleanup: Deleting or replacing videos automatically deletes old files from Firebase Storage to prevent storage spikes.</span>
+                    </div>
+                  </div>
+                  <Button onClick={() => handleOpenPromoVideoModal()} className="h-12 md:h-14 px-6 md:px-8 rounded-full text-xs md:text-sm font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-xl shadow-purple-600/20 shrink-0">
+                    <Plus className="w-5 h-5 mr-2" /> Post New Video
+                  </Button>
+                </CardHeader>
+                <CardContent className="p-4 md:p-10">
+                  {loadingPromoVideos ? (
+                    <div className="flex items-center justify-center py-20">
+                      <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+                    </div>
+                  ) : promoVideos.length === 0 ? (
+                    <div className="text-center py-20 text-muted-foreground space-y-4">
+                      <Film className="w-12 h-12 mx-auto opacity-40 text-purple-500" />
+                      <p className="text-lg font-bold">No promotional videos posted</p>
+                      <p className="text-sm">Click &apos;Post New Video&apos; to add a promotional video for the homepage player.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {promoVideos.map((video) => (
+                        <div
+                          key={video.id}
+                          className={`group relative bg-card rounded-[2.5rem] border overflow-hidden transition-all duration-300 flex flex-col justify-between ${
+                            video.active ? 'border-purple-500/50 shadow-lg' : 'border-border/40 opacity-70'
+                          }`}
+                        >
+                          <div className="relative aspect-video w-full bg-black flex items-center justify-center overflow-hidden">
+                            <video src={video.videoUrl} poster={video.thumbnailUrl} className="w-full h-full object-cover" muted preload="metadata" />
+                            <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+                              <Badge className={`rounded-full px-3 py-1 text-[10px] font-extrabold uppercase border-none ${
+                                video.active ? 'bg-green-600 text-white' : 'bg-slate-600 text-white'
+                              }`}>
+                                {video.active ? 'Active on Homepage' : 'Hidden'}
+                              </Badge>
+                              {video.videoUrl && video.videoUrl.includes('instagram.com') && (
+                                <Badge className="bg-amber-500 text-black font-extrabold text-[10px] uppercase border-none">
+                                  ⚠️ Instagram Link (Edit to Upload MP4)
+                                </Badge>
+                              )}
+                              {video.videoUrl && video.videoUrl.includes('firebasestorage.googleapis.com') && (
+                                <Badge className="bg-purple-600 text-white font-extrabold text-[10px] uppercase border-none">
+                                  ✓ Direct MP4 Video Attached
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="p-6 space-y-4 flex-1 flex flex-col justify-between">
+                            <div className="space-y-2">
+                              <h3 className="font-headline font-bold text-xl text-foreground line-clamp-1">{video.title}</h3>
+                              {video.productName && <p className="text-xs text-purple-400 font-bold uppercase">Item: {video.productName}</p>}
+                              {video.description && <p className="text-xs text-muted-foreground line-clamp-2">{video.description}</p>}
+                              <p className="text-[11px] text-primary font-mono truncate">Target: {video.productLink}</p>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-4 border-t border-border/40">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleTogglePromoVideoActive(video.id, video.active)}
+                                className={`rounded-full text-xs font-bold ${video.active ? 'border-purple-500/50 text-purple-600' : ''}`}
+                              >
+                                {video.active ? 'Disable' : 'Enable'}
+                              </Button>
+
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeletePromoVideo(video.id, video.title)}
+                                  className="rounded-full text-destructive hover:bg-destructive/10 text-xs font-bold"
+                                >
+                                  Delete
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleOpenPromoVideoModal(video)}
+                                  className="rounded-full text-xs font-bold"
+                                >
+                                  Edit
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
+
+          {/* Add / Edit Time-Limited Offer Dialog */}
+          <Dialog open={isOfferModalOpen} onOpenChange={setIsOfferModalOpen}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-[3rem] p-8 md:p-10 border-none shadow-premium bg-card">
+              <DialogHeader className="mb-6">
+                <DialogTitle className="text-3xl font-headline font-bold text-foreground">
+                  {editingOffer ? "Edit Time-Limited Offer" : "Create New Time-Limited Offer"}
+                </DialogTitle>
+                <DialogDescription className="text-sm">
+                  Configure offer title, photo, discounted pricing, duration limit, and call-to-action link.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Offer Title *</Label>
+                    <Input 
+                      value={offerForm.title || ""} 
+                      onChange={(e) => setOfferForm(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="e.g. Monsoon Special Combo Deal" 
+                      className="rounded-xl h-12 bg-secondary/50 focus-visible:ring-primary border-none font-bold"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Subtitle / Tagline</Label>
+                    <Input 
+                      value={offerForm.subtitle || ""} 
+                      onChange={(e) => setOfferForm(prev => ({ ...prev, subtitle: e.target.value }))}
+                      placeholder="e.g. Flat 50% Off - Handcrafted Acrylic Lamp" 
+                      className="rounded-xl h-12 bg-secondary/50 focus-visible:ring-primary border-none font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Description</Label>
+                  <Textarea 
+                    value={offerForm.description || ""} 
+                    onChange={(e) => setOfferForm(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Provide details about what is included in this offer..." 
+                    className="rounded-2xl min-h-[90px] bg-secondary/50 focus-visible:ring-primary border-none"
+                  />
+                </div>
+
+                {/* Offer Image Photo Upload */}
+                <div className="space-y-3">
+                  <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Offer Photo / Banner</Label>
+                  <div className="flex gap-4 items-center">
+                    <div className="relative w-32 h-24 bg-secondary/40 rounded-2xl overflow-hidden shrink-0 flex items-center justify-center border-2 border-dashed border-border/80">
+                      {offerForm.image ? (
+                        <img src={offerForm.image} alt="Offer Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-muted-foreground text-[10px] font-bold text-center p-2">No Photo</span>
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <Input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={handleOfferImageUpload} 
+                        disabled={uploadingOfferImage}
+                        className="rounded-xl h-11 bg-secondary/50 border-none font-bold cursor-pointer text-xs"
+                      />
+                      <Input 
+                        type="url"
+                        value={offerForm.image || ""}
+                        onChange={(e) => setOfferForm(prev => ({ ...prev, image: e.target.value }))}
+                        placeholder="Or enter Image URL (https://...)"
+                        className="rounded-xl h-10 bg-secondary/30 border-none text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Original Price (₹)</Label>
+                    <Input 
+                      type="number"
+                      value={offerForm.originalPrice || 0} 
+                      onChange={(e) => setOfferForm(prev => ({ ...prev, originalPrice: parseFloat(e.target.value) || 0 }))}
+                      placeholder="1999" 
+                      className="rounded-xl h-12 bg-secondary/50 focus-visible:ring-primary border-none font-bold font-sans"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Offer Price (₹) *</Label>
+                    <Input 
+                      type="number"
+                      value={offerForm.offerPrice || 0} 
+                      onChange={(e) => setOfferForm(prev => ({ ...prev, offerPrice: parseFloat(e.target.value) || 0 }))}
+                      placeholder="999" 
+                      className="rounded-xl h-12 bg-secondary/50 focus-visible:ring-primary border-none font-bold font-sans text-amber-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Start Date & Time</Label>
+                    <Input 
+                      type="datetime-local"
+                      value={offerForm.startDate || ""} 
+                      onChange={(e) => setOfferForm(prev => ({ ...prev, startDate: e.target.value }))}
+                      className="rounded-xl h-12 bg-secondary/50 focus-visible:ring-primary border-none font-mono text-xs"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">End Date & Time (Expiry) *</Label>
+                    <Input 
+                      type="datetime-local"
+                      value={offerForm.endDate || ""} 
+                      onChange={(e) => setOfferForm(prev => ({ ...prev, endDate: e.target.value }))}
+                      className="rounded-xl h-12 bg-secondary/50 focus-visible:ring-primary border-none font-mono text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Link Target URL</Label>
+                    <Input 
+                      value={offerForm.linkUrl || "/shop"} 
+                      onChange={(e) => setOfferForm(prev => ({ ...prev, linkUrl: e.target.value }))}
+                      placeholder="/shop or /products/xyz" 
+                      className="rounded-xl h-12 bg-secondary/50 focus-visible:ring-primary border-none font-bold text-xs"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">CTA Button Text</Label>
+                    <Input 
+                      value={offerForm.linkText || "Grab Offer Now"} 
+                      onChange={(e) => setOfferForm(prev => ({ ...prev, linkText: e.target.value }))}
+                      placeholder="Grab Offer Now" 
+                      className="rounded-xl h-12 bg-secondary/50 focus-visible:ring-primary border-none font-bold text-xs"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Badge Highlight</Label>
+                    <Input 
+                      value={offerForm.badgeText || "LIMITED TIME DEAL"} 
+                      onChange={(e) => setOfferForm(prev => ({ ...prev, badgeText: e.target.value }))}
+                      placeholder="FLAT 50% OFF" 
+                      className="rounded-xl h-12 bg-secondary/50 focus-visible:ring-primary border-none font-bold text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2 pt-2">
+                  <Checkbox 
+                    id="offerActive" 
+                    checked={!!offerForm.active} 
+                    onCheckedChange={(checked) => setOfferForm(prev => ({ ...prev, active: !!checked }))}
+                  />
+                  <Label htmlFor="offerActive" className="text-sm font-semibold text-foreground cursor-pointer">
+                    Publish offer live on homepage immediately
+                  </Label>
+                </div>
+              </div>
+
+              <DialogFooter className="mt-8 flex gap-3">
+                <Button variant="outline" onClick={() => setIsOfferModalOpen(false)} className="rounded-full font-bold px-6 h-12 flex-1">
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveOffer} disabled={uploadingOfferImage} className="rounded-full font-bold px-6 h-12 bg-amber-600 hover:bg-amber-700 text-white flex-1 shadow-lg shadow-amber-600/20">
+                  {uploadingOfferImage ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
+                  Save Offer
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Add / Edit Promotional Video Dialog */}
+          <Dialog open={isPromoVideoModalOpen} onOpenChange={setIsPromoVideoModalOpen}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-[3rem] p-8 md:p-10 border-none shadow-premium bg-card">
+              <DialogHeader className="mb-6">
+                <DialogTitle className="text-3xl font-headline font-bold text-foreground">
+                  {editingPromoVideo ? "Edit Promotional Video" : "Post Promotional Video"}
+                </DialogTitle>
+                <DialogDescription className="text-sm">
+                  Upload or link a video reel to play muted on the homepage, and set the promoted product link.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Video Title *</Label>
+                    <Input 
+                      value={promoVideoForm.title || ""} 
+                      onChange={(e) => setPromoVideoForm(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="e.g. Custom 3D Acrylic Night Lamp Reel" 
+                      className="rounded-xl h-12 bg-secondary/50 focus-visible:ring-primary border-none font-bold"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Promoted Item Name</Label>
+                    <Input 
+                      value={promoVideoForm.productName || ""} 
+                      onChange={(e) => setPromoVideoForm(prev => ({ ...prev, productName: e.target.value }))}
+                      placeholder="e.g. Personalized Couple Lamp" 
+                      className="rounded-xl h-12 bg-secondary/50 focus-visible:ring-primary border-none font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Description</Label>
+                  <Textarea 
+                    value={promoVideoForm.description || ""} 
+                    onChange={(e) => setPromoVideoForm(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Short description of the video content..." 
+                    className="rounded-2xl min-h-[80px] bg-secondary/50 focus-visible:ring-primary border-none"
+                  />
+                </div>
+
+                {/* Video File Upload */}
+                <div className="space-y-3">
+                  <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Upload Video File (MP4 / WebM) *</Label>
+                  <div className="space-y-2">
+                    <Input 
+                      type="file" 
+                      accept="video/mp4,video/webm,video/*" 
+                      onChange={handlePromoVideoFileUpload} 
+                      disabled={uploadingPromoVideo}
+                      className="rounded-xl h-12 bg-secondary/50 border-none font-bold cursor-pointer text-xs"
+                    />
+                    {uploadingPromoVideo && (
+                      <div className="flex items-center text-xs text-primary font-bold gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" /> Uploading video file to Storage...
+                      </div>
+                    )}
+                    {promoVideoForm.videoUrl && !uploadingPromoVideo && (
+                      <div className="flex items-center justify-between text-xs text-green-500 font-bold bg-green-500/10 p-3 rounded-xl border border-green-500/20">
+                        <span>✓ Video Attached</span>
+                        <span className="truncate max-w-[200px] text-[10px] text-muted-foreground">{promoVideoForm.videoUrl}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+
+                {/* Target Product Selection */}
+                <div className="space-y-3">
+                  <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Promoted Product in Database *</Label>
+                  <Select
+                    value={products.find(p => `/products/${p.id}` === promoVideoForm.productLink)?.id || (promoVideoForm.productLink === '/shop' ? 'shop' : 'custom')}
+                    onValueChange={(val) => {
+                      if (val === 'shop') {
+                        setPromoVideoForm(prev => ({ ...prev, productLink: '/shop', productName: prev.productName || 'Catalog Items' }));
+                      } else if (val !== 'custom') {
+                        const matchedProduct = products.find(p => p.id === val);
+                        if (matchedProduct) {
+                          setPromoVideoForm(prev => ({
+                            ...prev,
+                            productLink: `/products/${matchedProduct.id}`,
+                            productName: matchedProduct.name,
+                            thumbnailUrl: prev.thumbnailUrl || matchedProduct.image
+                          }));
+                        }
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="rounded-xl h-12 bg-secondary/50 focus-visible:ring-primary border-none font-bold text-xs">
+                      <SelectValue placeholder="Select a product from database..." />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-2xl p-2 bg-card max-h-60 overflow-y-auto shadow-2xl">
+                      <SelectItem value="shop" className="rounded-xl font-bold">🛒 General Shop Page (/shop)</SelectItem>
+                      {products.map(p => (
+                        <SelectItem key={p.id} value={p.id} className="rounded-xl font-medium">
+                          {p.name} ({p.category})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Input 
+                    value={promoVideoForm.productLink || "/shop"} 
+                    onChange={(e) => setPromoVideoForm(prev => ({ ...prev, productLink: e.target.value }))}
+                    placeholder="/products/xyz or /shop" 
+                    className="rounded-xl h-11 bg-secondary/30 border-none font-mono text-xs"
+                  />
+                  <p className="text-[10px] text-muted-foreground">When users click &apos;Buy Promoted Item&apos;, they will be directed directly to this product.</p>
+                </div>
+
+                <div className="flex items-center space-x-2 pt-2">
+                  <Checkbox 
+                    id="videoActive" 
+                    checked={!!promoVideoForm.active} 
+                    onCheckedChange={(checked) => setPromoVideoForm(prev => ({ ...prev, active: !!checked }))}
+                  />
+                  <Label htmlFor="videoActive" className="text-sm font-semibold text-foreground cursor-pointer">
+                    Enable video reel on homepage immediately
+                  </Label>
+                </div>
+              </div>
+
+              <DialogFooter className="mt-8 flex gap-3">
+                <Button variant="outline" onClick={() => setIsPromoVideoModalOpen(false)} className="rounded-full font-bold px-6 h-12 flex-1">
+                  Cancel
+                </Button>
+                <Button onClick={handleSavePromoVideo} disabled={uploadingPromoVideo} className="rounded-full font-bold px-6 h-12 bg-purple-600 hover:bg-purple-700 text-white flex-1 shadow-lg shadow-purple-600/20">
+                  {uploadingPromoVideo ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
+                  Save Video
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Add/Edit Gallery Showcase Item Dialog */}
+          <Dialog open={isPortfolioModalOpen} onOpenChange={setIsPortfolioModalOpen}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-[3rem] p-10 border-none shadow-premium bg-card">
+              <DialogHeader className="mb-6">
+                <DialogTitle className="text-3xl font-headline font-bold text-foreground">
+                  {editingPortfolioItem ? "Edit Gallery Item" : "Add New Gallery Item"}
+                </DialogTitle>
+                <DialogDescription className="text-sm">
+                  Fill out the details to display this item in the client portfolio or photography showcase.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Title</Label>
+                    <Input 
+                      value={portfolioForm.title || ""} 
+                      onChange={(e) => setPortfolioForm(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="Masterpiece Title" 
+                      className="rounded-xl h-12 bg-secondary/50 focus-visible:ring-primary border-none font-bold"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Subcategory</Label>
+                    <Input 
+                      value={portfolioForm.subcategory || ""} 
+                      onChange={(e) => setPortfolioForm(prev => ({ ...prev, subcategory: e.target.value }))}
+                      placeholder="e.g. Anniversary / Custom Frame" 
+                      className="rounded-xl h-12 bg-secondary/50 focus-visible:ring-primary border-none font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Category</Label>
+                    <Select 
+                      value={portfolioForm.category || "Light & Lamp Gifts"}
+                      onValueChange={(val) => setPortfolioForm(prev => ({ ...prev, category: val as PortfolioCategory }))}
+                    >
+                      <SelectTrigger className="rounded-xl h-12 bg-secondary/50 focus:ring-primary border-none font-bold">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-[1.5rem] p-2 shadow-xl border-none bg-card">
+                        <SelectItem value="Light & Lamp Gifts" className="rounded-lg h-10 pl-8 pr-4">Light & Lamp Gifts</SelectItem>
+                        <SelectItem value="Photo Frames & Wall Decor" className="rounded-lg h-10 pl-8 pr-4">Photo Frames & Wall Decor</SelectItem>
+                        <SelectItem value="Customized Gifts" className="rounded-lg h-10 pl-8 pr-4">Customized Gifts</SelectItem>
+                        <SelectItem value="Cute Gift Items" className="rounded-lg h-10 pl-8 pr-4">Cute Gift Items</SelectItem>
+                        <SelectItem value="Car Dashboard & Idols" className="rounded-lg h-10 pl-8 pr-4">Car Dashboard & Idols</SelectItem>
+                        <SelectItem value="Crystal Gifts" className="rounded-lg h-10 pl-8 pr-4">Crystal Gifts</SelectItem>
+                        <SelectItem value="Corporate & Name Boards" className="rounded-lg h-10 pl-8 pr-4">Corporate & Name Boards</SelectItem>
+                        <SelectItem value="Weddings" className="rounded-lg h-10 pl-8 pr-4">Weddings (Photography)</SelectItem>
+                        <SelectItem value="Portraits" className="rounded-lg h-10 pl-8 pr-4">Portraits (Photography)</SelectItem>
+                        <SelectItem value="Events" className="rounded-lg h-10 pl-8 pr-4">Events (Photography)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Tags (Comma-separated)</Label>
+                    <Input 
+                      value={Array.isArray(portfolioForm.tags) ? portfolioForm.tags.join(", ") : (portfolioForm.tags || "")} 
+                      onChange={(e) => setPortfolioForm(prev => ({ ...prev, tags: e.target.value.split(",").map(t => t.trim()).filter(Boolean) }))}
+                      placeholder="e.g. LED, Anniversary, Kids" 
+                      className="rounded-xl h-12 bg-secondary/50 focus-visible:ring-primary border-none font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Description</Label>
+                  <Textarea 
+                    value={portfolioForm.description || ""} 
+                    onChange={(e) => setPortfolioForm(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Tell the story of this custom showcase item..." 
+                    className="rounded-2xl min-h-[100px] bg-secondary/50 focus-visible:ring-primary border-none"
+                  />
+                </div>
+
+                {/* Main Photo File Upload */}
+                <div className="space-y-3">
+                  <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Showcase Photo</Label>
+                  <div className="flex gap-4 items-center">
+                    <div className="relative w-28 h-28 bg-secondary/40 rounded-2xl overflow-hidden shrink-0 flex items-center justify-center border-2 border-dashed border-border/80">
+                      {portfolioForm.image ? (
+                        <img src={portfolioForm.image} alt="Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-muted-foreground text-[10px] font-bold text-center p-2">No Photo</span>
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <Input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={(e) => handlePortfolioImageUpload(e, false)} 
+                        disabled={uploadingPortfolioImage}
+                        className="rounded-xl h-11 bg-secondary/50 border-none font-bold cursor-pointer text-xs"
+                      />
+                      <p className="text-[10px] text-muted-foreground">Upload the main cover image for the showcase grid (JPEG/PNG/WEBP up to 5MB).</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2 pt-2">
+                  <Checkbox 
+                    id="portfolioFeatured" 
+                    checked={!!portfolioForm.featured} 
+                    onCheckedChange={(checked) => setPortfolioForm(prev => ({ ...prev, featured: !!checked }))}
+                  />
+                  <Label htmlFor="portfolioFeatured" className="text-sm font-semibold text-foreground cursor-pointer">
+                    Feature this item at the top of the portfolio showcase
+                  </Label>
+                </div>
+              </div>
+
+              <DialogFooter className="mt-8 flex gap-3">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsPortfolioModalOpen(false)} 
+                  className="rounded-full font-bold px-6 h-12 flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleSavePortfolioItem} 
+                  disabled={uploadingPortfolioImage || !portfolioForm.title}
+                  className="rounded-full font-bold px-6 h-12 flex-1 shadow-lg shadow-primary/20"
+                >
+                  {uploadingPortfolioImage ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
+                  Save Showcase Item
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Bulk Upload Showcase Items Dialog */}
+          <Dialog open={isBulkModalOpen} onOpenChange={(open) => !open && !uploadingBulk && setIsBulkModalOpen(false)}>
+            <DialogContent className="max-w-md rounded-[3rem] p-10 border-none shadow-premium bg-card">
+              <DialogHeader className="mb-6">
+                <DialogTitle className="text-3xl font-headline font-bold text-foreground">Bulk Upload Photos</DialogTitle>
+                <DialogDescription className="text-sm">
+                  Upload multiple images at once. A showcase item will be automatically registered for each photo.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Category</Label>
+                  <Select 
+                    value={bulkCategory}
+                    onValueChange={(val) => setBulkCategory(val as PortfolioCategory)}
+                    disabled={uploadingBulk}
+                  >
+                    <SelectTrigger className="rounded-xl h-12 bg-secondary/50 focus:ring-primary border-none font-bold">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-[1.5rem] p-2 shadow-xl border-none bg-card">
+                      <SelectItem value="Light & Lamp Gifts" className="rounded-lg h-10 pl-8 pr-4">Light & Lamp Gifts</SelectItem>
+                      <SelectItem value="Photo Frames & Wall Decor" className="rounded-lg h-10 pl-8 pr-4">Photo Frames & Wall Decor</SelectItem>
+                      <SelectItem value="Customized Gifts" className="rounded-lg h-10 pl-8 pr-4">Customized Gifts</SelectItem>
+                      <SelectItem value="Cute Gift Items" className="rounded-lg h-10 pl-8 pr-4">Cute Gift Items</SelectItem>
+                      <SelectItem value="Car Dashboard & Idols" className="rounded-lg h-10 pl-8 pr-4">Car Dashboard & Idols</SelectItem>
+                      <SelectItem value="Crystal Gifts" className="rounded-lg h-10 pl-8 pr-4">Crystal Gifts</SelectItem>
+                      <SelectItem value="Corporate & Name Boards" className="rounded-lg h-10 pl-8 pr-4">Corporate & Name Boards</SelectItem>
+                      <SelectItem value="Weddings" className="rounded-lg h-10 pl-8 pr-4">Weddings (Photography)</SelectItem>
+                      <SelectItem value="Portraits" className="rounded-lg h-10 pl-8 pr-4">Portraits (Photography)</SelectItem>
+                      <SelectItem value="Events" className="rounded-lg h-10 pl-8 pr-4">Events (Photography)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Subcategory (Applied to all)</Label>
+                  <Input 
+                    value={bulkSubcategory} 
+                    onChange={(e) => setBulkSubcategory(e.target.value)}
+                    placeholder="e.g. Wedding Shoot / Couples" 
+                    disabled={uploadingBulk}
+                    className="rounded-xl h-12 bg-secondary/50 focus-visible:ring-primary border-none font-bold"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Select Photos</Label>
+                  <Input 
+                    type="file" 
+                    accept="image/*" 
+                    multiple 
+                    onChange={(e) => {
+                      const files = e.target.files ? Array.from(e.target.files) : [];
+                      setBulkFiles(files);
+                    }}
+                    disabled={uploadingBulk}
+                    className="rounded-xl h-12 bg-secondary/50 border-none font-bold cursor-pointer text-xs"
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Select one or more images. Filenames will be converted to titles (e.g. <code>wedding_shoot_1.jpg</code> becomes <code>Wedding Shoot 1</code>).
+                  </p>
+                </div>
+
+                {uploadingBulk && (
+                  <div className="bg-secondary/40 p-4 rounded-xl space-y-2">
+                    <div className="flex justify-between text-xs font-bold">
+                      <span className="text-primary animate-pulse">Uploading bunch...</span>
+                      <span className="text-muted-foreground">{bulkFiles.length} files</span>
+                    </div>
+                    <p className="text-[10px] font-sans truncate text-muted-foreground">{bulkProgressText}</p>
+                  </div>
+                )}
+              </div>
+
+              <DialogFooter className="mt-8 flex gap-3">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsBulkModalOpen(false);
+                    setBulkFiles([]);
+                  }} 
+                  disabled={uploadingBulk}
+                  className="rounded-full font-bold h-12 flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleBulkUpload} 
+                  disabled={uploadingBulk || bulkFiles.length === 0}
+                  className="rounded-full font-bold h-12 flex-1 shadow-lg shadow-primary/20"
+                >
+                  {uploadingBulk ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
+                  Upload {bulkFiles.length > 0 ? `(${bulkFiles.length})` : ""}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
         {/* Return Request View Dialog */}
         <Dialog open={!!viewingOrderForReturn} onOpenChange={(open) => !open && setViewingOrderForReturn(null)}>

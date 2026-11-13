@@ -14,6 +14,14 @@ import { useFirestore } from '@/firebase';
 import { Grid, Sparkles, Heart, Gift, Search, SlidersHorizontal, X, LampDesk, Package, LayoutGrid, Zap, Loader2, Key } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const CATEGORIES: { name: string; value: Category | 'All'; icon: any }[] = [
   { name: 'All', value: 'All', icon: Grid },
@@ -26,7 +34,6 @@ const CATEGORIES: { name: string; value: Category | 'All'; icon: any }[] = [
   { name: 'Car Accessories', value: 'Car Dashboard Accessories', icon: Gift },
   { name: 'Hamper Boxes', value: 'Hamper Boxes', icon: Package },
 ];
-
 import { useDebounce } from '@/hooks/use-debounce';
 import { SearchBar } from '@/components/shop/SearchBar';
 import { EmptyState } from '@/components/shop/EmptyState';
@@ -34,18 +41,62 @@ import { SearchService, SearchResult } from '@/services/search.service';
 import { HighlightedText } from '@/components/shop/HighlightedText';
 import { useMemo } from 'react';
 
+// Module-level cache to persist state across tab transitions without hard reloads
+let cachedDbProducts: any[] | null = null;
+let cachedActiveCategory: Category | 'All' | null = null;
+let cachedSearchQuery: string | null = null;
+
 function ShopContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const initialCategory = searchParams.get('category') as Category || 'All';
-  const initialQuery = searchParams.get('q') || '';
+  const initialCategory = (searchParams.get('category') as Category) || (cachedActiveCategory as Category) || 'All';
+  const initialQuery = searchParams.get('q') || cachedSearchQuery || '';
 
   const [activeCategory, setActiveCategory] = useState<Category | 'All'>(initialCategory);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [dbProducts, setDbProducts] = useState<any[]>(ADJUSTED_PRODUCTS);
-  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
+  const [dbProducts, setDbProducts] = useState<any[]>(cachedDbProducts || ADJUSTED_PRODUCTS);
+  const [loading, setLoading] = useState(cachedDbProducts ? false : true);
   const [isMounted, setIsMounted] = useState(false);
+
+  const initialSort = searchParams.get('sort') || 'default';
+  const initialStock = searchParams.get('stock') || 'all';
+
+  const [sortBy, setSortBy] = useState<string>(initialSort);
+  const [stockFilter, setStockFilter] = useState<string>(initialStock);
+
+  const getFilterLabel = (sort: string, stock: string) => {
+    let label = 'Default';
+    if (sort === 'price-asc') label = 'Price Low to High';
+    else if (sort === 'price-desc') label = 'Price High to Low';
+    else if (sort === 'featured') label = 'Popularity';
+    
+    if (stock === 'in-stock') {
+      label += ' (In Stock)';
+    }
+    return label;
+  };
+
+  const applyFilter = (newSort: string, newStock: string) => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (newSort && newSort !== 'default') {
+        params.set('sort', newSort);
+      } else {
+        params.delete('sort');
+      }
+      if (newStock && newStock !== 'all') {
+        params.set('stock', newStock);
+      } else {
+        params.delete('stock');
+      }
+      
+      const newUrl = `${window.location.pathname}?${params.toString()}`;
+      window.location.href = newUrl;
+    } catch (e) {
+      console.error("Failed to apply filters:", e);
+    }
+  };
 
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const isSearching = searchQuery !== debouncedSearchQuery;
@@ -56,6 +107,7 @@ function ShopContent() {
   useEffect(() => {
     setIsMounted(true);
     if (initialQuery) setSearchQuery(initialQuery);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Sync Search Query and Active Category with URL for stickiness and sharing
@@ -82,6 +134,15 @@ function ShopContent() {
     setActiveCategory(category || 'All');
   }, [searchParams]);
 
+  // Sync state back to persistent module-level cache
+  useEffect(() => {
+    cachedActiveCategory = activeCategory;
+  }, [activeCategory]);
+
+  useEffect(() => {
+    cachedSearchQuery = debouncedSearchQuery;
+  }, [debouncedSearchQuery]);
+
   useEffect(() => {
     if (!firestore) {
       setLoading(false);
@@ -93,18 +154,36 @@ function ShopContent() {
         const svc = new ProductsService(firestore);
         const dynamic = await svc.getAllProducts();
         
-        // Elite Scaling: Prepare index and ensure business-ranking fields exist
+        // Helper to normalize product names for matching/de-duplication
+        const normalizeName = (name: string) => {
+          return name
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+        };
+
+        // 1. Build initial list of merged products based on Firestore (dynamic) products.
+        // If a dynamic product matches a local one (by ID or normalized name), we merge them,
+        // prioritizing dynamic attributes (like the new image, price, etc.) but keeping the local category/config structure.
         let merged = (dynamic || []).map(p => {
-          // Authority Mapping: Use local PRODUCTS definition to determine the correct category
-          const localProduct = ADJUSTED_PRODUCTS.find(lp => lp.name === p.name);
+          const localProduct = ADJUSTED_PRODUCTS.find(lp => lp.id === p.id || normalizeName(lp.name) === normalizeName(p.name));
           let authoritativeCategory = localProduct ? localProduct.category : p.category;
 
-          // Enforcement: Re-route generic Wall Decor Photo Frames string if any
-          if (String(authoritativeCategory) === 'Wall Decor Photo Frames') {
+          // Enforcement: Re-route generic/legacy category strings to match active tab values
+          const catStr = String(authoritativeCategory);
+          if (catStr === 'Wall Decor Photo Frames') {
             authoritativeCategory = 'Wall Decor and Photo Frames' as Category;
+          } else if (catStr === 'Mdf Frames' || catStr === 'MDF Frames') {
+            authoritativeCategory = 'MDF Wall Frames' as Category;
+          } else if (catStr === 'Light Lamps') {
+            authoritativeCategory = 'Night Lamps' as Category;
+          } else if (catStr === 'Customized Gifts') {
+            authoritativeCategory = 'Personalized Gifts' as Category;
           }
 
           return {
+            ...(localProduct || {}),
             ...p,
             category: authoritativeCategory as Category,
             stockCount: p.stockCount ?? 10,
@@ -112,13 +191,15 @@ function ShopContent() {
           };
         });
         
-        // Merge missing local products that might not be in Firestore yet
+        // 2. Merge missing local products that might not be in Firestore yet
         ADJUSTED_PRODUCTS.forEach(localP => {
            const localImgFile = (localP.image.split('/').pop()?.split('?')[0] ?? '').toLowerCase();
            
            if (!merged.find(p => {
              const pImgFile = (p.image.split('/').pop()?.split('?')[0] ?? '').toLowerCase();
-             return p.name.toLowerCase() === localP.name.toLowerCase() || (localImgFile && pImgFile === localImgFile);
+             return p.id === localP.id || 
+                    normalizeName(p.name) === normalizeName(localP.name) || 
+                    (localImgFile && pImgFile === localImgFile);
            })) {
               merged.push({
                 ...localP,
@@ -128,72 +209,26 @@ function ShopContent() {
            }
         });
 
-        // Helper to get matching dynamic product from Firestore and merge it
-        const getMergedProduct = (p: typeof ADJUSTED_PRODUCTS[0]) => {
-          const dbMatch = dynamic.find(dp => dp.id === p.id || dp.name.toLowerCase().trim() === p.name.toLowerCase().trim());
-          if (dbMatch) {
-            return {
-              ...p,
-              ...dbMatch,
-              category: p.category,
-              stockCount: dbMatch.stockCount ?? p.stockCount ?? 10,
-              searchIndex: `${dbMatch.name || p.name} ${p.category} ${(dbMatch.tags || p.tags || []).join(' ')}`.toLowerCase()
-            };
-          }
-          return {
-            ...p,
-            stockCount: p.stockCount ?? 10,
-            searchIndex: `${p.name} ${p.category} ${(p.tags || []).join(' ')}`.toLowerCase()
-          };
-        };
-
-        // Strict Authority: For the "Night Lamps" category, we override everything to match the local 17-asset catalog exactly.
-        // This removes any duplicates that might exist in Firestore but not in our clean local list.
-        const cleanNightLamps = ADJUSTED_PRODUCTS
-          .filter(p => p.category === 'Night Lamps')
-          .map(getMergedProduct);
-        merged = merged.filter(p => p.category !== 'Night Lamps');
-        merged = [...merged, ...cleanNightLamps];
-
-        const cleanWallDecor = ADJUSTED_PRODUCTS
-          .filter(p => p.category === 'Wall Decor and Photo Frames')
-          .map(getMergedProduct);
-        merged = merged.filter(p => p.category !== 'Wall Decor and Photo Frames' && String(p.category) !== 'Wall Decor Photo Frames');
-        merged = [...merged, ...cleanWallDecor];
-
-        const cleanMdfFrames = ADJUSTED_PRODUCTS
-          .filter(p => p.category === 'MDF Wall Frames')
-          .map(getMergedProduct);
-        merged = merged.filter(p => p.category !== 'MDF Wall Frames');
-        merged = [...merged, ...cleanMdfFrames];
-
-        const cleanKeychains = ADJUSTED_PRODUCTS
-          .filter(p => p.category === 'Keychains')
-          .map(getMergedProduct);
-        merged = merged.filter(p => p.category !== 'Keychains');
-        merged = [...merged, ...cleanKeychains];
-
-        const cleanPersonalizedGifts = ADJUSTED_PRODUCTS
-          .filter(p => p.category === 'Personalized Gifts')
-          .map(getMergedProduct);
-        merged = merged.filter(p => p.category !== 'Personalized Gifts');
-        merged = [...merged, ...cleanPersonalizedGifts];
-
-        // Strict De-duplication: Ensure no two products share the same name (prioritizing local overrides)
+        // 3. Strict De-duplication: Ensure no two products share the same normalized name or ID.
+        // We iterate forward to keep the first occurrence. Since dynamic products are placed first in the 'merged' array,
+        // this naturally prioritizes dynamic database products over local static fallbacks.
         const seenNames = new Set<string>();
+        const seenIds = new Set<string>();
         const uniqueProducts: any[] = [];
-        for (let i = merged.length - 1; i >= 0; i--) {
-          const p = merged[i];
+        for (const p of merged) {
           if (!p) continue;
-          const nameKey = p.name.toLowerCase().trim();
-          if (!seenNames.has(nameKey)) {
+          const nameKey = normalizeName(p.name);
+          const idKey = p.id;
+          if (!seenNames.has(nameKey) && !seenIds.has(idKey)) {
             seenNames.add(nameKey);
-            uniqueProducts.unshift(p);
+            seenIds.add(idKey);
+            uniqueProducts.push(p);
           }
         }
         merged = uniqueProducts;
 
         setDbProducts(merged);
+        cachedDbProducts = merged;
       } catch (e) {
         console.error("Failed to load dynamic products", e);
       } finally {
@@ -207,18 +242,30 @@ function ShopContent() {
   const searchService = useMemo(() => new SearchService(dbProducts), [dbProducts]);
 
   const results = useMemo((): SearchResult<any>[] => {
-    // Elite Logic: Filter by category FIRST to ensure the search service operates on the correct subset
+    // Filter by category and stock availability
     const categoryFiltered = dbProducts.filter(p =>
       p.active !== false &&
-      (activeCategory === 'All' || p.category === activeCategory)
+      (activeCategory === 'All' || p.category === activeCategory) &&
+      (stockFilter === 'all' || p.stockCount === undefined || p.stockCount > 0)
     );
 
     // Initialize a temporary search service for this specific subset to ensure accurate fuzzy matching
     const contextSearchService = new SearchService(categoryFiltered);
 
     // Perform fuzzy search with Elite result limit (100) applied to the FILTERED set
-    return contextSearchService.search(debouncedSearchQuery, 100);
-  }, [debouncedSearchQuery, activeCategory, dbProducts]);
+    let searchResults = contextSearchService.search(debouncedSearchQuery, 100);
+
+    // Apply sorting to the search results
+    if (sortBy === 'price-asc') {
+      searchResults = [...searchResults].sort((a, b) => a.item.price - b.item.price);
+    } else if (sortBy === 'price-desc') {
+      searchResults = [...searchResults].sort((a, b) => b.item.price - a.item.price);
+    } else if (sortBy === 'featured') {
+      searchResults = [...searchResults].sort((a, b) => (b.item.featured ? 1 : 0) - (a.item.featured ? 1 : 0));
+    }
+
+    return searchResults;
+  }, [debouncedSearchQuery, activeCategory, dbProducts, sortBy, stockFilter]);
 
   // Elite: "Did you mean" suggestions logic
   const suggestions = useMemo(() => {
@@ -278,9 +325,57 @@ function ShopContent() {
             Displaying <span className="text-foreground">{results.length}</span> Masterpieces
           </p>
           <div className="flex gap-4">
-            <Button variant="outline" className="rounded-full h-10 md:h-12 px-4 md:px-6 border md:border-2 text-sm md:text-base font-bold group">
-              <SlidersHorizontal className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform duration-500" /> Filters
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="rounded-full h-10 md:h-12 px-4 md:px-6 border md:border-2 text-sm md:text-base font-bold group">
+                  <SlidersHorizontal className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform duration-500" /> 
+                  Filter: {getFilterLabel(sortBy, stockFilter)}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56 rounded-2xl p-2 shadow-2xl border-border/50 bg-card" align="end">
+                <DropdownMenuLabel className="font-headline font-bold text-xs uppercase tracking-wider text-muted-foreground px-2 py-1.5">Sort Options</DropdownMenuLabel>
+                <DropdownMenuItem 
+                  onClick={() => applyFilter('default', stockFilter)}
+                  className={`cursor-pointer rounded-xl h-10 transition-colors ${sortBy === 'default' ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-secondary'}`}
+                >
+                  Default Sorting
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => applyFilter('price-asc', stockFilter)}
+                  className={`cursor-pointer rounded-xl h-10 transition-colors ${sortBy === 'price-asc' ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-secondary'}`}
+                >
+                  Price: Low to High
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => applyFilter('price-desc', stockFilter)}
+                  className={`cursor-pointer rounded-xl h-10 transition-colors ${sortBy === 'price-desc' ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-secondary'}`}
+                >
+                  Price: High to Low
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => applyFilter('featured', stockFilter)}
+                  className={`cursor-pointer rounded-xl h-10 transition-colors ${sortBy === 'featured' ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-secondary'}`}
+                >
+                  Popularity / Featured
+                </DropdownMenuItem>
+                
+                <DropdownMenuSeparator className="my-1 opacity-50" />
+                
+                <DropdownMenuLabel className="font-headline font-bold text-xs uppercase tracking-wider text-muted-foreground px-2 py-1.5">Availability</DropdownMenuLabel>
+                <DropdownMenuItem 
+                  onClick={() => applyFilter(sortBy, 'all')}
+                  className={`cursor-pointer rounded-xl h-10 transition-colors ${stockFilter === 'all' ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-secondary'}`}
+                >
+                  Show All Products
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => applyFilter(sortBy, 'in-stock')}
+                  className={`cursor-pointer rounded-xl h-10 transition-colors ${stockFilter === 'in-stock' ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-secondary'}`}
+                >
+                  In Stock Only
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>

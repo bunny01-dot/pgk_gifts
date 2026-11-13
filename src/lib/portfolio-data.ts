@@ -21,7 +21,11 @@ export type PortfolioCategory =
   | "Photo Frames & Wall Decor"
   | "Customized Gifts"
   | "Car Dashboard & Idols"
-  | "Corporate & Name Boards";
+  | "Corporate & Name Boards"
+  | "Weddings"
+  | "Portraits"
+  | "Events"
+  | (string & {});
 
 export const PORTFOLIO_ITEMS: PortfolioItem[] = [
   {

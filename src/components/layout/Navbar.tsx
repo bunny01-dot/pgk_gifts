@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Menu, X, ShoppingBag, Grid, ImageIcon, Phone, User, Camera, LogOut, LayoutDashboard, Truck, Package, Bell, BellRing, Star, AlertCircle, Home } from 'lucide-react';
+import { Menu, X, ShoppingBag, Grid, ImageIcon, Phone, User, Camera, LogOut, LayoutDashboard, Truck, Package, Bell, BellRing, Star, AlertCircle, Home, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { CONTACT_INFO, ADMIN_EMAILS } from '@/lib/data';
@@ -94,7 +94,15 @@ function AnimatedIcon({ icon: Icon, active, className }: AnimatedIconProps) {
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
-  const hideBottomNav = pathname.startsWith('/admin') || pathname.startsWith('/login');
+  const hideBottomNav =
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/checkout') ||
+    pathname === '/cart' ||
+    (pathname.startsWith('/products/') &&
+      !pathname.startsWith('/products/customized-gifts') &&
+      !pathname.startsWith('/products/cute-toys') &&
+      !pathname.startsWith('/products/light-lamps'));
   const [scrolled, setScrolled] = useState(false);
   const { itemCount, setIsCartOpen } = useCart();
   const { user } = useUser();
@@ -142,12 +150,44 @@ export function Navbar() {
     };
   }, [isNotifOpen]);
 
+  const handleTabClick = (href: string) => {
+    try {
+      (window as any).__isNavigating = true;
+      const positions = JSON.parse(sessionStorage.getItem('nav_scroll_positions') || '{}');
+      const savedData = positions[href];
+      const targetY = typeof savedData === 'object' ? (savedData?.y ?? 0) : (savedData ?? 0);
+      const targetH = typeof savedData === 'object' ? (savedData?.h ?? 0) : 0;
+      
+      const main = document.querySelector('main');
+      if (main) {
+        main.style.transition = 'none';
+        main.style.opacity = '0';
+        if (targetY > 0) {
+          const neededHeight = Math.max(targetH, targetY + window.innerHeight);
+          main.style.minHeight = `${neededHeight}px`;
+        }
+      }
+      
+      // Scroll the window immediately on click before routing starts
+      window.scrollTo({
+        top: targetY,
+        behavior: 'instant' as ScrollBehavior
+      });
+    } catch (e) {
+      console.error("Error preparing tab transition:", e);
+    }
+  };
+
   // Save scroll positions in session storage to persist across route changes and refreshes
   useEffect(() => {
     const handleScroll = () => {
+      if ((window as any).__isNavigating) return;
       try {
         const positions = JSON.parse(sessionStorage.getItem('nav_scroll_positions') || '{}');
-        positions[pathname] = window.scrollY;
+        positions[pathname] = {
+          y: window.scrollY,
+          h: document.documentElement.scrollHeight
+        };
         sessionStorage.setItem('nav_scroll_positions', JSON.stringify(positions));
       } catch (e) {
         console.error("Failed to save scroll position:", e);
@@ -161,19 +201,55 @@ export function Navbar() {
   // Restore scroll positions when route changes
   useEffect(() => {
     try {
+      const main = document.querySelector('main');
+      if (main) {
+        main.style.transition = 'none';
+        main.style.opacity = '0';
+      }
+
       const positions = JSON.parse(sessionStorage.getItem('nav_scroll_positions') || '{}');
-      const savedPosition = positions[pathname] || 0;
+      const savedData = positions[pathname];
+      
+      const targetY = typeof savedData === 'object' ? (savedData?.y ?? 0) : (savedData ?? 0);
+      const targetH = typeof savedData === 'object' ? (savedData?.h ?? 0) : 0;
+      
+      if (main && targetY > 0) {
+        const neededHeight = Math.max(targetH, targetY + window.innerHeight);
+        main.style.minHeight = `${neededHeight}px`;
+      }
+      
+      window.scrollTo({
+        top: targetY,
+        behavior: 'instant' as ScrollBehavior
+      });
+      
+      // Reveal the content after a short 50ms delay to make sure it paints at the correct scroll position
+      const revealTimer = setTimeout(() => {
+        if (main) {
+          main.style.transition = 'opacity 0.15s ease-in-out';
+          main.style.opacity = '1';
+        }
+        (window as any).__isNavigating = false;
+      }, 50);
       
       const timer = setTimeout(() => {
-        window.scrollTo({
-          top: savedPosition,
-          behavior: 'instant' as ScrollBehavior
-        });
-      }, 75);
+        if (main) {
+          main.style.minHeight = '';
+        }
+      }, 300);
       
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(revealTimer);
+        clearTimeout(timer);
+        if (main) {
+          main.style.minHeight = '';
+          main.style.opacity = '';
+          main.style.transition = '';
+        }
+      };
     } catch (e) {
       console.error("Failed to restore scroll position:", e);
+      (window as any).__isNavigating = false;
     }
   }, [pathname]);
 
@@ -378,7 +454,7 @@ export function Navbar() {
       <div className="container mx-auto px-4 md:px-6 h-full flex items-center justify-between">
         
         {/* Logo Section - Scaled for Mobile */}
-        <Link href="/" scroll={false} className="flex items-center gap-2 md:gap-4 shrink-0 group">
+        <Link href="/" scroll={false} onClick={() => handleTabClick('/')} className="flex items-center gap-2 md:gap-4 shrink-0 group">
           <div className="relative w-10 h-10 md:w-14 md:h-14 transition-transform duration-700 group-hover:scale-110">
             <Image
               src={CONTACT_INFO.headerLogo}
@@ -404,6 +480,7 @@ export function Navbar() {
                 key={link.name}
                 href={link.href}
                 scroll={false}
+                onClick={() => handleTabClick(link.href)}
                 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground hover:text-primary transition-all relative group/link"
               >
                 {link.name}
@@ -548,6 +625,14 @@ export function Navbar() {
                     </Link>
                   </DropdownMenuItem>
 
+                  {!isAdmin && (
+                    <DropdownMenuItem asChild className="cursor-pointer rounded-xl h-11 transition-colors hover:bg-secondary">
+                      <Link href="/wishlist" className="flex items-center w-full">
+                        <Heart className="mr-3 h-4 w-4 text-red-500/80 fill-red-500/20" /> My Wishlist
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+
                   {isAdmin && (
                     <DropdownMenuItem asChild className="cursor-pointer rounded-xl h-12 mt-1 bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
                       <Link href="/admin" className="flex items-center w-full">
@@ -594,7 +679,7 @@ export function Navbar() {
               </Button>
 
               {isNotifOpen && (
-                <div className="absolute right-0 mt-3 w-80 bg-card border border-border rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="absolute right-[-80px] sm:right-0 mt-3 w-[calc(100vw-2rem)] sm:w-80 max-w-[340px] sm:max-w-none bg-card border border-border rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                   <div className="p-3 border-b border-border/40 flex justify-between items-center bg-secondary/20">
                     <h3 className="font-headline font-bold text-xs text-foreground flex items-center gap-2">
                       <Bell className="w-4 h-4 text-primary" /> {isAdmin ? 'Activity Center' : 'Notifications'}
@@ -683,6 +768,13 @@ export function Navbar() {
                     <Package className="mr-3 h-4 w-4 opacity-70" /> My Orders
                   </Link>
                 </DropdownMenuItem>
+                {!isAdmin && (
+                  <DropdownMenuItem asChild className="cursor-pointer rounded-xl h-10">
+                    <Link href="/wishlist" className="flex items-center w-full">
+                      <Heart className="mr-3 h-4 w-4 text-red-500/80 fill-red-500/20" /> My Wishlist
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 {isAdmin && (
                   <DropdownMenuItem asChild className="cursor-pointer rounded-xl h-10 bg-primary/10 text-primary">
                     <Link href="/admin" className="flex items-center w-full">
@@ -715,7 +807,7 @@ export function Navbar() {
 
       {/* Mobile Bottom Navigation Bar */}
       {!hideBottomNav && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] w-full bg-secondary/95 dark:bg-zinc-900/95 backdrop-blur-lg border-t border-border/80 shadow-panel-embossed py-2 px-3 pb-[calc(8px+env(safe-area-inset-bottom,12px))]">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 w-full bg-secondary/95 dark:bg-zinc-900/95 backdrop-blur-lg border-t border-border/80 shadow-panel-embossed py-2 px-3 pb-[calc(8px+env(safe-area-inset-bottom,12px))]">
           <div className="flex items-center justify-around w-full bg-zinc-200/50 dark:bg-zinc-950/40 p-1 rounded-[1.8rem] shadow-sunken">
             {BOTTOM_NAV_ITEMS.map((item) => {
               const isActive = pathname === item.href;
@@ -725,6 +817,7 @@ export function Navbar() {
                   key={item.name}
                   href={item.href}
                   scroll={false}
+                  onClick={() => handleTabClick(item.href)}
                   className={`flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-300 group/navitem ${
                     isActive 
                       ? 'bg-background text-primary shadow-embossed scale-105' 

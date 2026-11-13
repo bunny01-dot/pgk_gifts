@@ -2,6 +2,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -147,7 +148,7 @@ export function ReturnReportModal({ orderId, onSuccess }: ReturnReportModalProps
             <div className="grid grid-cols-3 gap-4">
               {images.map((url, i) => (
                 <div key={i} className="relative aspect-square rounded-2xl overflow-hidden border border-border group">
-                  <img src={url} className="w-full h-full object-cover" />
+                  <Image src={url} alt={`Evidence photo ${i + 1}`} fill className="object-cover" />
                   <button 
                     onClick={() => removeImage(i)}
                     className="absolute top-2 right-2 bg-destructive text-white rounded-full p-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity"

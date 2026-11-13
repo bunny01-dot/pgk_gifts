@@ -35,6 +35,7 @@ export class SearchService<T extends Record<string, any>> {
           if (a.stockCount === 0 && b.stockCount > 0) return 1;
           if (a.stockCount > 0 && b.stockCount === 0) return -1;
           if (a.featured && !b.featured) return -1;
+          if (!a.featured && b.featured) return 1;
           return 0;
         })
         .slice(0, limit)

@@ -9,6 +9,7 @@ import { ShoppingCart, ArrowLeft, Heart, Share2, ZoomIn, ShoppingBag, ShieldChec
 import { Button } from '@/components/ui/button';
 import { PRODUCTS, CONTACT_INFO } from '@/lib/data';
 import { useCart } from '@/context/CartContext';
+import { useWishlist } from '@/context/WishlistContext';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { ToastAction } from '@/components/ui/toast';
@@ -19,6 +20,7 @@ import { Review } from '@/types/review';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getRequiredPhotoSlots, getRequiredTextLabel } from '@/utils/customization';
 import { UploadService } from '@/services/upload.service';
 import { CustomPhoto } from '@/types/cart';
@@ -28,7 +30,8 @@ import { toDate } from '@/utils/date';
 export default function ProductDetailPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { addToCart, setIsCartOpen } = useCart();
+  const { addToCart, updateCartItem, cart, setIsCartOpen } = useCart();
+  const { toggleWishlist, isInWishlist } = useWishlist();
   const { user } = useUser();
   const { toast } = useToast();
   const [quantity, setQuantity] = useState(1);
@@ -57,13 +60,31 @@ export default function ProductDetailPage() {
   const isMosaic = !!(product && (product.name.toLowerCase().includes('mosaic') || product.id.toLowerCase().includes('mosaic')));
   const isCollage = !!(product && (product.name.toLowerCase().includes('collage') || product.id.toLowerCase().includes('collage')));
   const needsMainImage = !!(product && (product.needsMainImage || isMosaic || isCollage));
+
+  // True when this customer already has this product in their bag with missing photos
+  // (they came here from the checkout warning to upload photos)
+  const isUpdateMode = cart.some(
+    (i) =>
+      i.productId === (product?.id ?? '') &&
+      i.selectedSize === (product?.sizes ? selectedSize : undefined) &&
+      (i.requiredPhotoSlots ?? 0) > 0 &&
+      (i.customPhotos?.length ?? 0) < (i.requiredPhotoSlots ?? 0)
+  );
+
   const [uploadedPhotos, setUploadedPhotos] = useState<(CustomPhoto | null)[]>([]);
   const [isProcessingPhotos, setIsProcessingPhotos] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Record<number, number>>({});
   const [customText, setCustomText] = useState('');
   const [showFrameText, setShowFrameText] = useState(false);
   const [interstitialMessage, setInterstitialMessage] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const textLabel = product ? getRequiredTextLabel(product) : null;
+
+  // All required photo slots are filled (computed after uploadedPhotos is declared)
+  const photosReady =
+    requiredSlots > 0
+      ? uploadedPhotos.filter(Boolean).length >= requiredSlots
+      : true;
 
   const hasInitializedPhotos = useRef(false);
 
@@ -258,30 +279,6 @@ export default function ProductDetailPage() {
   }
 
   const handleAddToCart = (redirect = false) => {
-    // 5-Star Validation for Custom Photo Uploads
-    if (product) {
-      const slots = getRequiredPhotoSlots(product);
-      const targetSlotsCount = Math.max(slots, uploadedPhotos.length);
-      const uploadedCount = uploadedPhotos.filter(Boolean).length;
-      if (targetSlotsCount > 0 && uploadedCount < targetSlotsCount) {
-        const msg = targetSlotsCount === 1 ? "This item needs photo uploaded" : "This item needs photos uploaded";
-        setInterstitialMessage(msg);
-        
-        setTimeout(() => {
-          setInterstitialMessage(null);
-          const uploadSection = document.getElementById('photo-upload-section');
-          if (uploadSection) {
-            uploadSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            uploadSection.classList.add('ring-4', 'ring-primary/30', 'scale-[1.01]');
-            setTimeout(() => {
-              uploadSection.classList.remove('ring-4', 'ring-primary/30', 'scale-[1.01]');
-            }, 2000);
-          }
-        }, 1800);
-        return;
-      }
-    }
-
     if (product && textLabel) {
       if (!customText.trim()) {
         toast({
@@ -293,13 +290,51 @@ export default function ProductDetailPage() {
       }
     }
 
+    const photos = uploadedPhotos.filter(Boolean) as any[];
+    const resolvedText = (textLabel || (requiredSlots > 0 && showFrameText)) ? customText.trim() : undefined;
+
+    // If there's already a cart item for this product+size that is missing photos,
+    // UPDATE it instead of adding a second line item.
+    const existingIncompleteItem = cart.find(
+      (i) =>
+        i.productId === (product?.id ?? '') &&
+        i.selectedSize === (product?.sizes ? selectedSize : undefined) &&
+        (i.requiredPhotoSlots ?? 0) > 0 &&
+        (i.customPhotos?.length ?? 0) < (i.requiredPhotoSlots ?? 0)
+    );
+
+    if (existingIncompleteItem) {
+      setIsSaving(true); // lock UI immediately so buttons don't flash back
+      updateCartItem(existingIncompleteItem.id, {
+        customPhotos: photos,
+        ...(resolvedText !== undefined ? { customText: resolvedText } : {}),
+      });
+      toast({
+        title: photos.length > 0 ? "Photos Updated!" : "Item Updated",
+        description: photos.length > 0
+          ? "Your photos have been added to the item already in your bag."
+          : "Your bag item has been updated.",
+      });
+      if (redirect) {
+        router.push('/checkout');
+      }
+      return;
+    }
+
+    // No existing item — add fresh
     addToCart({
       ...product,
       price: currentPrice,
       selectedSize: product.sizes ? selectedSize : undefined,
       quantity,
-      customPhotos: uploadedPhotos.filter(Boolean),
-      customText: (textLabel || (requiredSlots > 0 && showFrameText)) ? customText.trim() : undefined,
+      requiredPhotoSlots: requiredSlots,
+      customPhotos: photos,
+      customText: resolvedText,
+    });
+    
+    toast({
+      title: "Added to Bag",
+      description: `${product.name} has been added to your shopping bag.`,
     });
     
     if (redirect) {
@@ -491,22 +526,63 @@ export default function ProductDetailPage() {
 
             {product.sizes && product.sizes.length > 0 && (
               <div className="space-y-3 md:space-y-4">
-                <span className="text-xs md:text-sm font-black uppercase tracking-[0.3em] text-muted-foreground">Select Frame Size</span>
-                <div className="flex flex-wrap gap-3">
-                  {product.sizes.map((sz) => (
-                    <button
-                      key={sz.name}
-                      onClick={() => setSelectedSize(sz.name)}
-                      className={`px-6 py-3 rounded-full text-sm md:text-lg font-bold border-2 transition-all duration-300 ${
-                        selectedSize === sz.name
-                          ? 'border-primary bg-primary/10 text-primary shadow-md scale-105'
-                          : 'border-border bg-card hover:border-primary/50 text-foreground'
-                      }`}
-                    >
-                      {sz.name} ({formatPrice(sz.price)})
-                    </button>
-                  ))}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs md:text-sm font-black uppercase tracking-[0.3em] text-muted-foreground">Select Frame Size</span>
+                  {selectedSize && (
+                    <span className="text-xs font-bold text-primary">Selected: {selectedSize}</span>
+                  )}
                 </div>
+
+                {product.sizes.length > 8 ? (
+                  <div className="space-y-3">
+                    <Select value={selectedSize} onValueChange={(val) => setSelectedSize(val)}>
+                      <SelectTrigger className="w-full h-14 rounded-2xl bg-card border-2 border-border focus:border-primary font-bold text-base px-5">
+                        <SelectValue placeholder="Choose a custom frame size..." />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-2xl p-2 shadow-2xl bg-card border-border max-h-72 overflow-y-auto">
+                        {product.sizes.map((sz) => (
+                          <SelectItem key={sz.name} value={sz.name} className="rounded-xl h-12 text-sm font-bold">
+                            {sz.name} — {formatPrice(sz.price)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-3 bg-secondary/20 rounded-2xl border border-border/40">
+                      {product.sizes.map((sz) => (
+                        <button
+                          key={sz.name}
+                          type="button"
+                          onClick={() => setSelectedSize(sz.name)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
+                            selectedSize === sz.name
+                              ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                              : 'border-border bg-card hover:border-primary/50 text-foreground'
+                          }`}
+                        >
+                          {sz.name} ({formatPrice(sz.price)})
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-3">
+                    {product.sizes.map((sz) => (
+                      <button
+                        key={sz.name}
+                        type="button"
+                        onClick={() => setSelectedSize(sz.name)}
+                        className={`px-6 py-3 rounded-full text-sm md:text-lg font-bold border-2 transition-all duration-300 ${
+                          selectedSize === sz.name
+                            ? 'border-primary bg-primary/10 text-primary shadow-md scale-105'
+                            : 'border-border bg-card hover:border-primary/50 text-foreground'
+                        }`}
+                      >
+                        {sz.name} ({formatPrice(sz.price)})
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -537,6 +613,17 @@ export default function ProductDetailPage() {
             {/* Custom Photo Upload Section */}
             {product && requiredSlots > 0 && (
               <div id="photo-upload-section" className="space-y-4 p-6 rounded-3xl bg-secondary/30 border border-border/80 shadow-inner transition-all duration-300">
+
+                {/* Context banner: shown only when customer came from checkout to upload */}
+                {isUpdateMode && (
+                  <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-300/50 dark:border-amber-700/40 rounded-2xl px-4 py-3">
+                    <span className="text-lg shrink-0">📦</span>
+                    <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 leading-relaxed">
+                      You have this item in your bag. Upload your photos below and save — we&apos;ll take you straight back to checkout.
+                    </p>
+                  </div>
+                )}
+
                 <div className="flex justify-between items-center">
                   <div>
                     <h3 className="font-bold text-lg flex items-center gap-2">
@@ -801,19 +888,54 @@ export default function ProductDetailPage() {
                   <button onClick={() => setQuantity(quantity + 1)} className="p-3 font-bold text-3xl hover:text-primary transition-colors">+</button>
                 </div>
                 <div className="flex gap-4">
-                  <Button variant="outline" size="icon" className="rounded-full h-20 w-20 border-2"><Heart className="w-8 h-8" /></Button>
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    onClick={() => product && toggleWishlist(product)}
+                    className={`rounded-full h-20 w-20 border-2 ${product && isInWishlist(product.id) ? 'text-red-500 hover:text-red-600' : ''}`}
+                  >
+                    <Heart className={`w-8 h-8 ${product && isInWishlist(product.id) ? 'fill-red-500 text-red-500' : ''}`} />
+                  </Button>
                   <Button variant="outline" size="icon" className="rounded-full h-20 w-20 border-2"><Share2 className="w-8 h-8" /></Button>
                 </div>
               </div>
 
-              <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 gap-6 mb-4">
-                <Button onClick={() => handleAddToCart()} variant="outline" className="h-24 rounded-full text-3xl font-headline font-bold border-2">
-                  <ShoppingBag className="mr-4 w-8 h-8" /> Add to Bag
-                </Button>
-                <Button onClick={() => handleAddToCart(true)} className="h-24 rounded-full text-3xl font-headline font-bold shadow-2xl shadow-primary/20">
-                  Buy Now
-                </Button>
-              </div>
+              {/* Desktop Buttons — context-aware */}
+              {(isUpdateMode || isSaving) ? (
+                // UPDATE MODE: customer came from checkout to upload photos
+                <div className="hidden md:flex flex-col gap-3 mb-4">
+                  <Button
+                    onClick={() => handleAddToCart(true)}
+                    disabled={!photosReady}
+                    className={`h-24 rounded-full text-2xl md:text-3xl font-headline font-bold shadow-2xl transition-all ${
+                      photosReady
+                        ? 'bg-green-600 hover:bg-green-700 shadow-green-600/20 text-white'
+                        : 'opacity-60 cursor-not-allowed'
+                    }`}
+                  >
+                    {photosReady ? (
+                      <><Check className="mr-4 w-8 h-8" /> Save Photos &amp; Return to Checkout</>
+                    ) : (
+                      <><Camera className="mr-4 w-8 h-8" /> Upload Photos to Continue</>
+                    )}
+                  </Button>
+                  <p className="text-center text-xs text-muted-foreground">
+                    {photosReady
+                      ? 'All photos uploaded — ready to complete your order.'
+                      : `${uploadedPhotos.filter(Boolean).length} of ${requiredSlots} photos uploaded.`}
+                  </p>
+                </div>
+              ) : (
+                // NORMAL MODE: fresh add
+                <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 gap-6 mb-4">
+                  <Button onClick={() => handleAddToCart()} variant="outline" className="h-24 rounded-full text-3xl font-headline font-bold border-2">
+                    <ShoppingBag className="mr-4 w-8 h-8" /> Add to Bag
+                  </Button>
+                  <Button onClick={() => handleAddToCart(true)} className="h-24 rounded-full text-3xl font-headline font-bold shadow-2xl shadow-primary/20">
+                    Buy Now
+                  </Button>
+                </div>
+              )}
 
               {/* WhatsApp Fast Customization Contact */}
               <div className="bg-green-500/10 border border-green-500/20 rounded-2xl md:rounded-[2rem] p-4 md:p-8 flex flex-col sm:flex-row items-center justify-between gap-4 md:gap-6">
@@ -915,19 +1037,37 @@ export default function ProductDetailPage() {
 
       </div>
 
-      {/* Sticky Mobile Checkout Bar - Higher Visibility */}
+      {/* Sticky Mobile Checkout Bar — context-aware */}
       <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-card/95 backdrop-blur-2xl border-t px-4 py-3 flex items-center justify-between gap-3 shadow-[0_-15px_50px_rgba(0,0,0,0.15)]">
         <div className="flex flex-col">
-          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Investment</span>
+          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">
+            {(isUpdateMode || isSaving) ? 'Updating Order' : 'Investment'}
+          </span>
           <span className="text-xl font-headline font-bold text-primary">{formatPrice(currentPrice * quantity)}</span>
         </div>
         <div className="flex gap-3 flex-1">
-          <Button onClick={() => handleAddToCart()} variant="outline" className="flex-1 rounded-full h-11 text-sm font-bold border px-0">
-            Bag
-          </Button>
-          <Button onClick={() => handleAddToCart(true)} className="flex-1 rounded-full h-11 text-sm font-bold shadow-xl px-0">
-            Buy Now
-          </Button>
+          {(isUpdateMode || isSaving) ? (
+            <Button
+              onClick={() => handleAddToCart(true)}
+              disabled={!photosReady}
+              className={`flex-1 rounded-full h-11 text-sm font-bold shadow-xl px-0 ${
+                photosReady
+                  ? 'bg-green-600 hover:bg-green-700 text-white'
+                  : 'opacity-60'
+              }`}
+            >
+              {photosReady ? '✓ Save & Checkout' : 'Upload Photos'}
+            </Button>
+          ) : (
+            <>
+              <Button onClick={() => handleAddToCart()} variant="outline" className="flex-1 rounded-full h-11 text-sm font-bold border px-0">
+                Bag
+              </Button>
+              <Button onClick={() => handleAddToCart(true)} className="flex-1 rounded-full h-11 text-sm font-bold shadow-xl px-0">
+                Buy Now
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </div>

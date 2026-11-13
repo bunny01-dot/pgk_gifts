@@ -14,7 +14,22 @@ import { adjustProductPrice } from '@/utils/currency';
 import { useFirestore } from '@/firebase';
 const ADJUSTED_PRODUCTS = PRODUCTS.map(p => adjustProductPrice(p));
 
+import { LimitedTimeOfferBanner } from '@/components/home/LimitedTimeOfferBanner';
+import { PromotionalVideoPlayer } from '@/components/home/PromotionalVideoPlayer';
+import { HeroPromoVideoCard } from '@/components/home/HeroPromoVideoCard';
+import { OffersService } from '@/services/offers.service';
+import { PromoVideoService } from '@/services/promo-video.service';
 import type { Product } from '@/types/product';
+import type { Offer } from '@/types/offer';
+import type { PromoVideo } from '@/types/promo-video';
+
+// A balanced curated mix of featured products across categories, including the new MDF frames
+const staticFeatured = [
+  ...ADJUSTED_PRODUCTS.filter(p => p.category === 'MDF Wall Frames' && p.featured).slice(0, 2),
+  ...ADJUSTED_PRODUCTS.filter(p => p.category === 'Wall Decor and Photo Frames' && p.featured).slice(0, 2),
+  ...ADJUSTED_PRODUCTS.filter(p => p.category === 'Night Lamps' && p.featured).slice(0, 2),
+  ...ADJUSTED_PRODUCTS.filter(p => (p.category === 'Personalized Gifts' || p.category === 'Car Dashboard Accessories') && p.featured).slice(0, 2)
+];
 
 export default function Home() {
   const firestore = useFirestore();
@@ -24,15 +39,9 @@ export default function Home() {
   }
   const [featuredProduct, setFeaturedProduct] = useState<Product>(firstProduct);
   
-  // A balanced curated mix of featured products across categories, including the new MDF frames
-  const staticFeatured = [
-    ...ADJUSTED_PRODUCTS.filter(p => p.category === 'MDF Wall Frames' && p.featured).slice(0, 2),
-    ...ADJUSTED_PRODUCTS.filter(p => p.category === 'Wall Decor and Photo Frames' && p.featured).slice(0, 2),
-    ...ADJUSTED_PRODUCTS.filter(p => p.category === 'Night Lamps' && p.featured).slice(0, 2),
-    ...ADJUSTED_PRODUCTS.filter(p => (p.category === 'Personalized Gifts' || p.category === 'Car Dashboard Accessories') && p.featured).slice(0, 2)
-  ];
-
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>(staticFeatured);
+  const [activeOffers, setActiveOffers] = useState<Offer[]>([]);
+  const [activeVideos, setActiveVideos] = useState<PromoVideo[]>([]);
 
   useEffect(() => {
     // Pick a random product on mount to keep the experience fresh
@@ -69,7 +78,24 @@ export default function Home() {
         setFeaturedProducts(staticFeatured);
       }
     };
+
+    const loadPromotions = async () => {
+      try {
+        const offersSvc = new OffersService(firestore);
+        const videoSvc = new PromoVideoService(firestore);
+        const [offersData, videosData] = await Promise.all([
+          offersSvc.getActiveOffers(),
+          videoSvc.getActivePromoVideos()
+        ]);
+        setActiveOffers(offersData);
+        setActiveVideos(videosData);
+      } catch (err) {
+        console.error("Failed to load active offers or videos", err);
+      }
+    };
+
     loadFeatured();
+    loadPromotions();
   }, [firestore]);
 
   return (
@@ -165,54 +191,61 @@ export default function Home() {
             </div>
           </motion.div>
 
-          {/* RIGHT: RANDOMIZED FEATURED PRODUCT (EDITORIAL CROP) */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={featuredProduct.id}
-              initial={{ opacity: 0, scale: 0.8, x: 50 }}
-              animate={{ opacity: 1, scale: 1, x: 0 }}
-              exit={{ opacity: 0, scale: 0.9, x: -20 }}
-              transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-              whileHover={{ rotate: 5, scale: 1.05 }}
-              className="relative hidden lg:block w-1/2 max-w-sm group cursor-pointer"
-            >
-              <Link href={featuredProduct.category === 'Night Lamps' ? '/shop?category=Night Lamps' : `/products/${featuredProduct.id}`}>
-                {/* Soft Glow Behind */}
-                <div className="absolute inset-10 bg-primary/20 blur-[120px] rounded-full animate-pulse" />
-                
-                <motion.div
-                  animate={{ y: [0, -10, 0] }}
-                  transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-                  className="relative z-10 w-full"
-                >
-                  <div className="relative aspect-square rounded-[3rem] overflow-hidden border-2 border-white/20 shadow-[0_50px_100px_rgba(0,0,0,0.3)] bg-background/20 backdrop-blur-sm">
-                    <Image
-                      src={featuredProduct.image}
-                      alt={featuredProduct.name}
-                      fill
-                      className="object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
-                    
-                    {/* Visual Scrim for Badge */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-transparent opacity-60" />
+          {/* RIGHT: PROMO REEL IF ACTIVE, ELSE RANDOMIZED FEATURED PRODUCT */}
+          {activeVideos && activeVideos.length > 0 && activeVideos[0] ? (
+            <HeroPromoVideoCard video={activeVideos[0]} />
+          ) : (
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={featuredProduct.id}
+                initial={{ opacity: 0, scale: 0.8, x: 50 }}
+                animate={{ opacity: 1, scale: 1, x: 0 }}
+                exit={{ opacity: 0, scale: 0.9, x: -20 }}
+                transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+                whileHover={{ rotate: 5, scale: 1.05 }}
+                className="relative hidden lg:block w-1/2 max-w-sm group cursor-pointer"
+              >
+                <Link href={featuredProduct.category === 'Night Lamps' ? '/shop?category=Night Lamps' : `/products/${featuredProduct.id}`}>
+                  {/* Soft Glow Behind */}
+                  <div className="absolute inset-10 bg-primary/20 blur-[120px] rounded-full animate-pulse" />
+                  
+                  <motion.div
+                    animate={{ y: [0, -10, 0] }}
+                    transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+                    className="relative z-10 w-full"
+                  >
+                    <div className="relative aspect-square rounded-[3rem] overflow-hidden border-2 border-white/20 shadow-[0_50px_100px_rgba(0,0,0,0.3)] bg-background/20 backdrop-blur-sm">
+                      <Image
+                        src={featuredProduct.image}
+                        alt={featuredProduct.name}
+                        fill
+                        className="object-cover transition-transform duration-700 group-hover:scale-110"
+                      />
+                      
+                      {/* Visual Scrim for Badge */}
+                      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-transparent opacity-60" />
 
-                    {/* Floating Badge */}
-                    <div className="absolute top-6 right-6 bg-white/90 backdrop-blur-md text-black px-4 py-2 rounded-2xl shadow-xl border border-primary/20 flex items-center gap-2">
-                      <Sparkles className="w-3 h-3 text-primary animate-spin-slow" />
-                      <span className="text-[10px] font-black uppercase tracking-widest">Selected Detail</span>
+                      {/* Floating Badge */}
+                      <div className="absolute top-6 right-6 bg-white/90 backdrop-blur-md text-black px-4 py-2 rounded-2xl shadow-xl border border-primary/20 flex items-center gap-2">
+                        <Sparkles className="w-3 h-3 text-primary animate-spin-slow" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">Selected Detail</span>
+                      </div>
+
                     </div>
-
-                  </div>
-                  <div className="pt-5 text-center">
-                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Randomized Feature</p>
-                    <p className="mt-2 text-xl font-body font-bold leading-tight text-foreground">{featuredProduct.name}</p>
-                  </div>
-                </motion.div>
-              </Link>
-            </motion.div>
-          </AnimatePresence>
+                    <div className="pt-5 text-center">
+                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Randomized Feature</p>
+                      <p className="mt-2 text-xl font-body font-bold leading-tight text-foreground">{featuredProduct.name}</p>
+                    </div>
+                  </motion.div>
+                </Link>
+              </motion.div>
+            </AnimatePresence>
+          )}
         </div>
       </section>
+
+      {/* TIME-LIMITED OFFERS */}
+      <LimitedTimeOfferBanner offers={activeOffers} />
 
       {/* 2. CATEGORY SHOWCASE */}
       <div className="bg-background">

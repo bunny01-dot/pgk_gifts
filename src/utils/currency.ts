@@ -5,16 +5,9 @@ export const formatPrice = (amount: number): string => {
 };
 
 export const adjustPrice = (price: number): number => {
-  return Math.round(price * 1.03);
+  return price; // Fee already baked into product prices
 };
 
 export function adjustProductPrice(product: Product): Product {
-  return {
-    ...product,
-    price: Math.round(product.price * 1.03),
-    sizes: product.sizes?.map(s => ({
-      ...s,
-      price: Math.round(s.price * 1.03)
-    }))
-  };
+  return product; // Fee already baked into product prices — no adjustment needed
 }

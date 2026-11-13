@@ -54,15 +54,17 @@ export function SearchBar({ value, onChange, onSearchSubmit, isSearching, placeh
 
         <AnimatePresence>
           {value && (
-            <motion.button
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              onClick={() => onChange('')}
-              className="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 p-2 hover:bg-secondary rounded-full text-muted-foreground hover:text-foreground transition-all"
-            >
-              <X className="w-4 h-4" />
-            </motion.button>
+            <div className="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 flex items-center justify-center">
+              <motion.button
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                onClick={() => onChange('')}
+                className="p-2 hover:bg-secondary rounded-full text-muted-foreground hover:text-foreground transition-all flex items-center justify-center"
+              >
+                <X className="w-4 h-4" />
+              </motion.button>
+            </div>
           )}
         </AnimatePresence>
       </div>

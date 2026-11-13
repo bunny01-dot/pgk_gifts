@@ -48,7 +48,8 @@ export class PaymentService {
   async createRazorpayOrder(
     cartItems: CartItem[],
     shipping: CheckoutShippingDetails,
-    couponCode?: string
+    couponCode?: string,
+    discountPreference?: 'automatic' | 'coupon'
   ): Promise<RazorpayOrderResponse> {
     const response = await fetch('/api/razorpay', {
       method: 'POST',
@@ -63,6 +64,7 @@ export class PaymentService {
         })),
         shipping,
         couponCode,
+        discountPreference,
       }),
     });
 

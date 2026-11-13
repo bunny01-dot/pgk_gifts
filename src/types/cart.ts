@@ -17,6 +17,7 @@ export interface CartItem {
   selectedSize?: string;
   customPhotos?: CustomPhoto[];
   customText?: string;
+  requiredPhotoSlots?: number;
   deliveryCharge?: 'complimentary' | 'regular' | number | undefined;
   weight?: number | null | undefined;
 }
