@@ -19,7 +19,7 @@ import { getItemDeliveryCharge } from '@/utils/customization';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CONTACT_INFO } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { resolvePromotionalDiscounts, checkAndAdjustCouponForSubtotal } from '@/utils/discount';
+import { resolvePromotionalDiscounts, checkAndAdjustCouponForSubtotal, calculateRazorpayBufferedTotal } from '@/utils/discount';
 import { AvailableCoupon } from '@/types/promotions';
 
 declare global {
@@ -768,7 +768,8 @@ export default function CheckoutPage() {
 
                 const shippingFee = cart.reduce((sum, item) => sum + getItemDeliveryCharge(item, formData.state, deliverySettings || undefined) * item.quantity, 0);
                 const discountAmount = appliedCoupon ? appliedCoupon.discount : 0;
-                const grandTotal = Math.max(0, cartTotal + shippingFee - discountAmount);
+                const baseTotal = Math.max(0, cartTotal + shippingFee - discountAmount);
+                const { finalTotal: grandTotal, gatewayFee } = calculateRazorpayBufferedTotal(baseTotal);
 
                 return (
                   <div className="space-y-3 pt-4 border-t border-dashed border-border/50">
@@ -792,6 +793,16 @@ export default function CheckoutPage() {
                       <span>Delivery ({formData.state}{shippingFee > 0 && totalWeight > 0 ? ` - ${totalWeight.toFixed(2)} Kg` : ''})</span>
                       <span className="text-foreground font-bold">{shippingFee > 0 ? formatPrice(shippingFee) : 'Complimentary'}</span>
                     </div>
+
+                    {gatewayFee > 0 && (
+                      <div className="flex justify-between items-center text-xs font-semibold text-muted-foreground">
+                        <span className="flex items-center gap-1.5">
+                          <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+                          Secure Gateway & Processing
+                        </span>
+                        <span className="text-foreground font-bold">{formatPrice(gatewayFee)}</span>
+                      </div>
+                    )}
 
                     <div className="flex justify-between items-end pt-4 border-t border-border/50">
                       <div>

@@ -434,3 +434,28 @@ export function generateUniqueCouponCode(prefix = 'PGK'): string {
   }
   return `${prefix}-${part1}-${part2}`.toUpperCase();
 }
+
+/**
+ * Razorpay net retention rate:
+ * Razorpay charges 2.0% platform fee + 18% GST on the fee = 2.36% total.
+ * Merchant retains 100% - 2.36% = 97.64% (0.9764).
+ */
+export const RAZORPAY_RETENTION_RATE = 0.9764;
+
+/**
+ * Calculates the dynamic gateway buffer required to ensure 100% full net settlement.
+ * Formula: finalTotal = Math.ceil(baseAmount / 0.9764)
+ * Guarantee: finalTotal * (1 - 0.0236) >= baseAmount
+ */
+export function calculateRazorpayBufferedTotal(baseAmount: number): {
+  finalTotal: number;
+  gatewayFee: number;
+} {
+  if (typeof baseAmount !== 'number' || !Number.isFinite(baseAmount) || baseAmount <= 0) {
+    return { finalTotal: 0, gatewayFee: 0 };
+  }
+  const finalTotal = Math.ceil(baseAmount / RAZORPAY_RETENTION_RATE);
+  const gatewayFee = Math.max(0, finalTotal - baseAmount);
+  return { finalTotal, gatewayFee };
+}
+

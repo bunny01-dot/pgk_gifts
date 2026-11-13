@@ -10,6 +10,7 @@ import {
   calculateAutomaticDiscount,
   resolvePromotionalDiscounts,
   validateCouponEligibility,
+  calculateRazorpayBufferedTotal,
   DEFAULT_AUTOMATIC_OFFERS,
 } from '@/utils/discount';
 import { PromotionalOffer } from '@/types/promotions';
@@ -469,10 +470,11 @@ export async function POST(request: Request) {
         }
       : null;
 
-    // Final total calculation: (subtotal + shipping - discount) in integer paise
-    const finalTotal = Math.max(0, calculated.subtotal + calculated.shippingFee - discountAmount);
+    // Base order amount needed: (subtotal + shipping - discount)
+    const baseTotal = Math.max(0, calculated.subtotal + calculated.shippingFee - discountAmount);
+    // Option 3: Dynamic fee buffer ensures merchant receives 100% full net settlement after Razorpay's 2.36% fee & GST
+    const { finalTotal, gatewayFee } = calculateRazorpayBufferedTotal(baseTotal);
     const amountPaise = Math.round(finalTotal * 100);
-    const gatewayFee = 0; // Fee is baked into product prices in DB
 
     const razorpay = getRazorpayClient();
     const receipt = `PGK-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`.slice(0, 40);

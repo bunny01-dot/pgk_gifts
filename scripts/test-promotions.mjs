@@ -9,6 +9,8 @@ import {
   rupeesToPaise,
   paiseToRupees,
   generateUniqueCouponCode,
+  calculateRazorpayBufferedTotal,
+  RAZORPAY_RETENTION_RATE,
   DEFAULT_AUTOMATIC_OFFERS,
 } from '../src/utils/discount.ts';
 
@@ -386,6 +388,64 @@ runTest('Order changed from ₹800 down to ₹720 with PGK100 -> Still qualifies
   assert.strictEqual(adj.removed, false);
   assert.strictEqual(adj.couponCode, 'PGK100');
   assert.strictEqual(adj.discountAmount, 100);
+});
+
+// ----------------------------------------------------
+// 8. DYNAMIC FEE BUFFER & FULL NET SETTLEMENT (OPTION 3)
+// ----------------------------------------------------
+console.log('\n--- 8. Dynamic Fee Buffer & Full Net Settlement (Option 3) ---');
+runTest('₹100 product + ₹50 courier -> Buffer ensures merchant receives full ₹100 product price + ₹50 courier', () => {
+  const productPrice = 100;
+  const shippingCharge = 50;
+  const discount = 0;
+  const baseTotal = productPrice + shippingCharge - discount; // 150
+
+  const { finalTotal, gatewayFee } = calculateRazorpayBufferedTotal(baseTotal);
+  assert.strictEqual(finalTotal, 154, 'Charged amount must be ₹154 (150 / 0.9764)');
+  assert.strictEqual(gatewayFee, 4, 'Gateway fee buffer must be ₹4');
+
+  // Verify net bank payout after Razorpay's 2.36% deduction (2% fee + 18% GST)
+  const razorpayCut = finalTotal * 0.0236; // 154 * 0.0236 = 3.6344
+  const netBankDeposit = finalTotal - razorpayCut; // 150.3656
+  assert(netBankDeposit >= baseTotal, `Bank deposit (${netBankDeposit}) must be >= base total (150)`);
+
+  const amountAfterPayingCourier = netBankDeposit - shippingCharge; // 150.3656 - 50 = 100.3656
+  assert(amountAfterPayingCourier >= productPrice, `Remaining amount for product (${amountAfterPayingCourier}) must fully cover ₹100 product price`);
+});
+
+runTest('₹100 product + ₹100 outside TN courier -> Buffer ensures full ₹100 product price', () => {
+  const productPrice = 100;
+  const shippingCharge = 100;
+  const baseTotal = productPrice + shippingCharge; // 200
+
+  const { finalTotal, gatewayFee } = calculateRazorpayBufferedTotal(baseTotal);
+  assert.strictEqual(finalTotal, 205, 'Charged amount must be ₹205');
+  assert.strictEqual(gatewayFee, 5, 'Gateway fee buffer must be ₹5');
+
+  const netBankDeposit = finalTotal * RAZORPAY_RETENTION_RATE; // 205 * 0.9764 = 200.162
+  assert(netBankDeposit >= baseTotal, 'Bank deposit must be >= 200');
+  assert(netBankDeposit - shippingCharge >= productPrice, 'Merchant receives >= ₹100 product price');
+});
+
+runTest('₹700 product + ₹50 courier - ₹100 coupon (PGK100) -> Net desired ₹650 fully preserved', () => {
+  const subtotal = 700;
+  const shipping = 50;
+  const discount = 100;
+  const baseTotal = subtotal + shipping - discount; // 650
+
+  const { finalTotal, gatewayFee } = calculateRazorpayBufferedTotal(baseTotal);
+  assert.strictEqual(finalTotal, 666, 'Charged amount must be ₹666');
+  assert.strictEqual(gatewayFee, 16, 'Gateway fee buffer must be ₹16');
+
+  const netBankDeposit = finalTotal * RAZORPAY_RETENTION_RATE; // 666 * 0.9764 = 650.2824
+  assert(netBankDeposit >= baseTotal, 'Bank deposit must be >= 650');
+  assert(netBankDeposit - shipping >= subtotal - discount, 'Merchant receives full product net after coupon');
+});
+
+runTest('Zero base total returns zero fee buffer', () => {
+  const { finalTotal, gatewayFee } = calculateRazorpayBufferedTotal(0);
+  assert.strictEqual(finalTotal, 0);
+  assert.strictEqual(gatewayFee, 0);
 });
 
 console.log('\n====================================================');
