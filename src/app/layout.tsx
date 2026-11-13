@@ -14,6 +14,18 @@ import Script from 'next/script';
 export const metadata: Metadata = {
   title: 'PGK Gifts | Premium Personalized Gifts & Studio',
   description: 'Shop premium personalized gifts, custom lamps, toys and frames at PGK Gifts. Fast delivery and high-quality craftsmanship.',
+  icons: {
+    icon: [
+      { url: '/icon.png', sizes: '192x192', type: 'image/png' },
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/assets/Logos/logo-1.png', type: 'image/png' },
+    ],
+    shortcut: ['/favicon.ico'],
+    apple: [
+      { url: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
+      { url: '/assets/Logos/logo-1.png', type: 'image/png' },
+    ],
+  },
 };
 
 export const viewport: Viewport = {
@@ -34,6 +46,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth" suppressHydrationWarning>
       <head>
+        <link rel="icon" type="image/png" sizes="192x192" href="/icon.png" />
+        <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-icon.png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
