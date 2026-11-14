@@ -368,8 +368,12 @@ export async function POST(request: Request) {
               value: custData.discountAmount || 50,
             };
             couponSource = 'customer_coupons';
-          } else if (calculated.subtotal >= 300) {
-            // Subtotal dropped below coupon requirement: auto-downgrade to PGK15 (₹50 OFF)
+          } else if (
+            eligibility.reason === 'min_purchase' &&
+            calculated.subtotal >= 300 &&
+            couponCode === 'PGK100'
+          ) {
+            // Only PGK100 is permitted to auto-downgrade to PGK15 if subtotal dropped between 300 and 699
             validatedCoupon = {
               code: 'PGK15',
               discountAmount: Math.min(50, calculated.subtotal),
@@ -377,6 +381,9 @@ export async function POST(request: Request) {
               value: 50,
             };
             couponSource = 'coupons';
+          } else {
+            // Invalid, phone mismatch, expired, or redeemed: strictly NO discount
+            validatedCoupon = null;
           }
         }
       } else if (couponCode === 'BUNNY15' || couponCode === 'WELCOME10') {

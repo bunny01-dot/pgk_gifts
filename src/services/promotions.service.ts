@@ -9,7 +9,7 @@ import {
   orderBy,
   onSnapshot,
 } from 'firebase/firestore';
-import { PromotionalOffer, CustomerCoupon, PromotionsStats, AvailableCoupon, AdminCouponView } from '@/types/promotions';
+import { PromotionalOffer, CustomerCoupon, PromotionsStats, AvailableCoupon, AdminCouponView, LoyaltyQualifiersResponse } from '@/types/promotions';
 import { DEFAULT_AUTOMATIC_OFFERS } from '@/utils/discount';
 
 export class PromotionsService {
@@ -293,6 +293,44 @@ export class PromotionsService {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error || 'Failed to update product price.');
+    }
+    return res.json();
+  }
+
+  /**
+   * Fetch customer loyalty qualifiers (customers grouped by phone with 3+ completed orders)
+   */
+  async getLoyaltyQualifiers(): Promise<LoyaltyQualifiersResponse> {
+    const res = await fetch('/api/admin/loyalty-qualifiers', {
+      method: 'GET',
+      headers: await this.requestHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to fetch loyalty qualifiers.');
+    }
+    return res.json();
+  }
+
+  /**
+   * Generate and issue a phone-locked loyalty reward coupon
+   */
+  async generateLoyaltyReward(params: {
+    customerPhone: string;
+    customerName?: string | undefined;
+    discountAmount?: number | undefined;
+    minimumPurchase?: number | undefined;
+    expiryDays?: number | undefined;
+    customCode?: string | undefined;
+  }): Promise<{ success: boolean; coupon: any; whatsappUrl: string; message: string }> {
+    const res = await fetch('/api/admin/loyalty-qualifiers', {
+      method: 'POST',
+      headers: await this.requestHeaders(),
+      body: JSON.stringify(params),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to issue loyalty reward.');
     }
     return res.json();
   }

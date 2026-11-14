@@ -174,7 +174,7 @@ runTest('Coupon assigned to another customer phone number -> Rejected', () => {
   // Attempt with another customer's phone
   const res = validateCouponEligibility(phoneLockedCoupon, 400, '9123456780');
   assert.strictEqual(res.valid, false);
-  assert.match(res.error, /reserved for another registered phone number/);
+  assert.match(res.error, /reserved for another (customer|registered) phone number/);
 });
 
 runTest('Coupon assigned to customer used with matching phone -> Accepted', () => {
@@ -446,6 +446,78 @@ runTest('Zero base total returns zero fee buffer', () => {
   const { finalTotal, gatewayFee } = calculateRazorpayBufferedTotal(0);
   assert.strictEqual(finalTotal, 0);
   assert.strictEqual(gatewayFee, 0);
+});
+
+// ----------------------------------------------------
+// 9. PHONE-LOCKED LOYALTY REWARDS & ANTI-FRAUD VERIFICATION
+// ----------------------------------------------------
+console.log('\n--- 9. Phone-Locked Loyalty Rewards & Anti-Fraud Verification ---');
+
+const vipLoyaltyCoupon = {
+  couponCode: 'PGK-9F8K-4X2B',
+  discountAmount: 50,
+  minimumPurchase: 300,
+  customerPhone: '9876543210',
+  customerName: 'Priya Sharma',
+  status: 'active',
+  singleUse: true,
+  expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+};
+
+runTest('VIP Loyalty Coupon: Matching phone (+91 format vs 10 digits) -> Successfully Validated', () => {
+  const result = validateCouponEligibility(vipLoyaltyCoupon, 350, '+91-98765-43210');
+  assert.strictEqual(result.valid, true);
+  assert.strictEqual(result.discountAmount, 50);
+});
+
+runTest('VIP Loyalty Coupon: Mismatching phone (friend tries to use it) -> Strictly Rejected (phone_mismatch)', () => {
+  const result = validateCouponEligibility(vipLoyaltyCoupon, 350, '9123456780');
+  assert.strictEqual(result.valid, false);
+  assert.strictEqual(result.reason, 'phone_mismatch');
+  assert.strictEqual(result.discountAmount, 0);
+  assert(result.error.includes('reserved for another customer phone number'));
+});
+
+runTest('VIP Loyalty Coupon: Missing phone (attempted bypass) -> Strictly Rejected (phone_required)', () => {
+  const result = validateCouponEligibility(vipLoyaltyCoupon, 350, undefined);
+  assert.strictEqual(result.valid, false);
+  assert.strictEqual(result.reason, 'phone_required');
+  assert.strictEqual(result.discountAmount, 0);
+  assert(result.error.includes('Please enter your shipping phone number'));
+});
+
+runTest('VIP Loyalty Coupon: Cart below minimum purchase (₹250 < ₹300) -> Rejected (min_purchase)', () => {
+  const result = validateCouponEligibility(vipLoyaltyCoupon, 250, '9876543210');
+  assert.strictEqual(result.valid, false);
+  assert.strictEqual(result.reason, 'min_purchase');
+  assert.strictEqual(result.discountAmount, 0);
+});
+
+runTest('VIP Loyalty Coupon: Already redeemed -> Rejected (redeemed)', () => {
+  const redeemedCoupon = { ...vipLoyaltyCoupon, status: 'redeemed' };
+  const result = validateCouponEligibility(redeemedCoupon, 400, '9876543210');
+  assert.strictEqual(result.valid, false);
+  assert.strictEqual(result.reason, 'redeemed');
+  assert.strictEqual(result.discountAmount, 0);
+});
+
+runTest('VIP Loyalty Coupon: Expired -> Rejected (expired)', () => {
+  const expiredCoupon = {
+    ...vipLoyaltyCoupon,
+    expiresAt: new Date(Date.now() - 10000).toISOString(),
+  };
+  const result = validateCouponEligibility(expiredCoupon, 400, '9876543210');
+  assert.strictEqual(result.valid, false);
+  assert.strictEqual(result.reason, 'expired');
+  assert.strictEqual(result.discountAmount, 0);
+});
+
+runTest('VIP Loyalty Coupon: Cancelled -> Rejected (cancelled)', () => {
+  const cancelledCoupon = { ...vipLoyaltyCoupon, status: 'cancelled' };
+  const result = validateCouponEligibility(cancelledCoupon, 400, '9876543210');
+  assert.strictEqual(result.valid, false);
+  assert.strictEqual(result.reason, 'cancelled');
+  assert.strictEqual(result.discountAmount, 0);
 });
 
 console.log('\n====================================================');

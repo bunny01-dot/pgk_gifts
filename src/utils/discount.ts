@@ -183,25 +183,25 @@ export function validateCouponEligibility(
   },
   subtotal: number,
   phone?: string
-): { valid: boolean; error?: string; discountAmount: number } {
+): { valid: boolean; error?: string; discountAmount: number; reason?: 'phone_mismatch' | 'phone_required' | 'expired' | 'redeemed' | 'cancelled' | 'inactive' | 'min_purchase' } {
   const subtotalPaise = rupeesToPaise(subtotal);
 
   // Check active status
   if ('status' in coupon && coupon.status) {
     if (coupon.status === 'redeemed') {
-      return { valid: false, error: 'This coupon has already been redeemed.', discountAmount: 0 };
+      return { valid: false, error: 'This coupon has already been redeemed.', discountAmount: 0, reason: 'redeemed' };
     }
     if (coupon.status === 'expired') {
-      return { valid: false, error: 'This coupon has expired.', discountAmount: 0 };
+      return { valid: false, error: 'This coupon has expired.', discountAmount: 0, reason: 'expired' };
     }
     if (coupon.status === 'cancelled') {
-      return { valid: false, error: 'This coupon has been cancelled.', discountAmount: 0 };
+      return { valid: false, error: 'This coupon has been cancelled.', discountAmount: 0, reason: 'cancelled' };
     }
     if (coupon.status !== 'active') {
-      return { valid: false, error: 'This coupon is invalid or expired.', discountAmount: 0 };
+      return { valid: false, error: 'This coupon is invalid or expired.', discountAmount: 0, reason: 'inactive' };
     }
   } else if ('active' in coupon && !coupon.active) {
-    return { valid: false, error: 'This coupon is no longer active.', discountAmount: 0 };
+    return { valid: false, error: 'This coupon is no longer active.', discountAmount: 0, reason: 'inactive' };
   }
 
   // Check expiration date
@@ -211,19 +211,28 @@ export function validateCouponEligibility(
       : (coupon.expiresAt?.toDate ? coupon.expiresAt.toDate().getTime() : 0);
 
     if (expiryTime > 0 && expiryTime < Date.now()) {
-      return { valid: false, error: 'This coupon has expired.', discountAmount: 0 };
+      return { valid: false, error: 'This coupon has expired.', discountAmount: 0, reason: 'expired' };
     }
   }
 
-  // Check phone assignment if specified
-  if (coupon.customerPhone && phone) {
+  // Check phone assignment if specified (strict phone lock anti-fraud)
+  if (coupon.customerPhone) {
     const cleanCouponPhone = coupon.customerPhone.replace(/\D/g, '').slice(-10);
-    const cleanUserPhone = phone.replace(/\D/g, '').slice(-10);
-    if (cleanCouponPhone && cleanUserPhone && cleanCouponPhone !== cleanUserPhone) {
+    const cleanUserPhone = (phone || '').replace(/\D/g, '').slice(-10);
+    if (!cleanUserPhone) {
       return {
         valid: false,
-        error: 'This loyalty coupon is reserved for another registered phone number.',
+        error: 'Please enter your shipping phone number to apply this exclusive reward.',
         discountAmount: 0,
+        reason: 'phone_required',
+      };
+    }
+    if (cleanCouponPhone && cleanCouponPhone !== cleanUserPhone) {
+      return {
+        valid: false,
+        error: 'This exclusive loyalty coupon is reserved for another customer phone number.',
+        discountAmount: 0,
+        reason: 'phone_mismatch',
       };
     }
   }
@@ -237,6 +246,7 @@ export function validateCouponEligibility(
         valid: false,
         error: `Minimum purchase of ₹${minRequired} is required to apply this coupon.`,
         discountAmount: 0,
+        reason: 'min_purchase',
       };
     }
   }

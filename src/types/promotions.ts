@@ -97,3 +97,29 @@ export interface PromotionsStats {
   totalSavingsGranted: number; // Total Rs saved by customers
 }
 
+export interface LoyaltyQualifier {
+  phone: string;
+  name: string;
+  email?: string | undefined;
+  completedOrderCount: number;
+  lifetimeSpend: number;
+  lastOrderDate?: string | undefined;
+  orderIds: string[];
+  isEligible: boolean; // completedOrderCount >= 3
+  rewardStatus: 'eligible' | 'issued' | 'redeemed' | 'expired';
+  issuedCouponCode?: string | null | undefined;
+  issuedAt?: string | null | undefined;
+  expiresAt?: string | null | undefined;
+  redeemedAt?: string | null | undefined;
+  redeemedOrderId?: string | null | undefined;
+  whatsappUrl?: string | null | undefined;
+}
+
+export interface LoyaltyQualifiersResponse {
+  qualifiers: LoyaltyQualifier[];
+  totalQualifiersCount: number;
+  eligibleCount: number;
+  issuedCount: number;
+  redeemedCount: number;
+}
+

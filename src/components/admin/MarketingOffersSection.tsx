@@ -27,6 +27,10 @@ import {
   DollarSign,
   Save,
   CheckCheck,
+  MessageSquare,
+  Award,
+  Users,
+  Lock,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,7 +45,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore } from '@/firebase';
 import { PromotionsService } from '@/services/promotions.service';
 import { ProductsService } from '@/services/products.service';
-import { PromotionalOffer, AdminCouponView, PromotionsStats } from '@/types/promotions';
+import { PromotionalOffer, AdminCouponView, PromotionsStats, LoyaltyQualifier } from '@/types/promotions';
 import { Product } from '@/types/product';
 import { formatPrice } from '@/utils/currency';
 import {
@@ -59,7 +63,34 @@ export function MarketingOffersSection() {
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeMainTab, setActiveMainTab] = useState<'promotions' | 'pricing'>('promotions');
+  const [activeMainTab, setActiveMainTab] = useState<'promotions' | 'loyalty' | 'pricing'>('promotions');
+
+  // Loyalty 3+ Orders Qualifiers state
+  const [loyaltyQualifiers, setLoyaltyQualifiers] = useState<LoyaltyQualifier[]>([]);
+  const [loadingLoyalty, setLoadingLoyalty] = useState(false);
+  const [loyaltyStats, setLoyaltyStats] = useState({
+    totalQualifiersCount: 0,
+    eligibleCount: 0,
+    issuedCount: 0,
+    redeemedCount: 0,
+  });
+  const [loyaltySearch, setLoyaltySearch] = useState('');
+  const [loyaltyStatusFilter, setLoyaltyStatusFilter] = useState<'all' | 'eligible' | 'issued' | 'redeemed'>('all');
+  const [generatingLoyaltyForPhone, setGeneratingLoyaltyForPhone] = useState<string | null>(null);
+
+  // Manual Loyalty Code Generator state
+  const [manualLoyaltyPhone, setManualLoyaltyPhone] = useState('');
+  const [manualLoyaltyName, setManualLoyaltyName] = useState('');
+  const [manualLoyaltyDiscount, setManualLoyaltyDiscount] = useState<number>(50);
+  const [manualLoyaltyMinPurchase, setManualLoyaltyMinPurchase] = useState<number>(300);
+  const [manualLoyaltyExpiryDays, setManualLoyaltyExpiryDays] = useState<number>(30);
+  const [manualLoyaltyCustomCode, setManualLoyaltyCustomCode] = useState('');
+  const [manualGenerating, setManualGenerating] = useState(false);
+  const [lastGeneratedLoyalty, setLastGeneratedLoyalty] = useState<{
+    code: string;
+    phone: string;
+    whatsappUrl: string;
+  } | null>(null);
 
   // Promotions & Offers state
   const [offers, setOffers] = useState<PromotionalOffer[]>([]);
@@ -184,10 +215,36 @@ export function MarketingOffersSection() {
     }
   };
 
+  const loadLoyaltyData = async (silent = false) => {
+    try {
+      if (!silent) setLoadingLoyalty(true);
+      const data = await promotionsService.getLoyaltyQualifiers();
+      setLoyaltyQualifiers(data.qualifiers || []);
+      setLoyaltyStats({
+        totalQualifiersCount: data.totalQualifiersCount || 0,
+        eligibleCount: data.eligibleCount || 0,
+        issuedCount: data.issuedCount || 0,
+        redeemedCount: data.redeemedCount || 0,
+      });
+    } catch (err: any) {
+      console.error('Failed to load loyalty qualifiers:', err);
+      if (!silent) {
+        toast({
+          variant: 'destructive',
+          title: 'Error loading VIP qualifiers',
+          description: err.message || 'Could not fetch loyalty qualifiers.',
+        });
+      }
+    } finally {
+      setLoadingLoyalty(false);
+    }
+  };
+
   useEffect(() => {
     if (user) {
       loadData();
       loadProductsAndSettings();
+      loadLoyaltyData(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
@@ -451,6 +508,115 @@ export function MarketingOffersSection() {
     toast({ title: 'Copied to Clipboard!', description: code });
   };
 
+  // Generate loyalty VIP reward for a specific qualifier
+  const handleGenerateLoyalty = async (qualifier: LoyaltyQualifier) => {
+    try {
+      setGeneratingLoyaltyForPhone(qualifier.phone);
+      const res = await promotionsService.generateLoyaltyReward({
+        customerPhone: qualifier.phone,
+        customerName: qualifier.name,
+        discountAmount: 50,
+        minimumPurchase: 300,
+        expiryDays: 30,
+      });
+
+      toast({
+        title: 'VIP Reward Generated!',
+        description: `Code ${res.coupon?.couponCode} issued for ${qualifier.name} (+91 ${qualifier.phone}).`,
+      });
+
+      // Update lists
+      await Promise.all([loadLoyaltyData(true), loadData(false)]);
+
+      // Open WhatsApp chat with pre-filled message
+      if (res.whatsappUrl) {
+        window.open(res.whatsappUrl, '_blank', 'noopener,noreferrer');
+      }
+    } catch (err: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed to generate VIP Reward',
+        description: err.message || 'Something went wrong.',
+      });
+    } finally {
+      setGeneratingLoyaltyForPhone(null);
+    }
+  };
+
+  // Generate loyalty VIP reward manually for custom input
+  const handleManualGenerateLoyalty = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanPh = manualLoyaltyPhone.replace(/\D/g, '').slice(-10);
+    if (!cleanPh || cleanPh.length < 10) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid Phone Number',
+        description: 'Please enter a valid 10-digit customer mobile number.',
+      });
+      return;
+    }
+
+    try {
+      setManualGenerating(true);
+      const res = await promotionsService.generateLoyaltyReward({
+        customerPhone: cleanPh,
+        customerName: manualLoyaltyName.trim() || undefined,
+        discountAmount: Number(manualLoyaltyDiscount) || 50,
+        minimumPurchase: Number(manualLoyaltyMinPurchase) || 300,
+        expiryDays: Number(manualLoyaltyExpiryDays) || 30,
+        customCode: manualLoyaltyCustomCode.trim() || undefined,
+      });
+
+      setLastGeneratedLoyalty({
+        code: res.coupon?.couponCode || '',
+        phone: cleanPh,
+        whatsappUrl: res.whatsappUrl,
+      });
+
+      toast({
+        title: 'VIP Reward Issued!',
+        description: `Code ${res.coupon?.couponCode} created and locked to phone +91 ${cleanPh}.`,
+      });
+
+      // Reset form fields
+      setManualLoyaltyPhone('');
+      setManualLoyaltyName('');
+      setManualLoyaltyCustomCode('');
+
+      // Refresh both loyalty and coupon lists
+      await Promise.all([loadLoyaltyData(true), loadData(false)]);
+    } catch (err: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed to create VIP coupon',
+        description: err.message || 'Error creating phone-locked reward.',
+      });
+    } finally {
+      setManualGenerating(false);
+    }
+  };
+
+  // Filtered loyalty qualifiers
+  const filteredLoyaltyQualifiers = useMemo(() => {
+    return loyaltyQualifiers.filter((item) => {
+      // Status filter
+      if (loyaltyStatusFilter !== 'all') {
+        if (loyaltyStatusFilter === 'eligible' && item.rewardStatus !== 'eligible') return false;
+        if (loyaltyStatusFilter === 'issued' && item.rewardStatus !== 'issued') return false;
+        if (loyaltyStatusFilter === 'redeemed' && item.rewardStatus !== 'redeemed') return false;
+      }
+      // Search filter
+      if (loyaltySearch.trim()) {
+        const query = loyaltySearch.toLowerCase().trim();
+        const phoneMatches = item.phone.includes(query);
+        const nameMatches = item.name.toLowerCase().includes(query);
+        const codeMatches = item.issuedCouponCode?.toLowerCase().includes(query) ?? false;
+        if (!phoneMatches && !nameMatches && !codeMatches) return false;
+      }
+      return true;
+    });
+  }, [loyaltyQualifiers, loyaltyStatusFilter, loyaltySearch]);
+
   // Filtered coupons
   const filteredCoupons = useMemo(() => {
     return coupons.filter((coupon) => {
@@ -543,13 +709,21 @@ export function MarketingOffersSection() {
         </div>
       </div>
 
-      {/* Main Mode Tabs: [Promotions & Coupons] | [Product Prices & Pricing] */}
+      {/* Main Mode Tabs: [Discounts & Coupons] | [3+ Orders VIP Loyalty] | [Product Prices & Pricing] */}
       <Tabs value={activeMainTab} onValueChange={(val: any) => setActiveMainTab(val)} className="w-full">
-        <TabsList className="h-11 rounded-2xl p-1 bg-secondary/50 border border-border/50 grid grid-cols-2 max-w-md mb-6">
-          <TabsTrigger value="promotions" className="rounded-xl text-xs md:text-sm font-bold h-9 flex items-center gap-2">
+        <TabsList className="h-11 rounded-2xl p-1 bg-secondary/50 border border-border/50 grid grid-cols-3 max-w-2xl mb-6">
+          <TabsTrigger value="promotions" className="rounded-xl text-xs md:text-sm font-bold h-9 flex items-center justify-center gap-1.5">
             <Gift className="w-4 h-4 text-emerald-600" /> Discounts & Coupons
           </TabsTrigger>
-          <TabsTrigger value="pricing" className="rounded-xl text-xs md:text-sm font-bold h-9 flex items-center gap-2">
+          <TabsTrigger value="loyalty" className="rounded-xl text-xs md:text-sm font-bold h-9 flex items-center justify-center gap-1.5">
+            <Sparkles className="w-4 h-4 text-amber-500" /> 3+ Orders VIP
+            {loyaltyStats.eligibleCount > 0 && (
+              <Badge variant="secondary" className="ml-1 bg-amber-500/20 text-amber-700 dark:text-amber-300 text-[10px] px-1.5 py-0 h-4 font-extrabold">
+                {loyaltyStats.eligibleCount}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="pricing" className="rounded-xl text-xs md:text-sm font-bold h-9 flex items-center justify-center gap-1.5">
             <IndianRupee className="w-4 h-4 text-primary" /> Price Management
           </TabsTrigger>
         </TabsList>
@@ -908,7 +1082,485 @@ export function MarketingOffersSection() {
           </Card>
         </TabsContent>
 
-        {/* ===================== TAB 2: PRICE MANAGEMENT ===================== */}
+        {/* ===================== TAB 2: 3+ ORDERS VIP LOYALTY REWARDS ===================== */}
+        <TabsContent value="loyalty" className="space-y-8 mt-0">
+          {/* Security & Overview Banner */}
+          <div className="rounded-3xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-background to-secondary/30 p-6 md:p-8 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 -mt-6 -mr-6 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              <div className="space-y-2 max-w-2xl">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-bold uppercase tracking-wider">
+                  <Award className="w-3.5 h-3.5" /> 3+ Orders VIP Loyalty Reward System
+                </div>
+                <h2 className="text-2xl md:text-3xl font-headline font-bold text-foreground">
+                  Rewarding Customer Loyalty with Zero Fraud Risk
+                </h2>
+                <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
+                  Automatically tracks returning customers with 3 or more completed purchases. Generate exclusive Flat ₹50 OFF reward codes (min order ₹300) that are strictly phone-locked. Prevents sharing on coupon sites or among friends while delighting your best buyers.
+                </p>
+              </div>
+
+              {/* 3 Protection Badges */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-2.5 shrink-0">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-card border border-border/60 text-xs shadow-xs">
+                  <Lock className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <div>
+                    <p className="font-bold text-foreground text-[11px]">Strict Phone Lock</p>
+                    <p className="text-[10px] text-muted-foreground">Only usable with owner&apos;s phone</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-card border border-border/60 text-xs shadow-xs">
+                  <CheckCircle className="w-4 h-4 text-primary shrink-0" />
+                  <div>
+                    <p className="font-bold text-foreground text-[11px]">Single-Use & 30-Day Expiry</p>
+                    <p className="text-[10px] text-muted-foreground">Auto-redeemed upon payment</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-card border border-border/60 text-xs shadow-xs">
+                  <MessageSquare className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <div>
+                    <p className="font-bold text-foreground text-[11px]">1-Click WhatsApp Dispatch</p>
+                    <p className="text-[10px] text-muted-foreground">Pre-filled reward link</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Loyalty KPI Stats Grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            <Card className="rounded-2xl border border-border/50 bg-card p-5 shadow-xs">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Total 3+ Order VIPs</span>
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                  <Users className="w-4 h-4" />
+                </div>
+              </div>
+              <p className="text-2xl md:text-3xl font-headline font-bold text-foreground">
+                {loyaltyStats.totalQualifiersCount}
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-1">Customers with 3 or more completed orders</p>
+            </Card>
+
+            <Card className="rounded-2xl border border-border/50 bg-card p-5 shadow-xs">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Awaiting Reward</span>
+                <div className="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-600 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <p className="text-2xl md:text-3xl font-headline font-bold text-foreground">
+                  {loyaltyStats.eligibleCount}
+                </p>
+                {loyaltyStats.eligibleCount > 0 && (
+                  <Badge className="bg-amber-500 text-white text-[10px] uppercase font-bold">
+                    Action Needed
+                  </Badge>
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1">Eligible buyers without coupon</p>
+            </Card>
+
+            <Card className="rounded-2xl border border-border/50 bg-card p-5 shadow-xs">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Rewards Issued</span>
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                  <Gift className="w-4 h-4" />
+                </div>
+              </div>
+              <p className="text-2xl md:text-3xl font-headline font-bold text-foreground">
+                {loyaltyStats.issuedCount}
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-1">Active phone-locked loyalty codes</p>
+            </Card>
+
+            <Card className="rounded-2xl border border-border/50 bg-card p-5 shadow-xs">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">VIP Redemptions</span>
+                <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4" />
+                </div>
+              </div>
+              <p className="text-2xl md:text-3xl font-headline font-bold text-foreground">
+                {loyaltyStats.redeemedCount}
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-1">Coupons used on repeat orders</p>
+            </Card>
+          </div>
+
+          {/* Qualifiers Table Card */}
+          <Card className="rounded-2xl border border-border/50 bg-card shadow-sm overflow-hidden">
+            <CardHeader className="border-b bg-secondary/15 p-5 md:p-6 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <CardTitle className="text-xl font-bold flex items-center gap-2">
+                    <Users className="w-5 h-5 text-amber-500" /> Customer Loyalty Qualifiers
+                  </CardTitle>
+                  <CardDescription className="text-xs md:text-sm mt-1">
+                    Customers grouped by 10-digit mobile number with completed order counts and assigned phone-locked rewards.
+                  </CardDescription>
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => loadLoyaltyData(false)}
+                  disabled={loadingLoyalty}
+                  className="rounded-full h-9 text-xs font-bold shrink-0 self-start sm:self-auto"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loadingLoyalty ? 'animate-spin' : ''}`} /> Refresh Qualifiers
+                </Button>
+              </div>
+
+              {/* Search & Status Filters */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Input
+                    placeholder="Search by customer name, phone number, or coupon code..."
+                    value={loyaltySearch}
+                    onChange={(e) => setLoyaltySearch(e.target.value)}
+                    className="pl-9 h-9 text-xs rounded-xl bg-card border-border/70"
+                  />
+                </div>
+
+                <Tabs value={loyaltyStatusFilter} onValueChange={(val: any) => setLoyaltyStatusFilter(val)} className="shrink-0">
+                  <TabsList className="h-9 rounded-xl p-1 bg-secondary/40">
+                    <TabsTrigger value="all" className="rounded-lg text-xs font-bold h-7 px-3">
+                      All ({loyaltyQualifiers.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="eligible" className="rounded-lg text-xs font-bold h-7 px-3 text-amber-600">
+                      Eligible ({loyaltyStats.eligibleCount})
+                    </TabsTrigger>
+                    <TabsTrigger value="issued" className="rounded-lg text-xs font-bold h-7 px-3 text-emerald-600">
+                      Active ({loyaltyStats.issuedCount})
+                    </TabsTrigger>
+                    <TabsTrigger value="redeemed" className="rounded-lg text-xs font-bold h-7 px-3 text-blue-600">
+                      Redeemed ({loyaltyStats.redeemedCount})
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="text-xs font-bold">Customer Details</TableHead>
+                      <TableHead className="text-xs font-bold">Completed Orders</TableHead>
+                      <TableHead className="text-xs font-bold">Lifetime Spend</TableHead>
+                      <TableHead className="text-xs font-bold">Reward Status</TableHead>
+                      <TableHead className="text-xs font-bold">Assigned VIP Code</TableHead>
+                      <TableHead className="text-xs font-bold text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredLoyaltyQualifiers.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="h-32 text-center text-xs text-muted-foreground">
+                          {loadingLoyalty ? (
+                            <div className="flex items-center justify-center gap-2">
+                              <RefreshCw className="w-4 h-4 animate-spin text-primary" /> Loading qualifiers...
+                            </div>
+                          ) : (
+                            'No customer qualifiers found matching your filter.'
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredLoyaltyQualifiers.map((qualifier) => {
+                        const isGeneratingThis = generatingLoyaltyForPhone === qualifier.phone;
+                        return (
+                          <TableRow key={qualifier.phone} className="hover:bg-secondary/20">
+                            {/* Customer Details */}
+                            <TableCell className="text-xs">
+                              <div>
+                                <p className="font-bold text-foreground text-sm">{qualifier.name || 'PGK Customer'}</p>
+                                <p className="font-mono text-muted-foreground text-xs flex items-center gap-1 mt-0.5">
+                                  <Phone className="w-3 h-3 text-muted-foreground" /> +91 {qualifier.phone}
+                                </p>
+                                {qualifier.email && (
+                                  <p className="text-[11px] text-muted-foreground truncate max-w-[200px]">
+                                    {qualifier.email}
+                                  </p>
+                                )}
+                              </div>
+                            </TableCell>
+
+                            {/* Completed Orders */}
+                            <TableCell className="text-xs">
+                              <div className="flex flex-col gap-1 items-start">
+                                <Badge
+                                  variant="secondary"
+                                  className={`text-xs font-extrabold ${
+                                    qualifier.completedOrderCount >= 3
+                                      ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30'
+                                      : 'bg-secondary text-muted-foreground'
+                                  }`}
+                                >
+                                  {qualifier.completedOrderCount} Orders
+                                </Badge>
+                                {qualifier.lastOrderDate && (
+                                  <span className="text-[10px] text-muted-foreground">
+                                    Last: {new Date(qualifier.lastOrderDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                                  </span>
+                                )}
+                              </div>
+                            </TableCell>
+
+                            {/* Lifetime Spend */}
+                            <TableCell className="text-xs font-bold text-foreground">
+                              {formatPrice(qualifier.lifetimeSpend)}
+                            </TableCell>
+
+                            {/* Reward Status */}
+                            <TableCell className="text-xs">
+                              {qualifier.rewardStatus === 'eligible' && (
+                                <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[11px] font-bold">
+                                  Eligible (3+ Orders)
+                                </Badge>
+                              )}
+                              {qualifier.rewardStatus === 'issued' && (
+                                <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[11px] font-bold">
+                                  Active Reward
+                                </Badge>
+                              )}
+                              {qualifier.rewardStatus === 'redeemed' && (
+                                <Badge className="bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 text-[11px] font-bold">
+                                  Redeemed
+                                </Badge>
+                              )}
+                              {qualifier.rewardStatus === 'expired' && (
+                                <Badge variant="secondary" className="text-muted-foreground text-[11px]">
+                                  Expired
+                                </Badge>
+                              )}
+                            </TableCell>
+
+                            {/* Assigned VIP Code */}
+                            <TableCell className="text-xs">
+                              {qualifier.issuedCouponCode ? (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-mono font-bold text-foreground bg-secondary/60 px-2 py-1 rounded-md text-xs border border-border/70">
+                                    {qualifier.issuedCouponCode}
+                                  </span>
+                                  <button
+                                    onClick={() => handleCopyCode(qualifier.issuedCouponCode!)}
+                                    className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                                    title="Copy Code"
+                                  >
+                                    <Copy className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-muted-foreground italic">None generated</span>
+                              )}
+                            </TableCell>
+
+                            {/* Actions */}
+                            <TableCell className="text-xs text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                {qualifier.rewardStatus === 'eligible' && (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleGenerateLoyalty(qualifier)}
+                                    disabled={isGeneratingThis}
+                                    className="rounded-full h-8 px-3 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-xs gap-1.5"
+                                  >
+                                    <Sparkles className={`w-3.5 h-3.5 ${isGeneratingThis ? 'animate-spin' : ''}`} />
+                                    {isGeneratingThis ? 'Generating...' : 'Issue VIP Code'}
+                                  </Button>
+                                )}
+
+                                {qualifier.rewardStatus === 'issued' && (
+                                  <>
+                                    {qualifier.whatsappUrl && (
+                                      <a
+                                        href={qualifier.whatsappUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-xs transition-colors"
+                                        title="Send reward via WhatsApp"
+                                      >
+                                        <MessageSquare className="w-3.5 h-3.5" /> Send WhatsApp
+                                      </a>
+                                    )}
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleCopyCode(qualifier.issuedCouponCode!)}
+                                      className="rounded-full h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+                                      title="Copy code"
+                                    >
+                                      <Copy className="w-3.5 h-3.5" />
+                                    </Button>
+                                  </>
+                                )}
+
+                                {qualifier.rewardStatus === 'redeemed' && (
+                                  <div className="flex items-center gap-1 text-[11px] text-blue-600 font-bold">
+                                    <CheckCheck className="w-3.5 h-3.5" />
+                                    {qualifier.redeemedOrderId ? `Order #${qualifier.redeemedOrderId}` : 'Redeemed'}
+                                  </div>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Manual VIP Generator Card */}
+          <Card className="rounded-2xl border border-border/50 bg-card shadow-sm overflow-hidden">
+            <CardHeader className="border-b bg-secondary/15 p-5 md:p-6">
+              <CardTitle className="text-xl font-bold flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-amber-500" /> Manual Phone-Locked VIP Code Generator
+              </CardTitle>
+              <CardDescription className="text-xs md:text-sm mt-1">
+                Directly issue a private ₹50 OFF VIP reward to any customer phone number (useful for ad-hoc customer service, Instagram DMs, or manual inquiries).
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent className="p-5 md:p-6 space-y-6">
+              <form onSubmit={handleManualGenerateLoyalty} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold flex items-center gap-1">
+                    Customer Phone Number <span className="text-destructive">*</span>
+                  </Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">
+                      +91
+                    </span>
+                    <Input
+                      type="tel"
+                      placeholder="9876543210"
+                      value={manualLoyaltyPhone}
+                      onChange={(e) => setManualLoyaltyPhone(e.target.value)}
+                      maxLength={10}
+                      required
+                      className="pl-12 h-10 rounded-xl text-xs font-mono font-bold"
+                    />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">Coupon will strictly unlock ONLY for this phone.</p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold">Customer Name (Optional)</Label>
+                  <Input
+                    type="text"
+                    placeholder="e.g. Priya Sharma"
+                    value={manualLoyaltyName}
+                    onChange={(e) => setManualLoyaltyName(e.target.value)}
+                    className="h-10 rounded-xl text-xs"
+                  />
+                  <p className="text-[10px] text-muted-foreground">Used to personalize the WhatsApp message.</p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold">Custom Code (Optional)</Label>
+                  <Input
+                    type="text"
+                    placeholder="Leave blank for auto PGK-XXXX-XXXX"
+                    value={manualLoyaltyCustomCode}
+                    onChange={(e) => setManualLoyaltyCustomCode(e.target.value.toUpperCase())}
+                    className="h-10 rounded-xl text-xs font-mono"
+                  />
+                  <p className="text-[10px] text-muted-foreground">Must be unique across all active coupons.</p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold">Discount Amount (₹)</Label>
+                  <Input
+                    type="number"
+                    value={manualLoyaltyDiscount}
+                    onChange={(e) => setManualLoyaltyDiscount(Number(e.target.value))}
+                    min={1}
+                    className="h-10 rounded-xl text-xs font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold">Minimum Purchase Requirement (₹)</Label>
+                  <Input
+                    type="number"
+                    value={manualLoyaltyMinPurchase}
+                    onChange={(e) => setManualLoyaltyMinPurchase(Number(e.target.value))}
+                    min={0}
+                    className="h-10 rounded-xl text-xs font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold">Expiry Period (Days)</Label>
+                  <Input
+                    type="number"
+                    value={manualLoyaltyExpiryDays}
+                    onChange={(e) => setManualLoyaltyExpiryDays(Number(e.target.value))}
+                    min={1}
+                    className="h-10 rounded-xl text-xs font-bold"
+                  />
+                </div>
+
+                <div className="md:col-span-3 flex justify-end pt-2">
+                  <Button
+                    type="submit"
+                    disabled={manualGenerating}
+                    className="rounded-full h-10 px-6 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-md gap-2"
+                  >
+                    <Sparkles className={`w-4 h-4 ${manualGenerating ? 'animate-spin' : ''}`} />
+                    {manualGenerating ? 'Generating VIP Code...' : 'Generate & Lock to Phone'}
+                  </Button>
+                </div>
+              </form>
+
+              {/* Instant WhatsApp Dispatch Result Banner */}
+              {lastGeneratedLoyalty && (
+                <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <CheckCircle className="w-4 h-4 text-emerald-600" /> Reward Generated Successfully
+                    </p>
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="font-mono font-black text-lg text-foreground bg-card px-3 py-1 rounded-xl border border-emerald-500/30">
+                        {lastGeneratedLoyalty.code}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleCopyCode(lastGeneratedLoyalty.code)}
+                        className="rounded-lg h-8 px-2"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Locked to phone +91 {lastGeneratedLoyalty.phone}. Valid for 30 days.
+                    </p>
+                  </div>
+
+                  <a
+                    href={lastGeneratedLoyalty.whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-full text-xs font-bold shadow-md transition-all self-stretch sm:self-auto justify-center"
+                  >
+                    <MessageSquare className="w-4 h-4" /> Send Code via WhatsApp
+                  </a>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ===================== TAB 3: PRICE MANAGEMENT ===================== */}
         <TabsContent value="pricing" className="space-y-8 mt-0">
           {/* Quick Store Service & Delivery Charges */}
           <Card className="rounded-2xl border border-border/50 bg-card shadow-sm overflow-hidden">
