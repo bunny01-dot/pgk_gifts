@@ -46,59 +46,61 @@ export default function CartPage() {
           <ShoppingBag className="w-7 h-7 md:w-10 md:h-10 text-primary" /> Your Shopping Bag
         </h1>
 
-        {/* Promotional Progress Banner */}
-        <div className="mb-6 md:mb-10 max-w-3xl">
-          <div className={`p-4 md:p-5 rounded-2xl md:rounded-3xl border transition-all duration-300 ${
-            discountProgress.isMaxTier
-              ? 'bg-emerald-500/10 border-emerald-500/30 dark:bg-emerald-950/20'
-              : automaticDiscount > 0
-              ? 'bg-amber-500/10 border-amber-500/30 dark:bg-amber-950/20'
-              : 'bg-primary/5 border-primary/20 dark:bg-primary/10'
-          }`}>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2.5">
-              <div className="flex items-center gap-2.5">
-                {discountProgress.isMaxTier ? (
-                  <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-sm">
-                    <CheckCircle className="w-4 h-4" />
+        {/* Promotional Progress Banner (Only if automatic discounts are active) */}
+        {automaticDiscount > 0 && (
+          <div className="mb-6 md:mb-10 max-w-3xl">
+            <div className={`p-4 md:p-5 rounded-2xl md:rounded-3xl border transition-all duration-300 ${
+              discountProgress.isMaxTier
+                ? 'bg-emerald-500/10 border-emerald-500/30 dark:bg-emerald-950/20'
+                : automaticDiscount > 0
+                ? 'bg-amber-500/10 border-amber-500/30 dark:bg-amber-950/20'
+                : 'bg-primary/5 border-primary/20 dark:bg-primary/10'
+            }`}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2.5">
+                <div className="flex items-center gap-2.5">
+                  {discountProgress.isMaxTier ? (
+                    <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+                      <CheckCircle className="w-4 h-4" />
+                    </div>
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                  )}
+                  <div>
+                    <p className={`text-sm md:text-base font-bold ${
+                      discountProgress.isMaxTier
+                        ? 'text-emerald-700 dark:text-emerald-300'
+                        : 'text-foreground'
+                    }`}>
+                      {discountProgress.message}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Automatic shopping discount applied directly to your product subtotal
+                    </p>
                   </div>
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0">
-                    <Sparkles className="w-4 h-4" />
-                  </div>
-                )}
-                <div>
-                  <p className={`text-sm md:text-base font-bold ${
-                    discountProgress.isMaxTier
-                      ? 'text-emerald-700 dark:text-emerald-300'
-                      : 'text-foreground'
-                  }`}>
-                    {discountProgress.message}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Automatic shopping discount applied directly to your product subtotal
-                  </p>
                 </div>
+                {automaticDiscount > 0 && (
+                  <span className="text-xs font-extrabold uppercase px-3 py-1 rounded-full bg-emerald-600 text-white shadow-xs shrink-0 self-start sm:self-center">
+                    ₹{automaticDiscount} OFF UNLOCKED
+                  </span>
+                )}
               </div>
-              {automaticDiscount > 0 && (
-                <span className="text-xs font-extrabold uppercase px-3 py-1 rounded-full bg-emerald-600 text-white shadow-xs shrink-0 self-start sm:self-center">
-                  ₹{automaticDiscount} OFF UNLOCKED
-                </span>
+
+              {/* Progress Bar */}
+              {!discountProgress.isMaxTier && (
+                <div className="w-full bg-secondary/80 rounded-full h-2.5 overflow-hidden relative mt-2">
+                  <motion.div
+                    className="h-full bg-gradient-to-r from-primary to-amber-500 rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${discountProgress.progressPercent}%` }}
+                    transition={{ duration: 0.6, ease: 'easeOut' }}
+                  />
+                </div>
               )}
             </div>
-
-            {/* Progress Bar */}
-            {!discountProgress.isMaxTier && (
-              <div className="w-full bg-secondary/80 rounded-full h-2.5 overflow-hidden relative mt-2">
-                <motion.div
-                  className="h-full bg-gradient-to-r from-primary to-amber-500 rounded-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${discountProgress.progressPercent}%` }}
-                  transition={{ duration: 0.6, ease: 'easeOut' }}
-                />
-              </div>
-            )}
           </div>
-        </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-12">
           {/* Cart Items */}

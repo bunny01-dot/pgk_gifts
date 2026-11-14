@@ -36,8 +36,8 @@ export function CartDrawer() {
           </div>
         </SheetHeader>
 
-        {/* Promotional Progress Banner (When Cart has items) */}
-        {cart.length > 0 && (
+        {/* Promotional Progress Banner (Only if automatic discounts are active) */}
+        {cart.length > 0 && automaticDiscount > 0 && (
           <div className="px-4 md:px-6 pt-4 pb-2">
             <div className={`p-3.5 rounded-2xl border transition-all duration-300 ${
               discountProgress.isMaxTier

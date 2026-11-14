@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ShieldCheck, Lock, Loader2, Minus, Plus, Trash2, Camera, Tag, Sparkles, AlertCircle, CheckCircle2, Ticket, ChevronDown, ChevronUp, Check, Gift } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Lock, Loader2, Minus, Plus, Trash2, Camera, Tag, Sparkles, AlertCircle, CheckCircle2, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -20,7 +20,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CONTACT_INFO } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { resolvePromotionalDiscounts, checkAndAdjustCouponForSubtotal, calculateRazorpayBufferedTotal } from '@/utils/discount';
-import { AvailableCoupon } from '@/types/promotions';
 
 declare global {
   interface Window {
@@ -105,11 +104,6 @@ export default function CheckoutPage() {
   // Track previous cart total to reactively handle order changes
   const prevCartTotalRef = useRef(cartTotal);
 
-  // Available coupons discovery state (visible by default so customers can select their offer)
-  const [availableCoupons, setAvailableCoupons] = useState<AvailableCoupon[]>([]);
-  const [loadingCoupons, setLoadingCoupons] = useState(false);
-  const [showCouponsList, setShowCouponsList] = useState(true);
-
   // Reactive Re-validation: When customer updates items or quantities, verify coupon eligibility
   useEffect(() => {
     const prevTotal = prevCartTotalRef.current;
@@ -162,40 +156,6 @@ export default function CheckoutPage() {
     }
   }, [cartTotal, appliedCoupon, toast]);
 
-  // Fetch available coupons based on current subtotal and customer phone
-  useEffect(() => {
-    let active = true;
-    const fetchAvailable = async () => {
-      if (cartTotal <= 0) return;
-      setLoadingCoupons(true);
-      try {
-        const res = await fetch('/api/coupon/available', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            subtotal: cartTotal,
-            phone: formData.phone.trim() || undefined,
-          }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (active && Array.isArray(data.coupons)) {
-            setAvailableCoupons(data.coupons);
-          }
-        }
-      } catch (err) {
-        console.warn('Could not fetch available coupons:', err);
-      } finally {
-        if (active) setLoadingCoupons(false);
-      }
-    };
-
-    fetchAvailable();
-    return () => {
-      active = false;
-    };
-  }, [cartTotal, formData.phone]);
-
   const handleApplyCoupon = async (explicitCode?: string) => {
     const codeToApply = (explicitCode || couponCode).trim();
     if (!codeToApply) return;
@@ -236,19 +196,6 @@ export default function CheckoutPage() {
     } finally {
       setValidatingCoupon(false);
     }
-  };
-
-  const handleSelectCoupon = (coupon: AvailableCoupon) => {
-    if (!coupon.isEligible) {
-      toast({
-        variant: 'destructive',
-        title: 'Coupon Not Eligible Yet',
-        description: coupon.reason || `Add ₹${coupon.amountNeeded} more to unlock this reward.`,
-      });
-      return;
-    }
-    setCouponCode(coupon.code);
-    handleApplyCoupon(coupon.code);
   };
 
   const handleRemoveCoupon = () => {
@@ -600,7 +547,7 @@ export default function CheckoutPage() {
 
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Enter coupon code (e.g. PGK15)"
+                    placeholder="Enter coupon code"
                     value={couponCode}
                     onChange={(e) => {
                       setCouponCode(e.target.value);
@@ -645,114 +592,6 @@ export default function CheckoutPage() {
                   <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/20">
                     <CheckCircle2 className="w-4 h-4 shrink-0" />
                     <span>{couponSuccessMessage || `Congratulations! Your ₹${appliedCoupon.discount} reward has been applied.`}</span>
-                  </div>
-                )}
-
-                {/* Available & Eligible Coupons Discovery Drawer */}
-                {availableCoupons.length > 0 && (
-                  <div className="pt-2 border-t border-border/40">
-                    <button
-                      type="button"
-                      onClick={() => setShowCouponsList(!showCouponsList)}
-                      className="w-full flex items-center justify-between text-xs font-bold text-primary p-2.5 rounded-xl bg-primary/5 hover:bg-primary/10 transition-colors border border-primary/20"
-                    >
-                      <span className="flex items-center gap-1.5">
-                        <Ticket className="w-4 h-4" />
-                        Available Coupons ({availableCoupons.filter((c) => c.isEligible).length} Eligible)
-                      </span>
-                      <span className="flex items-center gap-1 text-[11px] font-semibold text-primary/80">
-                        {showCouponsList ? 'Hide Offers' : 'View Offers'}
-                        {showCouponsList ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                      </span>
-                    </button>
-
-                    <AnimatePresence>
-                      {showCouponsList && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="overflow-hidden space-y-2.5 mt-2.5"
-                        >
-                          {availableCoupons.map((coupon) => {
-                            const isCurrentlyApplied = appliedCoupon?.code === coupon.code;
-
-                            return (
-                              <div
-                                key={coupon.code}
-                                className={`p-3 rounded-xl border transition-all ${
-                                  isCurrentlyApplied
-                                    ? 'border-emerald-500 bg-emerald-500/10 shadow-xs'
-                                    : coupon.isEligible
-                                    ? 'border-border/70 bg-card hover:border-primary/50 shadow-xs'
-                                    : 'border-border/40 bg-secondary/20 opacity-75'
-                                }`}
-                              >
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="min-w-0">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <span className="font-mono font-bold text-xs bg-secondary/80 px-2 py-0.5 rounded border border-border/60">
-                                        {coupon.code}
-                                      </span>
-                                      <span className="font-extrabold text-xs text-emerald-600 dark:text-emerald-400">
-                                        ₹{coupon.discountAmount || coupon.value} OFF
-                                      </span>
-                                      {coupon.isEligible && (
-                                        <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-[9px] px-1.5 py-0 h-4 border-none">
-                                          Eligible
-                                        </Badge>
-                                      )}
-                                    </div>
-                                    <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
-                                      {coupon.description || (coupon.minimumPurchase > 0 ? `Minimum order: ₹${coupon.minimumPurchase}` : 'No minimum order required')}
-                                    </p>
-                                    {!coupon.isEligible && (
-                                      <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold mt-0.5 flex items-center gap-1">
-                                        <Lock className="w-3 h-3 shrink-0" />
-                                        Add ₹{coupon.amountNeeded} more of products to unlock this reward
-                                      </p>
-                                    )}
-                                  </div>
-
-                                  <div className="shrink-0 text-right">
-                                    {isCurrentlyApplied ? (
-                                      <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={handleRemoveCoupon}
-                                        className="h-7 text-[11px] font-bold text-emerald-600 border-emerald-500 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg px-2.5"
-                                      >
-                                        <Check className="w-3 h-3 mr-1" /> Applied
-                                      </Button>
-                                    ) : coupon.isEligible ? (
-                                      <Button
-                                        type="button"
-                                        size="sm"
-                                        onClick={() => handleSelectCoupon(coupon)}
-                                        className="h-7 text-[11px] font-bold rounded-lg px-3 shadow-xs"
-                                      >
-                                        Apply
-                                      </Button>
-                                    ) : (
-                                      <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        disabled
-                                        className="h-7 text-[10px] font-bold rounded-lg px-2.5 opacity-50"
-                                      >
-                                        Locked
-                                      </Button>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
                   </div>
                 )}
               </div>
